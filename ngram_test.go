@@ -16,6 +16,7 @@ func TestSuggest(t *testing.T) {
 		"fluent",
 		"flunker",
 		"test",
+		"tes hello",
 	}
 
 	ngramIndex := NewNGramIndex(2)
@@ -26,7 +27,24 @@ func TestSuggest(t *testing.T) {
 
 	candidates := ngramIndex.Suggest("flunk", 3)
 	log.Printf("%v", candidates)
+}
 
-	candidates = ngramIndex.Suggest("tes", 5)
+func TestSuggestAuto(t *testing.T) {
+	collection := []string{
+		"Nissan March",
+		"Nissan Juke",
+		"Nissan Maxima",
+		"Nissan Murano",
+		"Nissan Moco",
+		"Toyota Mark II",
+	}
+
+	ngramIndex := NewNGramIndex(3)
+
+	for _, word := range collection {
+		ngramIndex.AddWord(word)
+	}
+
+	candidates := ngramIndex.Suggest("Nissan", 5)
 	log.Printf("%v", candidates)
 }

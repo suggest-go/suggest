@@ -1,5 +1,9 @@
 package suggest
 
+import (
+	"strings"
+)
+
 func SplitIntoNGrams(word string, k int) []string {
 	sliceLen := len(word) - k + 1
 	if sliceLen <= 0 || sliceLen > len(word) {
@@ -51,6 +55,14 @@ func Levenshtein(a, b string) int {
 	}
 
 	return column[aLen]
+}
+
+func prepareString(word string) string {
+	//re := regexp.MustCompile(
+	word = strings.ToLower(word)
+	word = strings.Trim(word, " ")
+	word = strings.Replace(word, " ", "$", -1)
+	return "$" + word + "$"
 }
 
 func min3(a, b, c int) int {

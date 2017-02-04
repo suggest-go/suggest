@@ -1,7 +1,10 @@
 package suggest
 
 /*
- * inspired by http://www.aaai.org/ocs/index.php/AAAI/AAAI10/paper/viewFile/1939/2234
+ * inspired by
+ * http://www.aaai.org/ocs/index.php/AAAI/AAAI10/paper/viewFile/1939/2234
+ * http://nlp.stanford.edu/IR-book/html/htmledition/k-gram-indexes-for-wildcard-queries-1.html
+ * http://bazhenov.me/blog/2012/08/04/autocomplete.html
  */
 
 import "sort"
@@ -26,7 +29,8 @@ func NewNGramIndex(k int) *NGramIndex {
 }
 
 func (self *NGramIndex) AddWord(word string) {
-	split := SplitIntoNGrams(word, self.k)
+	prepared := prepareString(word)
+	split := SplitIntoNGrams(prepared, self.k)
 	for _, ngram := range split {
 		self.ngrams[ngram] = append(self.ngrams[ngram], self.index)
 	}
@@ -39,6 +43,7 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 	t := 1 // to include all candidates
 	corresponding := self.find(word)
 	frequence := make(map[int]int)
+	/* TODO optimize me */
 	for _, c := range corresponding {
 		for _, id := range c {
 			frequence[id]++
@@ -47,11 +52,14 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 
 	var candidates pairList
 	for id, freq := range frequence {
+		/* TODO use strategy */
 		if freq >= t {
 			candidate := self.dictionary[id]
+			//similarity := Levenshtein(candidate, word)
+			similarity := freq
 			candidates = append(
 				candidates,
-				pair{candidate, Levenshtein(candidate, word)},
+				pair{candidate, similarity},
 			)
 		}
 	}
@@ -70,18 +78,8 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 	return result[:topK]
 }
 
-type pair struct {
-	word  string
-	score int
-}
-
-type pairList []pair
-
-func (p pairList) Len() int           { return len(p) }
-func (p pairList) Less(i, j int) bool { return p[i].score < p[j].score }
-func (p pairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-
 func (self *NGramIndex) find(word string) ngramsT {
+	word = prepareString(word)
 	result := make(ngramsT)
 	split := SplitIntoNGrams(word, self.k)
 	for _, ngram := range split {
@@ -90,3 +88,14 @@ func (self *NGramIndex) find(word string) ngramsT {
 
 	return result
 }
+
+type pair struct {
+	word  string
+	score int
+}
+
+type pairList []pair
+
+func (p pairList) Len() int           { return len(p) }
+func (p pairList) Less(i, j int) bool { return p[i].score > p[j].score }
+func (p pairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
