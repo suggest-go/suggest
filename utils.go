@@ -7,7 +7,7 @@ import (
 func SplitIntoNGrams(word string, k int) []string {
 	sliceLen := len(word) - k + 1
 	if sliceLen <= 0 || sliceLen > len(word) {
-		panic("bla bla bla")
+		panic("Invalid word length for spliting")
 	}
 
 	result := make([]string, sliceLen)
@@ -58,7 +58,6 @@ func Levenshtein(a, b string) int {
 }
 
 func prepareString(word string) string {
-	//re := regexp.MustCompile(
 	word = strings.ToLower(word)
 	word = strings.Trim(word, " ")
 	word = strings.Replace(word, " ", "$", -1)
