@@ -22,7 +22,7 @@ func NewSuggestService(topK int) *SuggestService {
 * inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
  */
 func (self *SuggestService) AddDictionary(name string, reader io.Reader) bool {
-	if _, ok := self.dictionaries[name]; !ok {
+	if _, ok := self.dictionaries[name]; ok {
 		// TODO throw error
 		return false
 	}

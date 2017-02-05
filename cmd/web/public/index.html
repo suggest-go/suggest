@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<head>
+    <style type="text/css">
+        html, body { height: 100%; margin: 0; padding: 0; }
+    </style>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h3> Cars suggester </h3>
+    <input type="text" id="query">
+    <input type="button" id="suggest">Suggest</input>
+    <div id="list"/>
+
+    <script
+        src="https://code.jquery.com/jquery-3.1.1.min.js"
+        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+        crossorigin="anonymous">
+    </script>
+
+    <script type="text/javascript">
+        $(function() {
+            $("#suggest").on("click", function(e) {
+                var query = $("#query").val(),
+                    url = "/suggest/cars/" + query + "/",
+                    $holder = $("#list");
+
+                $.ajax(url)
+                    .done(function(json) {
+                        var candidates = json.candidates, text = "";
+                        for (var i = 0; i < candidates.length; ++i) {
+                            text += $("<p/>", {text: candidates[i]}).html();
+                            text += "<br/>";
+                        }
+
+                        $holder.empty().append(text);
+                    })
+                    .fail(function(err) {
+                        alert(err);
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
+
