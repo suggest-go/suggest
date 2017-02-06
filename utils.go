@@ -2,7 +2,10 @@ package suggest
 
 import (
 	"strings"
+	"regexp"
 )
+
+var reg *regexp.Regexp
 
 func SplitIntoNGrams(word string, k int) []string {
 	sliceLen := len(word) - k + 1
@@ -60,7 +63,7 @@ func Levenshtein(a, b string) int {
 func prepareString(word string) string {
 	word = strings.ToLower(word)
 	word = strings.Trim(word, " ")
-	word = strings.Replace(word, " ", "$", -1)
+	word = reg.ReplaceAllString(word, "$")
 	return "$" + word + "$"
 }
 
@@ -74,4 +77,12 @@ func min3(a, b, c int) int {
 	}
 
 	return c
+}
+
+func init() {
+	var err error
+	reg, err = regexp.Compile("[^a-z0-9а-яё ]+")
+	if err != nil {
+		panic(err)
+	}
 }
