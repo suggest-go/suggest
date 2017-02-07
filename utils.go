@@ -1,8 +1,8 @@
 package suggest
 
 import (
-	"strings"
 	"regexp"
+	"strings"
 )
 
 var reg *regexp.Regexp
@@ -21,43 +21,21 @@ func SplitIntoNGrams(word string, k int) []string {
 	return result
 }
 
-func Levenshtein(a, b string) int {
-	aLen, bLen := len(a), len(b)
-	if aLen == 0 {
-		return bLen
-	}
-
-	if bLen == 0 {
-		return aLen
-	}
-
-	r1, r2 := []rune(a), []rune(b)
-	column := make([]int, aLen+1)
-
-	for i := 1; i < aLen+1; i++ {
-		column[i] = i
-	}
-
-	for j := 1; j < bLen+1; j++ {
-		column[0] = j
-		prev := j - 1
-		for i := 1; i < aLen+1; i++ {
-			tmp := column[i]
-			cost := 0
-			if r1[i-1] != r2[j-1] {
-				cost = 1
-			}
-
-			column[i] = min3(
-				column[i]+1,
-				column[i-1]+1,
-				prev+cost,
-			)
-			prev = tmp
+/*
+ * Return unique ngrams with frequency
+ */
+func getProfile(word string, k int) map[string]int {
+	ngrams := SplitIntoNGrams(word, k)
+	result := make(map[string]int)
+	for _, ngram := range ngrams {
+		if _, ok := result[ngram]; ok {
+			result[ngram]++
+		} else {
+			result[ngram] = 1
 		}
 	}
 
-	return column[aLen]
+	return result
 }
 
 func prepareString(word string) string {

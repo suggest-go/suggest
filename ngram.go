@@ -13,7 +13,7 @@ import (
 
 type Rank struct {
 	word     string
-	distance int
+	distance float64
 }
 type RankList []Rank
 
@@ -36,15 +36,19 @@ type NGramIndex struct {
 	invertedLists invertedListsT
 	dictionary    map[int]string
 	index         int
+	editDistance  EditDistance
 }
 
-func NewNGramIndex(k int) *NGramIndex {
+func NewNGramIndex(k int, t int) *NGramIndex {
 	if k < 2 || k > 4 {
 		panic("k should be in [2, 4]")
 	}
 
+	editDistance, _ := GetEditDistance(t, k)
+
 	return &NGramIndex{
 		k, make(invertedListsT), make(map[int]string), 0,
+		editDistance,
 	}
 }
 
@@ -88,7 +92,7 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 func (self *NGramIndex) FuzzySearch(word string) RankList {
 	preparedWord := prepareString(word)
 	corresponding := self.find(preparedWord)
-	distances := make(map[int]int)
+	distances := make(map[int]float64)
 	for _, c := range corresponding {
 		for _, id := range c {
 			if _, ok := distances[id]; !ok {
@@ -111,59 +115,17 @@ func (self *NGramIndex) FuzzySearch(word string) RankList {
 }
 
 /*
- * ngram distance between a, b defined in
- * "Approximate string-matching with q-grams and maximal matches"
  *
- * Complexity O(aLen + bLen)
  */
-func (self *NGramIndex) distance(a, b string) int {
-	profileA, profileB := self.getProfile(a), self.getProfile(b)
-	union := make(map[string]byte)
-	for k := range profileA {
-		union[k] = 1
-	}
-
-	for k := range profileB {
-		union[k] = 1
-	}
-
-	distance := 0
-	for key, _ := range union {
-		freqA, freqB := 0, 0
-		if val, ok := profileA[key]; ok {
-			freqA = val
-		}
-
-		if val, ok := profileB[key]; ok {
-			freqB = val
-		}
-
-		d := freqA - freqB
-		if d < 0 {
-			d = -d
-		}
-
-		distance += d
-	}
-
-	return distance
+func (self *NGramIndex) distance(a, b string) float64 {
+	return self.editDistance.Calc(a, b)
 }
 
 /*
  * Return unique ngrams with frequency
  */
 func (self *NGramIndex) getProfile(word string) map[string]int {
-	ngrams := SplitIntoNGrams(word, self.k)
-	result := make(map[string]int)
-	for _, ngram := range ngrams {
-		if _, ok := result[ngram]; ok {
-			result[ngram]++
-		} else {
-			result[ngram] = 1
-		}
-	}
-
-	return result
+	return getProfile(word, self.k)
 }
 
 /*

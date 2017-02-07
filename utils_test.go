@@ -36,30 +36,3 @@ func TestSplitIntoNGrams(t *testing.T) {
 		}
 	}
 }
-
-func TestLevenshtein(t *testing.T) {
-	cases := []struct {
-		a, b     string
-		distance int
-	}{
-		{
-			"tet", "tet",
-			0,
-		},
-		{
-			"tes", "pep",
-			2,
-		},
-	}
-
-	for _, c := range cases {
-		actual := Levenshtein(c.a, c.b)
-		if actual != c.distance {
-			t.Errorf(
-				"Test Fail, expected %v, got %v",
-				c.distance,
-				actual,
-			)
-		}
-	}
-}

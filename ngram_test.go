@@ -5,30 +5,6 @@ import (
 	"testing"
 )
 
-func TestNGramDistance(t *testing.T) {
-	cases := []struct {
-		a, b     string
-		distance int
-	}{
-		{
-			"01000", "001111",
-			5,
-		},
-		{
-			"ababaca", "ababaca",
-			0,
-		},
-	}
-
-	ngramIndex := NewNGramIndex(2)
-	for _, c := range cases {
-		distance := ngramIndex.distance(c.a, c.b)
-		if distance != c.distance {
-			t.Errorf("TestFail, expected {%v}, got {%v}", c.distance, distance)
-		}
-	}
-}
-
 func TestFuzzySearch(t *testing.T) {
 	collection := []string{
 		"blue",
@@ -43,7 +19,7 @@ func TestFuzzySearch(t *testing.T) {
 		"tes hello",
 	}
 
-	expected := map[string]int{
+	expected := map[string]float64{
 		"flu":     4,
 		"fluence": 8,
 		"fluent":  7,
@@ -54,7 +30,7 @@ func TestFuzzySearch(t *testing.T) {
 		"flunker": 4,
 	}
 
-	ngramIndex := NewNGramIndex(2)
+	ngramIndex := NewNGramIndex(2, NGRAM)
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
 	}
@@ -79,7 +55,7 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	ngramIndex := NewNGramIndex(3)
+	ngramIndex := NewNGramIndex(3, NGRAM)
 
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
