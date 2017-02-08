@@ -39,12 +39,10 @@ type NGramIndex struct {
 	editDistance  EditDistance
 }
 
-func NewNGramIndex(k int, t int) *NGramIndex {
+func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
 	if k < 2 || k > 4 {
 		panic("k should be in [2, 4]")
 	}
-
-	editDistance, _ := GetEditDistance(t, k)
 
 	return &NGramIndex{
 		k, make(invertedListsT), make(map[int]string), 0,

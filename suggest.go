@@ -27,7 +27,10 @@ func (self *SuggestService) AddDictionary(name string, reader io.Reader) bool {
 		return false
 	}
 
-	ngramIndex := NewNGramIndex(3, NGRAM)
+	/* TODO make it configure */
+	editDistance, err := GetEditDistance(NGRAM, 3)
+	ngramIndex := NewNGramIndex(3, editDistance)
+
 	buf := bufio.NewReader(reader)
 	line, err := buf.ReadBytes('\n')
 	for err == nil {

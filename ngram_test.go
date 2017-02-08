@@ -30,7 +30,7 @@ func TestFuzzySearch(t *testing.T) {
 		"flunker": 4,
 	}
 
-	ngramIndex := NewNGramIndex(2, NGRAM)
+	ngramIndex := NewNGramIndex(2, &NGramDistance{2})
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
 	}
@@ -55,7 +55,7 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	ngramIndex := NewNGramIndex(3, NGRAM)
+	ngramIndex := NewNGramIndex(3, &NGramDistance{3})
 
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
