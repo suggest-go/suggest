@@ -52,8 +52,8 @@ func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
 
 func (self *NGramIndex) AddWord(word string) {
 	prepared := prepareString(word)
-	ngrams := SplitIntoNGrams(prepared, self.k)
-	for _, ngram := range ngrams {
+	profile := self.getProfile(prepared)
+	for ngram, _ := range profile {
 		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
 	}
 

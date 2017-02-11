@@ -1,45 +1,80 @@
 <!DOCTYPE html>
 <head>
-    <style type="text/css">
-        html, body { height: 100%; margin: 0; padding: 0; }
-    </style>
-    <meta charset="utf-8">
+	<style type="text/css">
+html, body { height: 100%; margin: 0; padding: 0; }
+	</style>
+
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+	<meta charset="utf-8">
 </head>
 <body>
-    <h3> Cars suggester </h3>
-    <input type="text" id="query">
-    <input type="button" id="suggest">Suggest</input>
-    <div id="list"/>
+    <div class="container">
+		<h1>Grid</h1>
+        <form>
+            <div class="form-group">
+                <input id="query" type="text" class="form-control">
+            </div>
+        </form>
 
-    <script
-        src="https://code.jquery.com/jquery-3.1.1.min.js"
-        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
-        crossorigin="anonymous">
-    </script>
+		<div class="row">
+			<div class="col-sm-4">
+                <h4>Levenshtein distance</h4>
+                <span class="holder" id="levenshtein"/>
+			</div>
+			<div class="col-sm-4">
+                <h4>NGram distance</h4>
+                <span class="holder" id="ngram"/>
+			</div>
+			<div class="col-sm-4">
+                <h4>Jaccard distance</h4>
+                <span class="holder" id="jaccard"/>
+			</div>
+		</div>
+	</div>
 
-    <script type="text/javascript">
-        $(function() {
-            $("#suggest").on("click", function(e) {
-                var query = $("#query").val(),
-                    url = "/suggest/cars/" + query + "/",
-                    $holder = $("#list");
+	<script type="text/javascript">
 
-                $.ajax(url)
-                    .done(function(json) {
-                        var candidates = json.candidates, text = "";
-                        for (var i = 0; i < candidates.length; ++i) {
-                            text += $("<p/>", {text: candidates[i]}).html();
+	$(function() {
+        var prev = '';
+		$("#query").on("keyup", function(e) {
+			var query = $("#query").val(), url;
+            if (query.length < 3 || query === prev) {
+                if (query !== prev) {
+                    $('.holder').empty();
+                }
+                return;
+            }
+
+            prev = query;
+
+			url = "/suggest/cars/" + query + "/";
+
+			$.ajax(url)
+				.done(function(json) {
+					var candidates = json.candidates, text, $holder, candidate;
+                    for (var i = 0; i < candidates.length; ++i) {
+                        candidate = candidates[i];
+                        text = '';
+                        $holder = $('#' + candidate.metric);
+                        for (var j = 0; j < candidate.data.length; ++j) {
+                            text += $("<p/>", {text: candidate.data[j]}).html();
                             text += "<br/>";
                         }
 
-                        $holder.empty().append(text);
-                    })
-                    .fail(function(err) {
-                        alert(err);
-                    });
-            });
-        });
-    </script>
+                        text += $("<p/>", {text: "Elapsed time: " + candidate.elapsed}).html();
+                        $holder.empty().html(text);
+                    }
+				})
+			.fail(function(err) {
+				alert(err);
+			});
+		});
+	});
+	
+	</script>
 </body>
 </html>
 

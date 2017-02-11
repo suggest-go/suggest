@@ -1,11 +1,17 @@
 package suggest
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
 
-var reg *regexp.Regexp
+type profile map[string]int
+
+var (
+	reg          *regexp.Regexp
+	profileCache map[string]profile
+)
 
 func SplitIntoNGrams(word string, k int) []string {
 	sliceLen := len(word) - k + 1
@@ -24,9 +30,14 @@ func SplitIntoNGrams(word string, k int) []string {
 /*
  * Return unique ngrams with frequency
  */
-func getProfile(word string, k int) map[string]int {
+func getProfile(word string, k int) profile {
+	key := fmt.Sprintf("%s_%d", word, k)
+	if prof, ok := profileCache[key]; ok {
+		return prof
+	}
+
 	ngrams := SplitIntoNGrams(word, k)
-	result := make(map[string]int)
+	result := make(profile)
 	for _, ngram := range ngrams {
 		if _, ok := result[ngram]; ok {
 			result[ngram]++
@@ -35,6 +46,7 @@ func getProfile(word string, k int) map[string]int {
 		}
 	}
 
+	profileCache[key] = result
 	return result
 }
 
@@ -63,4 +75,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	profileCache = make(map[string]profile)
 }

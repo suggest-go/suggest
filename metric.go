@@ -6,6 +6,12 @@ const (
 	JACCARD
 )
 
+var MetricName = map[int]string{
+	LEVENSHTEIN: `levenshtein`,
+	NGRAM:       `ngram`,
+	JACCARD:     `jaccard`,
+}
+
 type EditDistance interface {
 	Calc(a, b string) float64
 }

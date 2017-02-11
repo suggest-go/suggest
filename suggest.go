@@ -1,63 +1,42 @@
 package suggest
 
-import (
-	"bufio"
-	"bytes"
-	"io"
-)
-
 type SuggestService struct {
 	dictionaries map[string]*NGramIndex
-	topK         int
+	ngramSize    int
+	editDistance EditDistance
 }
 
-func NewSuggestService(topK int) *SuggestService {
+func NewSuggestService(ngramSize, metric int) *SuggestService {
+	editDistance, _ := GetEditDistance(metric, ngramSize)
 	return &SuggestService{
 		make(map[string]*NGramIndex),
-		topK,
+		ngramSize,
+		editDistance,
 	}
 }
 
 /*
 * inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
  */
-func (self *SuggestService) AddDictionary(name string, reader io.Reader) bool {
+func (self *SuggestService) AddDictionary(name string, words []string) bool {
 	if _, ok := self.dictionaries[name]; ok {
-		// TODO throw error
+		//"dictionary already exists" /* TODO log me */
 		return false
 	}
 
-	/* TODO make it configure */
-	editDistance, err := GetEditDistance(NGRAM, 3)
-	ngramIndex := NewNGramIndex(3, editDistance)
-
-	buf := bufio.NewReader(reader)
-	line, err := buf.ReadBytes('\n')
-	for err == nil {
-		line = bytes.TrimRight(line, "\n")
-		if len(line) > 0 {
-			if line[len(line)-1] == 13 { //'\r'
-				line = bytes.TrimRight(line, "\r")
-			}
-
-			ngramIndex.AddWord(string(line))
-		}
-
-		line, err = buf.ReadBytes('\n')
-	}
-
-	if len(line) > 0 {
-		ngramIndex.AddWord(string(line))
+	ngramIndex := NewNGramIndex(self.ngramSize, self.editDistance)
+	for _, word := range words {
+		ngramIndex.AddWord(word)
 	}
 
 	self.dictionaries[name] = ngramIndex
 	return true
 }
 
-func (self *SuggestService) Suggest(dict string, query string) []string {
+func (self *SuggestService) Suggest(dict string, query string, topK int) []string {
 	if _, ok := self.dictionaries[dict]; !ok {
 		return make([]string, 0)
 	}
 
-	return self.dictionaries[dict].Suggest(query, self.topK)
+	return self.dictionaries[dict].Suggest(query, topK)
 }
