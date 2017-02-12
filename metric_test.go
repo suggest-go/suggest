@@ -53,3 +53,24 @@ func TestNGramDistance(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkNGramDistance(b *testing.B) {
+	editDistance, _ := GetEditDistance(NGRAM, 3)
+	for i := 0; i < b.N; i++ {
+		editDistance.Calc("SomeLongWordssdasddsadsadsadasdasdsadasdsadasdasdsadsad", "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada")
+	}
+}
+
+func BenchmarkLevenshtein(b *testing.B) {
+	editDistance, _ := GetEditDistance(LEVENSHTEIN, 3)
+	for i := 0; i < b.N; i++ {
+		editDistance.Calc("SomeLongWordssdasddsadsadsadasdasdsadasdsadasdasdsadsad", "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada")
+	}
+}
+
+func BenchmarkJaccard(b *testing.B) {
+	editDistance, _ := GetEditDistance(JACCARD, 3)
+	for i := 0; i < b.N; i++ {
+		editDistance.Calc("SomeLongWordssdasddsadsadsadasdasdsadasdsadasdasdsadsad", "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada")
+	}
+}

@@ -6,11 +6,14 @@ import (
 	"strings"
 )
 
-type profile map[string]int
+type profile struct {
+	frequencies map[string]int
+	ngrams      []string
+}
 
 var (
 	reg          *regexp.Regexp
-	profileCache map[string]profile
+	profileCache map[string]*profile
 )
 
 func SplitIntoNGrams(word string, k int) []string {
@@ -30,20 +33,23 @@ func SplitIntoNGrams(word string, k int) []string {
 /*
  * Return unique ngrams with frequency
  */
-func getProfile(word string, k int) profile {
+func getProfile(word string, k int) *profile {
 	key := fmt.Sprintf("%s_%d", word, k)
 	if prof, ok := profileCache[key]; ok {
 		return prof
 	}
 
 	ngrams := SplitIntoNGrams(word, k)
-	result := make(profile)
+	result := &profile{make(map[string]int), nil}
 	for _, ngram := range ngrams {
-		if _, ok := result[ngram]; ok {
-			result[ngram]++
-		} else {
-			result[ngram] = 1
-		}
+		result.frequencies[ngram]++
+	}
+
+	result.ngrams = make([]string, len(result.frequencies))
+	i := 0
+	for ngram, _ := range result.frequencies {
+		result.ngrams[i] = ngram
+		i++
 	}
 
 	profileCache[key] = result
@@ -76,5 +82,5 @@ func init() {
 		panic(err)
 	}
 
-	profileCache = make(map[string]profile)
+	profileCache = make(map[string]*profile)
 }

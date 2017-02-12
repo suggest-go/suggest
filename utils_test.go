@@ -36,3 +36,9 @@ func TestSplitIntoNGrams(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkSplitIntoNGrams(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		SplitIntoNGrams("TestStringAbabacaMacacaTsaksn", 3)
+	}
+}

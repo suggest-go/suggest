@@ -53,7 +53,7 @@ func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
 func (self *NGramIndex) AddWord(word string) {
 	prepared := prepareString(word)
 	profile := self.getProfile(prepared)
-	for ngram, _ := range profile {
+	for _, ngram := range profile.ngrams {
 		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
 	}
 
@@ -122,7 +122,7 @@ func (self *NGramIndex) distance(a, b string) float64 {
 /*
  * Return unique ngrams with frequency
  */
-func (self *NGramIndex) getProfile(word string) map[string]int {
+func (self *NGramIndex) getProfile(word string) *profile {
 	return getProfile(word, self.k)
 }
 
@@ -132,7 +132,7 @@ func (self *NGramIndex) getProfile(word string) map[string]int {
 func (self *NGramIndex) find(word string) invertedListsT {
 	result := make(invertedListsT)
 	profile := self.getProfile(word)
-	for ngram, _ := range profile {
+	for _, ngram := range profile.ngrams {
 		result[ngram] = self.invertedLists[ngram]
 	}
 
