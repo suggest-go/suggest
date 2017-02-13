@@ -77,3 +77,28 @@ func TestSuggestAuto(t *testing.T) {
 		)
 	}
 }
+
+func BenchmarkSuggest(b *testing.B) {
+	collection := []string{
+		"Nissan March",
+		"Nissan Juke",
+		"Nissan Maxima",
+		"Nissan Murano",
+		"Nissan Note",
+		"Toyota Mark II",
+		"Toyota Corolla",
+		"Toyota Corona",
+	}
+
+	dis, _ := GetEditDistance(JACCARD, 3)
+	ngramIndex := NewNGramIndex(3, dis)
+
+	for _, word := range collection {
+		ngramIndex.AddWord(word)
+	}
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		ngramIndex.Suggest("Nissan mar", 2)
+	}
+}

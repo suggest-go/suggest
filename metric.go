@@ -86,17 +86,9 @@ type NGramDistance struct {
  */
 func (self *NGramDistance) Calc(a, b string) float64 {
 	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
-	union := make(map[string]struct{}, len(profileA.frequencies)+len(profileB.frequencies))
-	for k := range profileA.frequencies {
-		union[k] = struct{}{}
-	}
-
-	for k := range profileB.frequencies {
-		union[k] = struct{}{}
-	}
-
+	set := NewSet(append(profileA.ngrams, profileB.ngrams...))
 	distance := 0.0
-	for key, _ := range union {
+	for _, key := range set.GetKeys() {
 		freqA, freqB := 0, 0
 		if val, ok := profileA.frequencies[key]; ok {
 			freqA = val
@@ -123,21 +115,16 @@ type JaccardDistance struct {
 
 func (self *JaccardDistance) Calc(a, b string) float64 {
 	if a == b {
-		return 0
+		return 1.0
 	}
 
 	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
-	union := make(map[string]struct{}, len(profileA.frequencies))
-	inter := 0
-	for _, k := range profileA.ngrams {
-		union[k] = struct{}{}
-		if _, ok := profileA.frequencies[k]; ok {
-			inter++
-		}
-	}
 
-	for _, k := range profileB.ngrams {
-		if _, ok := union[k]; !ok {
+	set := NewSet(append(profileA.ngrams, profileB.ngrams...))
+	inter := 0
+	union := set.GetKeys()
+	for _, k := range union {
+		if _, ok := profileA.frequencies[k]; !ok {
 			continue
 		}
 
