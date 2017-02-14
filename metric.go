@@ -14,6 +14,8 @@ var MetricName = map[int]string{
 
 type EditDistance interface {
 	Calc(a, b string) float64
+	/* monkeycode */
+	CalcWithProfiles(a, b string, profileA, profileB *profile) float64
 }
 
 func GetEditDistance(t int, k int) (EditDistance, error) {
@@ -74,6 +76,10 @@ func (self *LevenshteinDistance) Calc(a, b string) float64 {
 	return float64(column[aLen])
 }
 
+func (self *LevenshteinDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
+	return self.Calc(a, b)
+}
+
 type NGramDistance struct {
 	k int
 }
@@ -86,6 +92,10 @@ type NGramDistance struct {
  */
 func (self *NGramDistance) Calc(a, b string) float64 {
 	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
+	return self.CalcWithProfiles(a, b, profileA, profileB)
+}
+
+func (self *NGramDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
 	set := NewSet(append(profileA.ngrams, profileB.ngrams...))
 	distance := 0.0
 	for _, key := range set.GetKeys() {
@@ -119,22 +129,26 @@ func (self *JaccardDistance) Calc(a, b string) float64 {
 	}
 
 	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
+	return self.CalcWithProfiles(a, b, profileA, profileB)
+}
+
+func (self *JaccardDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
+	if a == b {
+		return 1.0
+	}
+
 	minProfile, maxProfile := profileA, profileB
-	if len(minProfile.frequencies) > len(maxProfile.frequencies) {
-		minProfile, maxProfile = profileB, profileA
+	lenA, lenB := len(profileA.frequencies), len(profileB.frequencies)
+	if lenA > lenB {
+		minProfile, maxProfile = maxProfile, minProfile
 	}
 
-	set := NewSet(minProfile.ngrams)
-	inter := 0
-	for _, k := range set.GetKeys() {
-		if _, ok := profileA.frequencies[k]; !ok {
-			continue
-		}
-
-		if _, ok := profileB.frequencies[k]; ok {
-			inter++
+	inter := 0.0
+	for k, _ := range minProfile.frequencies {
+		if _, ok := maxProfile.frequencies[k]; ok {
+			inter += 1
 		}
 	}
 
-	return 1.0 - float64(inter) / (float64(len(profileA.frequencies) + len(profileB.frequencies)) - float64(inter))
+	return 1.0 - inter/(float64(lenA+lenB)-inter) //union = |a|+|b|-intersection
 }

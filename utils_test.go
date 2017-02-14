@@ -42,3 +42,9 @@ func BenchmarkSplitIntoNGrams(b *testing.B) {
 		SplitIntoNGrams("TestStringAbabacaMacacaTsaksn", 3)
 	}
 }
+
+func BenchmarkGetProfile(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		getProfile("TestStringAbabacaMacacaTsaksn", 3)
+	}
+}

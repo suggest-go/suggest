@@ -34,7 +34,8 @@ type invertedListsT map[string][]int
 type NGramIndex struct {
 	k             int
 	invertedLists invertedListsT
-	dictionary    map[int]string
+	dictionary    []string
+	profiles      []*profile
 	index         int
 	editDistance  EditDistance
 }
@@ -45,7 +46,7 @@ func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
 	}
 
 	return &NGramIndex{
-		k, make(invertedListsT), make(map[int]string), 0,
+		k, make(invertedListsT), make([]string, 0), make([]*profile, 0), 0,
 		editDistance,
 	}
 }
@@ -57,7 +58,8 @@ func (self *NGramIndex) AddWord(word string) {
 		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
 	}
 
-	self.dictionary[self.index] = word
+	self.dictionary = append(self.dictionary, word)
+	self.profiles = append(self.profiles, profile)
 	self.index++
 }
 
@@ -89,34 +91,26 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
  */
 func (self *NGramIndex) FuzzySearch(word string) RankList {
 	preparedWord := prepareString(word)
-	corresponding := self.find(preparedWord)
-	distances := make(map[int]float64)
-	for _, c := range corresponding {
-		for _, id := range c {
-			if _, ok := distances[id]; !ok {
-				distances[id] = self.distance(
-					preparedWord,
-					prepareString(self.dictionary[id]),
-				)
-			}
+	wordProfile := self.getProfile(preparedWord)
+	corresponding := self.find(wordProfile)
+	distances := make(map[int]float64, len(corresponding))
+	for _, id := range corresponding {
+		if _, ok := distances[id]; !ok {
+			distances[id] = self.editDistance.CalcWithProfiles(
+				word,
+				self.dictionary[id],
+				wordProfile,
+				self.profiles[id],
+			)
 		}
 	}
 
-	candidates := make(RankList, len(distances))
-	i := 0
+	candidates := make(RankList, 0, len(distances))
 	for id, distance := range distances {
-		candidates[i] = Rank{self.dictionary[id], distance}
-		i++
+		candidates = append(candidates, Rank{self.dictionary[id], distance})
 	}
 
 	return candidates
-}
-
-/*
- *
- */
-func (self *NGramIndex) distance(a, b string) float64 {
-	return self.editDistance.Calc(a, b)
 }
 
 /*
@@ -129,11 +123,10 @@ func (self *NGramIndex) getProfile(word string) *profile {
 /*
  * Find corresponding inverted lists by common ngrams
  */
-func (self *NGramIndex) find(word string) invertedListsT {
-	result := make(invertedListsT)
-	profile := self.getProfile(word)
+func (self *NGramIndex) find(profile *profile) []int {
+	var result []int
 	for _, ngram := range profile.ngrams {
-		result[ngram] = self.invertedLists[ngram]
+		result = append(result, self.invertedLists[ngram]...)
 	}
 
 	return result
