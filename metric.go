@@ -119,11 +119,14 @@ func (self *JaccardDistance) Calc(a, b string) float64 {
 	}
 
 	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
+	minProfile, maxProfile := profileA, profileB
+	if len(minProfile.frequencies) > len(maxProfile.frequencies) {
+		minProfile, maxProfile = profileB, profileA
+	}
 
-	set := NewSet(append(profileA.ngrams, profileB.ngrams...))
+	set := NewSet(minProfile.ngrams)
 	inter := 0
-	union := set.GetKeys()
-	for _, k := range union {
+	for _, k := range set.GetKeys() {
 		if _, ok := profileA.frequencies[k]; !ok {
 			continue
 		}
@@ -133,5 +136,5 @@ func (self *JaccardDistance) Calc(a, b string) float64 {
 		}
 	}
 
-	return 1.0 - float64(inter)/float64(len(union))
+	return 1.0 - float64(inter) / (float64(len(profileA.frequencies) + len(profileB.frequencies)) - float64(inter))
 }
