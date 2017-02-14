@@ -1,5 +1,7 @@
 package suggest
 
+import "errors"
+
 const (
 	LEVENSHTEIN = iota
 	NGRAM
@@ -30,8 +32,7 @@ func GetEditDistance(t int, k int) (EditDistance, error) {
 		return &JaccardDistance{k}, nil
 
 	default:
-		//return nil, errors.New("Invalid type")
-		return nil, nil
+		return nil, errors.New("Invalid metric type")
 	}
 }
 
@@ -108,12 +109,12 @@ func (self *NGramDistance) CalcWithProfiles(a, b string, profileA, profileB *pro
 			freqB = val
 		}
 
-		d := freqA - freqB
+		d := float64(freqA - freqB)
 		if d < 0 {
 			d = -d
 		}
 
-		distance += float64(d)
+		distance += d
 	}
 
 	return distance
@@ -144,7 +145,7 @@ func (self *JaccardDistance) CalcWithProfiles(a, b string, profileA, profileB *p
 	}
 
 	inter := 0.0
-	for k, _ := range minProfile.frequencies {
+	for _, k := range minProfile.ngrams {
 		if _, ok := maxProfile.frequencies[k]; ok {
 			inter += 1
 		}

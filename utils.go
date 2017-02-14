@@ -18,9 +18,9 @@ func SplitIntoNGrams(word string, k int) []string {
 		panic("Invalid word length for spliting")
 	}
 
-	result := make([]string, sliceLen)
+	result := make([]string, 0, sliceLen)
 	for i := 0; i < sliceLen; i++ {
-		result[i] = word[i : i+k]
+		result = append(result, word[i: i+k])
 	}
 
 	return result

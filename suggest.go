@@ -7,7 +7,11 @@ type SuggestService struct {
 }
 
 func NewSuggestService(ngramSize, metric int) *SuggestService {
-	editDistance, _ := GetEditDistance(metric, ngramSize)
+	editDistance, err := GetEditDistance(metric, ngramSize)
+	if err != nil {
+		panic(err)
+	}
+
 	return &SuggestService{
 		make(map[string]*NGramIndex),
 		ngramSize,
@@ -15,9 +19,6 @@ func NewSuggestService(ngramSize, metric int) *SuggestService {
 	}
 }
 
-/*
-* inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
- */
 func (self *SuggestService) AddDictionary(name string, words []string) bool {
 	if _, ok := self.dictionaries[name]; ok {
 		//"dictionary already exists" /* TODO log me */
