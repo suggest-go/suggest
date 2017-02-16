@@ -31,17 +31,17 @@ func SplitIntoNGrams(word string, k int) []string {
  */
 func getProfile(word string, k int) *profile {
 	ngrams := SplitIntoNGrams(word, k)
-	result := &profile{make(map[string]int), nil}
+	frequencies := make(map[string]int, len(ngrams))
 	for _, ngram := range ngrams {
-		result.frequencies[ngram]++
+		frequencies[ngram]++
 	}
 
-	result.ngrams = make([]string, 0, len(result.frequencies))
-	for ngram, _ := range result.frequencies {
-		result.ngrams = append(result.ngrams, ngram)
+	unique := make([]string, 0, len(frequencies))
+	for ngram, _ := range frequencies {
+		unique = append(unique, ngram)
 	}
 
-	return result
+	return &profile{frequencies, unique}
 }
 
 func prepareString(word string) string {

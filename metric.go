@@ -1,6 +1,9 @@
 package suggest
 
-import "errors"
+import (
+	"errors"
+	"math"
+)
 
 const (
 	LEVENSHTEIN = iota
@@ -97,24 +100,20 @@ func (self *NGramDistance) Calc(a, b string) float64 {
 }
 
 func (self *NGramDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
-	set := NewSet(append(profileA.ngrams, profileB.ngrams...))
 	distance := 0.0
-	for _, key := range set.GetKeys() {
-		freqA, freqB := 0, 0
-		if val, ok := profileA.frequencies[key]; ok {
-			freqA = val
-		}
-
+	for _, key := range profileA.ngrams {
+		freqA, freqB := profileA.frequencies[key], 0
 		if val, ok := profileB.frequencies[key]; ok {
 			freqB = val
 		}
 
-		d := float64(freqA - freqB)
-		if d < 0 {
-			d = -d
-		}
+		distance += math.Abs(float64(freqA - freqB))
+	}
 
-		distance += d
+	for _, key := range profileB.ngrams {
+		if _, ok := profileA.frequencies[key]; !ok {
+			distance += float64(profileB.frequencies[key])
+		}
 	}
 
 	return distance
