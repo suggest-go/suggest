@@ -20,7 +20,7 @@ func SplitIntoNGrams(word string, k int) []string {
 
 	result := make([]string, 0, sliceLen)
 	for i := 0; i < sliceLen; i++ {
-		result = append(result, word[i: i+k])
+		result = append(result, word[i:i+k])
 	}
 
 	return result
@@ -45,6 +45,10 @@ func getProfile(word string, k int) *profile {
 }
 
 func prepareString(word string) string {
+	if len(word) < 2 {
+		return word
+	}
+
 	word = strings.ToLower(word)
 	word = strings.Trim(word, " ")
 	word = reg.ReplaceAllString(word, "$")
@@ -65,7 +69,7 @@ func min3(a, b, c int) int {
 
 func init() {
 	var err error
-	reg, err = regexp.Compile("[^a-z0-9а-яё ]+")
+	reg, err = regexp.Compile("[^a-z0-9а-яё]+")
 	if err != nil {
 		panic(err)
 	}

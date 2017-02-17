@@ -37,6 +37,27 @@ func TestSplitIntoNGrams(t *testing.T) {
 	}
 }
 
+func TestPrepareString(t *testing.T) {
+	cases := []struct {
+		word, expected string
+	}{
+		{"", ""},
+		{"test", "$test$"},
+		{"hello world", "$hello$world$"},
+	}
+
+	for _, c := range cases {
+		actual := prepareString(c.word)
+		if actual != c.expected {
+			t.Errorf(
+				"Test Fail, expected %v, got %v",
+				c.expected,
+				actual,
+			)
+		}
+	}
+}
+
 func BenchmarkSplitIntoNGrams(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		SplitIntoNGrams("TestStringAbabacaMacacaTsaksn", 3)

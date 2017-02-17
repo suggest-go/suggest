@@ -92,10 +92,14 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 func (self *NGramIndex) FuzzySearch(word string) RankList {
 	preparedWord := prepareString(word)
 	wordProfile := self.getProfile(preparedWord)
-	corresponding := self.find(wordProfile)
-	distances := make(map[int]float64, len(corresponding))
-	for _, id := range corresponding {
-		if _, ok := distances[id]; !ok {
+
+	distances := make(map[int]float64)
+	for _, ngram := range wordProfile.ngrams {
+		for _, id := range self.invertedLists[ngram] {
+			if _, ok := distances[id]; ok {
+				continue
+			}
+
 			distances[id] = self.editDistance.CalcWithProfiles(
 				word,
 				self.dictionary[id],
