@@ -10,13 +10,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
 const TOP_K = 5
 
 var (
-	suggesters    = make(map[int]*suggest.SuggestService)
+	suggesters    map[int]*suggest.SuggestService
 	indexTemplate = template.Must(template.ParseFiles("public/index.html"))
 )
 
@@ -34,13 +35,28 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 		Elapsed string   `json:"elapsed"`
 	}
 
-	var result []candidates
+	ch := make(chan candidates, len(suggesters))
+	var wg sync.WaitGroup
 	for metric, service := range suggesters {
-		start := time.Now()
-		data := service.Suggest(dict, query, TOP_K)
-		elapsed := time.Since(start).String()
-		metricName := suggest.MetricName[metric]
-		result = append(result, candidates{metricName, data, elapsed})
+		wg.Add(1)
+		go func(metric int, service *suggest.SuggestService) {
+			start := time.Now()
+			data := service.Suggest(dict, query, TOP_K)
+			elapsed := time.Since(start).String()
+			metricName := suggest.MetricName[metric]
+			ch <- candidates{metricName, data, elapsed}
+			wg.Done()
+		}(metric, service)
+	}
+
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	result := make([]candidates, 0, len(suggesters))
+	for cand := range ch {
+		result = append(result, cand)
 	}
 
 	response := struct {
@@ -96,9 +112,11 @@ func GetWordsFromFile(fileName string) []string {
 
 func init() {
 	words := GetWordsFromFile("cars.dict")
-	suggesters[suggest.LEVENSHTEIN] = suggest.NewSuggestService(3, suggest.LEVENSHTEIN)
-	suggesters[suggest.NGRAM] = suggest.NewSuggestService(3, suggest.NGRAM)
-	suggesters[suggest.JACCARD] = suggest.NewSuggestService(3, suggest.JACCARD)
+	suggesters = map[int]*suggest.SuggestService{
+		suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
+		suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
+		suggest.JACCARD:     suggest.NewSuggestService(3, suggest.JACCARD),
+	}
 
 	for _, sug := range suggesters {
 		sug.AddDictionary("cars", words)
