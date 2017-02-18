@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+const maxN = 8
+
 type profile struct {
 	frequencies map[string]int
 	ngrams      []string
@@ -12,13 +14,14 @@ type profile struct {
 
 var reg *regexp.Regexp
 
+// inspired by https://github.com/Lazin/go-ngram
 func SplitIntoNGrams(word string, k int) []string {
 	sliceLen := len(word) - k + 1
 	if sliceLen <= 0 || sliceLen > len(word) {
 		panic("Invalid word length for spliting")
 	}
 
-	var prevIndexes [4]int
+	var prevIndexes [maxN]int
 	result := make([]string, 0, sliceLen)
 	i := 0
 	for index := range word {
@@ -39,9 +42,7 @@ func SplitIntoNGrams(word string, k int) []string {
 	return result
 }
 
-/*
- * Return unique ngrams with frequency
- */
+// Return unique ngrams with frequency
 func getProfile(word string, k int) *profile {
 	ngrams := SplitIntoNGrams(word, k)
 	frequencies := make(map[string]int, len(ngrams))
