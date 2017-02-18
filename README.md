@@ -12,7 +12,7 @@ Main idea was taken from
 ## Usage
 
 ```go
-service := suggest.NewSuggestService(3, suggest.JACCARD)
+service := suggest.NewSuggestService(3, suggest.JACCARD) // n-gram of size 3, Jaccard distance as edit distance
 collection := []string{
     "Nissan March",
     "Nissan Juke",
