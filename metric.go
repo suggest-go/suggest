@@ -134,7 +134,7 @@ func (self *JaccardDistance) Calc(a, b string) float64 {
 // Jaccard distance = 1 - J(A, B) = 1 - |intersection| / |union|
 func (self *JaccardDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
 	if a == b {
-		return 1.0
+		return 0.0
 	}
 
 	minProfile, maxProfile := profileA, profileB

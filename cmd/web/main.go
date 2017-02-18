@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"github.com/alldroll/suggest"
 	"github.com/gorilla/mux"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -17,13 +16,10 @@ import (
 const TOP_K = 5
 
 var (
-	suggesters    map[int]*suggest.SuggestService
-	indexTemplate = template.Must(template.ParseFiles("public/index.html"))
+	suggesters map[int]*suggest.SuggestService
+	publicPath = "./cmd/web/public"
+	dictPath   = "./cmd/web/cars.dict"
 )
-
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	indexTemplate.Execute(w, nil)
-}
 
 func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -111,7 +107,7 @@ func GetWordsFromFile(fileName string) []string {
 }
 
 func init() {
-	words := GetWordsFromFile("cars.dict")
+	words := GetWordsFromFile(dictPath)
 	suggesters = map[int]*suggest.SuggestService{
 		suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
 		suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
@@ -124,8 +120,13 @@ func init() {
 }
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
+
 	r := mux.NewRouter()
-	r.HandleFunc("/", IndexHandler)
+	r.Handle("/", http.FileServer(http.Dir(publicPath)))
 	r.HandleFunc("/suggest/{dict}/{query}/", SuggestHandler)
-	log.Fatal(http.ListenAndServe(":8000", r))
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
