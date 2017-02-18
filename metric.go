@@ -42,7 +42,8 @@ func GetEditDistance(t int, k int) (EditDistance, error) {
 type LevenshteinDistance struct{}
 
 func (self *LevenshteinDistance) Calc(a, b string) float64 {
-	aLen, bLen := len(a), len(b)
+	r1, r2 := []rune(a), []rune(b)
+	aLen, bLen := len(r1), len(r2)
 	if aLen == 0 {
 		return float64(bLen)
 	}
@@ -51,9 +52,7 @@ func (self *LevenshteinDistance) Calc(a, b string) float64 {
 		return float64(aLen)
 	}
 
-	r1, r2 := []rune(a), []rune(b)
 	column := make([]int, aLen+1)
-
 	for i := 1; i < aLen+1; i++ {
 		column[i] = i
 	}
@@ -132,6 +131,7 @@ func (self *JaccardDistance) Calc(a, b string) float64 {
 	return self.CalcWithProfiles(a, b, profileA, profileB)
 }
 
+// Jaccard distance = 1 - J(A, B) = 1 - |intersection| / |union|
 func (self *JaccardDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
 	if a == b {
 		return 1.0

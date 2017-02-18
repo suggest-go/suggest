@@ -1,9 +1,6 @@
 package suggest
 
-import (
-	"errors"
-	"sync"
-)
+import "sync"
 
 type SuggestService struct {
 	sync.RWMutex
@@ -12,6 +9,7 @@ type SuggestService struct {
 	editDistance EditDistance
 }
 
+// Creates an empty SuggestService which uses given metric as "edit distance metric"
 func NewSuggestService(ngramSize, metric int) *SuggestService {
 	editDistance, err := GetEditDistance(metric, ngramSize)
 	if err != nil {
@@ -25,15 +23,8 @@ func NewSuggestService(ngramSize, metric int) *SuggestService {
 	}
 }
 
+// add/replace new dictionary with given name
 func (self *SuggestService) AddDictionary(name string, words []string) error {
-	self.RLock()
-	_, ok := self.dictionaries[name]
-	self.RUnlock()
-
-	if ok {
-		return errors.New("dictionary already exists")
-	}
-
 	ngramIndex := NewNGramIndex(self.ngramSize, self.editDistance)
 	for _, word := range words {
 		ngramIndex.AddWord(word)
@@ -45,6 +36,7 @@ func (self *SuggestService) AddDictionary(name string, words []string) error {
 	return nil
 }
 
+// return Top-k approximate strings for given query in dict
 func (self *SuggestService) Suggest(dict string, query string, topK int) []string {
 	self.RLock()
 	index, ok := self.dictionaries[dict]

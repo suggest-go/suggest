@@ -18,10 +18,23 @@ func SplitIntoNGrams(word string, k int) []string {
 		panic("Invalid word length for spliting")
 	}
 
+	var prevIndexes [4]int
 	result := make([]string, 0, sliceLen)
-	for i := 0; i < sliceLen; i++ {
-		result = append(result, word[i:i+k])
+	i := 0
+	for index := range word {
+		i++
+		if i > k {
+			top := prevIndexes[(i-k)%k]
+			substr := word[top:index]
+			result = append(result, substr)
+		}
+
+		prevIndexes[i%k] = index
 	}
+
+	top := prevIndexes[(i+1)%k]
+	substr := word[top:]
+	result = append(result, substr)
 
 	return result
 }

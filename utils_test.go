@@ -23,6 +23,10 @@ func TestSplitIntoNGrams(t *testing.T) {
 			"testing", 3,
 			[]string{"tes", "est", "sti", "tin", "ing"},
 		},
+		{
+			"жигули", 2,
+			[]string{"жи", "иг", "гу", "ул", "ли"},
+		},
 	}
 
 	for _, c := range cases {

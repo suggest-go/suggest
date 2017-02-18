@@ -51,6 +51,7 @@ func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
 	}
 }
 
+// Add given word to invertedList
 func (self *NGramIndex) AddWord(word string) {
 	prepared := prepareString(word)
 	profile := self.getProfile(prepared)
@@ -63,9 +64,7 @@ func (self *NGramIndex) AddWord(word string) {
 	self.index++
 }
 
-/**
- * return top-k similar strings
- */
+// Return top-k similar strings
 func (self *NGramIndex) Suggest(word string, topK int) []string {
 	candidates := self.FuzzySearch(word)
 	if topK > len(candidates) {
@@ -73,9 +72,9 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 	}
 
 	sort.Sort(candidates)
-	result := make([]string, topK)
+	result := make([]string, 0)
 	for i, rank := range candidates {
-		result[i] = rank.word
+		result = append(result, rank.word)
 		if i == topK-1 {
 			break
 		}
@@ -84,11 +83,9 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 	return result
 }
 
-/**
- * 1. try to receive corresponding inverted list for word's ngrams
- * 2. calculate distance between current word and candidates
- * 3. return RankList
- */
+//1. try to receive corresponding inverted list for word's ngrams
+//2. calculate distance between current word and candidates
+//3. return RankList
 func (self *NGramIndex) FuzzySearch(word string) RankList {
 	preparedWord := prepareString(word)
 	wordProfile := self.getProfile(preparedWord)
@@ -117,16 +114,12 @@ func (self *NGramIndex) FuzzySearch(word string) RankList {
 	return candidates
 }
 
-/*
- * Return unique ngrams with frequency
- */
+// Return unique ngrams with frequency
 func (self *NGramIndex) getProfile(word string) *profile {
 	return getProfile(word, self.k)
 }
 
-/*
- * Find corresponding inverted lists by common ngrams
- */
+// Find corresponding inverted lists by common ngrams
 func (self *NGramIndex) find(profile *profile) []int {
 	var result []int
 	for _, ngram := range profile.ngrams {

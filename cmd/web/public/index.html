@@ -1,46 +1,46 @@
 <!DOCTYPE html>
 <head>
-	<style type="text/css">
+    <style type="text/css">
 html, body { height: 100%; margin: 0; padding: 0; }
-	</style>
+    </style>
 
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
-	<meta charset="utf-8">
+    <meta charset="utf-8">
 </head>
 <body>
     <div class="container">
-		<h1>Grid</h1>
+        <h1>Car suggest service</h1>
+        <h3>Please enter known to you car model(vendor)</h3>
         <form>
             <div class="form-group">
                 <input id="query" type="text" class="form-control">
             </div>
         </form>
 
-		<div class="row">
-			<div class="col-sm-4">
+        <div class="row">
+            <div class="col-sm-4">
                 <h4>Levenshtein distance</h4>
                 <span class="holder" id="levenshtein"/>
-			</div>
-			<div class="col-sm-4">
+            </div>
+            <div class="col-sm-4">
                 <h4>NGram distance</h4>
                 <span class="holder" id="ngram"/>
-			</div>
-			<div class="col-sm-4">
+            </div>
+            <div class="col-sm-4">
                 <h4>Jaccard distance</h4>
-                <span class="holder" id="jaccard"/>
-			</div>
-		</div>
-	</div>
+                <p class="holder" id="jaccard"/>
+            </div>
+        </div>
+    </div>
 
-	<script type="text/javascript">
-
-	$(function() {
+    <script type="text/javascript">
+    $(function() {
         var prev = '';
-		$("#query").on("keyup", function(e) {
-			var query = $("#query").val(), url;
+        $("#query").on("keyup", function(e) {
+            var query = $("#query").val(), url;
             if (query.length < 3 || query === prev) {
                 if (query !== prev) {
                     $('.holder').empty();
@@ -49,32 +49,27 @@ html, body { height: 100%; margin: 0; padding: 0; }
             }
 
             prev = query;
-
-			url = "/suggest/cars/" + query + "/";
-
-			$.ajax(url)
-				.done(function(json) {
-					var candidates = json.candidates, text, $holder, candidate;
+            url = "/suggest/cars/" + encodeURIComponent(query) + "/";
+            $.ajax(url)
+                .done(function(json) {
+                    var candidates = json.candidates, $holder, candidate, textArr;
                     for (var i = 0; i < candidates.length; ++i) {
                         candidate = candidates[i];
-                        text = '';
                         $holder = $('#' + candidate.metric);
+                        textArr = [];
                         for (var j = 0; j < candidate.data.length; ++j) {
-                            text += $("<p/>", {text: candidate.data[j]}).html();
-                            text += "<br/>";
+                            textArr.push(candidate.data[j]);
                         }
-
-                        text += $("<p/>", {text: "Elapsed time: " + candidate.elapsed}).html();
-                        $holder.empty().html(text);
+                        
+                        textArr.push("<small>Elapsed time: " + candidate.elapsed + "</small>");
+                        $holder.empty().html(textArr.join('<br/>'));
                     }
-				})
-			.fail(function(err) {
-				alert(err);
-			});
-		});
-	});
-	
-	</script>
+                })
+                .fail(function(err) {
+                    alert(err);
+                });
+        });
+    });
+    </script>
 </body>
 </html>
-
