@@ -124,7 +124,7 @@ type JaccardDistance struct {
 
 func (self *JaccardDistance) Calc(a, b string) float64 {
 	if a == b {
-		return 1.0
+		return 0.0
 	}
 
 	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
