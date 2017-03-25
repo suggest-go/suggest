@@ -1,130 +1,68 @@
 package suggest
 
-/*
- * inspired by
- * http://www.aaai.org/ocs/index.php/AAAI/AAAI10/paper/viewFile/1939/2234
- * http://nlp.stanford.edu/IR-book/html/htmledition/k-gram-indexes-for-wildcard-queries-1.html
- * http://bazhenov.me/blog/2012/08/04/autocomplete.html
- */
+import "github.com/alldroll/rbtree"
 
-import (
-	"sort"
-)
-
-type Rank struct {
-	word     string
-	distance float64
-}
-type RankList []Rank
-
-func (p RankList) Len() int {
-	return len(p)
+type WordProfile struct {
+	word   string
+	ngrams []NGram
 }
 
-func (p RankList) Less(i, j int) bool {
-	return p[i].distance < p[j].distance
+func (self *WordProfile) GetWord() string {
+	return self.word
 }
 
-func (p RankList) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
+// Return unique ordered NGram[]
+func (self *WordProfile) GetNGrams() []NGram {
+	return self.ngrams
 }
 
-type invertedListsT map[string][]int
-
-type NGramIndex struct {
-	k             int
-	invertedLists invertedListsT
-	dictionary    []string
-	profiles      []*profile
-	index         int
-	editDistance  EditDistance
+type NGram interface {
+	GetValue() string
+	GetFrequency() int
 }
 
-func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
-	if k < 2 || k > 4 {
-		panic("k should be in [2, 4]")
+func GetWordProfile(word string, k int) *WordProfile {
+	ngrams := SplitIntoNGrams(word, k)
+	tree := rbtree.New()
+	for _, ngram := range ngrams {
+		n := &ngramImp{ngram, 0}
+		item := tree.Get(n)
+		if item == nil {
+			tree.Insert(n)
+		} else {
+			n = item.(*ngramImp)
+		}
+
+		n.frequency++
 	}
 
-	return &NGramIndex{
-		k, make(invertedListsT), make([]string, 0), make([]*profile, 0), 0,
-		editDistance,
-	}
-}
-
-// Add given word to invertedList
-func (self *NGramIndex) AddWord(word string) {
-	prepared := prepareString(word)
-	profile := self.getProfile(prepared)
-	for _, ngram := range profile.ngrams {
-		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
-	}
-
-	self.dictionary = append(self.dictionary, word)
-	self.profiles = append(self.profiles, profile)
-	self.index++
-}
-
-// Return top-k similar strings
-func (self *NGramIndex) Suggest(word string, topK int) []string {
-	candidates := self.FuzzySearch(word)
-	if topK > len(candidates) {
-		topK = len(candidates)
-	}
-
-	sort.Sort(candidates)
-	result := make([]string, 0)
-	for i, rank := range candidates {
-		result = append(result, rank.word)
-		if i == topK-1 {
+	list := make([]NGram, 0, tree.Len())
+	iter := tree.NewIterator()
+	for {
+		item := iter.Next()
+		if item == nil {
 			break
 		}
+
+		list = append(list, item.(*ngramImp))
 	}
 
-	return result
+	return &WordProfile{word, list}
 }
 
-//1. try to receive corresponding inverted list for word's ngrams
-//2. calculate distance between current word and candidates
-//3. return RankList
-func (self *NGramIndex) FuzzySearch(word string) RankList {
-	preparedWord := prepareString(word)
-	wordProfile := self.getProfile(preparedWord)
-
-	distances := make(map[int]float64)
-	for _, ngram := range wordProfile.ngrams {
-		for _, id := range self.invertedLists[ngram] {
-			if _, ok := distances[id]; ok {
-				continue
-			}
-
-			distances[id] = self.editDistance.CalcWithProfiles(
-				word,
-				self.dictionary[id],
-				wordProfile,
-				self.profiles[id],
-			)
-		}
-	}
-
-	candidates := make(RankList, 0, len(distances))
-	for id, distance := range distances {
-		candidates = append(candidates, Rank{self.dictionary[id], distance})
-	}
-
-	return candidates
+type ngramImp struct {
+	value     string
+	frequency int
 }
 
-// Return unique ngrams with frequency
-func (self *NGramIndex) getProfile(word string) *profile {
-	return getProfile(word, self.k)
+func (self *ngramImp) GetValue() string {
+	return self.value
 }
 
-// Find corresponding inverted lists by common ngrams
-func (self *NGramIndex) find(profile *profile) []int {
-	var result []int
-	for _, ngram := range profile.ngrams {
-		result = append(result, self.invertedLists[ngram]...)
-	}
+func (self *ngramImp) GetFrequency() int {
+	return self.frequency
+}
 
-	return result
+func (self *ngramImp) Less(other rbtree.Item) bool {
+	return self.value < other.(*ngramImp).value
 }

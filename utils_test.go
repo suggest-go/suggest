@@ -73,3 +73,9 @@ func BenchmarkGetProfile(b *testing.B) {
 		getProfile("TestStringAbabacaMacacaTsaksn", 3)
 	}
 }
+
+func BenchmarkGetWordProfile(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		getProfile("TestStringAbabacaMacacaTsaksn", 3)
+	}
+}
