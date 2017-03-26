@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"time"
 )
@@ -102,14 +103,23 @@ func GetWordsFromFile(fileName string) []string {
 func init() {
 	words := GetWordsFromFile(dictPath)
 	suggesters = map[int]*suggest.SuggestService{
-		suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
-		suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
-		suggest.JACCARD:     suggest.NewSuggestService(3, suggest.JACCARD),
+		/*
+			suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
+			suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
+		*/
+		suggest.JACCARD: suggest.NewSuggestService(3, suggest.JACCARD),
 	}
 
 	for _, sug := range suggesters {
 		sug.AddDictionary("cars", words)
 	}
+}
+
+func AttachProfiler(router *mux.Router) {
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
 func main() {
@@ -119,6 +129,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+	AttachProfiler(r)
 	r.Handle("/", http.FileServer(http.Dir(publicPath)))
 	r.HandleFunc("/suggest/{dict}/{query}/", SuggestHandler)
 	log.Fatal(http.ListenAndServe(":"+port, r))

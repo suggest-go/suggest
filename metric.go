@@ -2,7 +2,7 @@ package suggest
 
 import (
 	"errors"
-	"math"
+	//"math"
 )
 
 const (
@@ -18,9 +18,7 @@ var MetricName = map[int]string{
 }
 
 type EditDistance interface {
-	Calc(a, b string) float64
-	/* monkeycode */
-	CalcWithProfiles(a, b string, profileA, profileB *profile) float64
+	Calc(profileA, profileB *WordProfile) float64
 }
 
 func GetEditDistance(t int, k int) (EditDistance, error) {
@@ -41,7 +39,7 @@ func GetEditDistance(t int, k int) (EditDistance, error) {
 
 type LevenshteinDistance struct{}
 
-func (self *LevenshteinDistance) Calc(a, b string) float64 {
+func (self *LevenshteinDistance) calc(a, b string) float64 {
 	r1, r2 := []rune(a), []rune(b)
 	aLen, bLen := len(r1), len(r2)
 	if aLen == 0 {
@@ -79,8 +77,8 @@ func (self *LevenshteinDistance) Calc(a, b string) float64 {
 	return float64(column[aLen])
 }
 
-func (self *LevenshteinDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
-	return self.Calc(a, b)
+func (self *LevenshteinDistance) Calc(profileA, profileB *WordProfile) float64 {
+	return self.calc(profileA.GetWord(), profileB.GetWord())
 }
 
 type NGramDistance struct {
@@ -93,27 +91,22 @@ type NGramDistance struct {
  *
  * Complexity O(aLen + bLen)
  */
-func (self *NGramDistance) Calc(a, b string) float64 {
-	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
-	return self.CalcWithProfiles(a, b, profileA, profileB)
-}
-
-func (self *NGramDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
+func (self *NGramDistance) Calc(profileA, profileB *WordProfile) float64 {
 	distance := 0.0
-	for _, key := range profileA.ngrams {
-		freqA, freqB := profileA.frequencies[key], 0
-		if val, ok := profileB.frequencies[key]; ok {
-			freqB = val
-		}
+	//for _, key := range profileA.ngrams {
+	//freqA, freqB := profileA.frequencies[key], 0
+	//if val, ok := profileB.frequencies[key]; ok {
+	//freqB = val
+	//}
 
-		distance += math.Abs(float64(freqA - freqB))
-	}
+	//distance += math.Abs(float64(freqA - freqB))
+	//}
 
-	for _, key := range profileB.ngrams {
-		if _, ok := profileA.frequencies[key]; !ok {
-			distance += float64(profileB.frequencies[key])
-		}
-	}
+	//for _, key := range profileB.ngrams {
+	//if _, ok := profileA.frequencies[key]; !ok {
+	//distance += float64(profileB.frequencies[key])
+	//}
+	//}
 
 	return distance
 }
@@ -122,31 +115,26 @@ type JaccardDistance struct {
 	k int
 }
 
-func (self *JaccardDistance) Calc(a, b string) float64 {
-	if a == b {
-		return 0.0
-	}
-
-	profileA, profileB := getProfile(a, self.k), getProfile(b, self.k)
-	return self.CalcWithProfiles(a, b, profileA, profileB)
-}
-
 // Jaccard distance = 1 - J(A, B) = 1 - |intersection| / |union|
-func (self *JaccardDistance) CalcWithProfiles(a, b string, profileA, profileB *profile) float64 {
-	if a == b {
+func (self *JaccardDistance) Calc(profileA, profileB *WordProfile) float64 {
+	if profileA.GetWord() == profileB.GetWord() {
 		return 0.0
 	}
 
-	minProfile, maxProfile := profileA, profileB
-	lenA, lenB := len(profileA.frequencies), len(profileB.frequencies)
-	if lenA > lenB {
-		minProfile, maxProfile = maxProfile, minProfile
-	}
-
+	ngramsA, ngramsB := profileA.GetNGrams(), profileB.GetNGrams()
+	lenA, lenB := len(ngramsA), len(ngramsB)
+	i, j := 0, 0
 	inter := 0.0
-	for _, k := range minProfile.ngrams {
-		if _, ok := maxProfile.frequencies[k]; ok {
-			inter += 1
+	for i < lenA && j < lenB {
+		aVal, bVal := ngramsA[i].GetValue(), ngramsB[j].GetValue()
+		if aVal < bVal {
+			i++
+		} else if bVal < aVal {
+			j++
+		} else {
+			inter++
+			i++
+			j++
 		}
 	}
 

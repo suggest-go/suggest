@@ -36,7 +36,7 @@ type NGramIndex struct {
 	k             int
 	invertedLists invertedListsT
 	dictionary    []string
-	profiles      []*profile
+	profiles      []*WordProfile
 	index         int
 	editDistance  EditDistance
 }
@@ -47,7 +47,7 @@ func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
 	}
 
 	return &NGramIndex{
-		k, make(invertedListsT), make([]string, 0), make([]*profile, 0), 0,
+		k, make(invertedListsT), make([]string, 0), make([]*WordProfile, 0), 0,
 		editDistance,
 	}
 }
@@ -56,8 +56,9 @@ func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
 func (self *NGramIndex) AddWord(word string) {
 	prepared := prepareString(word)
 	profile := self.getProfile(prepared)
-	for _, ngram := range profile.ngrams {
-		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
+	for _, ngram := range profile.GetNGrams() {
+		val := ngram.GetValue()
+		self.invertedLists[val] = append(self.invertedLists[val], self.index)
 	}
 
 	self.dictionary = append(self.dictionary, word)
@@ -92,15 +93,13 @@ func (self *NGramIndex) FuzzySearch(word string) RankList {
 	wordProfile := self.getProfile(preparedWord)
 
 	distances := make(map[int]float64)
-	for _, ngram := range wordProfile.ngrams {
-		for _, id := range self.invertedLists[ngram] {
+	for _, ngram := range wordProfile.GetNGrams() {
+		for _, id := range self.invertedLists[ngram.GetValue()] {
 			if _, ok := distances[id]; ok {
 				continue
 			}
 
-			distances[id] = self.editDistance.CalcWithProfiles(
-				word,
-				self.dictionary[id],
+			distances[id] = self.editDistance.Calc(
 				wordProfile,
 				self.profiles[id],
 			)
@@ -116,16 +115,6 @@ func (self *NGramIndex) FuzzySearch(word string) RankList {
 }
 
 // Return unique ngrams with frequency
-func (self *NGramIndex) getProfile(word string) *profile {
-	return getProfile(word, self.k)
-}
-
-// Find corresponding inverted lists by common ngrams
-func (self *NGramIndex) find(profile *profile) []int {
-	var result []int
-	for _, ngram := range profile.ngrams {
-		result = append(result, self.invertedLists[ngram]...)
-	}
-
-	return result
+func (self *NGramIndex) getProfile(word string) *WordProfile {
+	return GetWordProfile(word, self.k)
 }
