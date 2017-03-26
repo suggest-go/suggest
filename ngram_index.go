@@ -38,17 +38,15 @@ type NGramIndex struct {
 	dictionary    []string
 	profiles      []*WordProfile
 	index         int
-	editDistance  EditDistance
 }
 
-func NewNGramIndex(k int, editDistance EditDistance) *NGramIndex {
+func NewNGramIndex(k int) *NGramIndex {
 	if k < 2 || k > 4 {
 		panic("k should be in [2, 4]")
 	}
 
 	return &NGramIndex{
 		k, make(invertedListsT), make([]string, 0), make([]*WordProfile, 0), 0,
-		editDistance,
 	}
 }
 
@@ -67,8 +65,8 @@ func (self *NGramIndex) AddWord(word string) {
 }
 
 // Return top-k similar strings
-func (self *NGramIndex) Suggest(word string, topK int) []string {
-	candidates := self.FuzzySearch(word)
+func (self *NGramIndex) Suggest(word string, editDistance EditDistance, topK int) []string {
+	candidates := self.FuzzySearch(word, editDistance)
 	if topK > len(candidates) {
 		topK = len(candidates)
 	}
@@ -88,7 +86,7 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 //1. try to receive corresponding inverted list for word's ngrams
 //2. calculate distance between current word and candidates
 //3. return RankList
-func (self *NGramIndex) FuzzySearch(word string) RankList {
+func (self *NGramIndex) FuzzySearch(word string, editDistance EditDistance) RankList {
 	preparedWord := prepareString(word)
 	wordProfile := self.getProfile(preparedWord)
 
@@ -99,7 +97,7 @@ func (self *NGramIndex) FuzzySearch(word string) RankList {
 				continue
 			}
 
-			distances[id] = self.editDistance.Calc(
+			distances[id] = editDistance.Calc(
 				wordProfile,
 				self.profiles[id],
 			)

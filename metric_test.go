@@ -17,7 +17,7 @@ func TestLevenshtein(t *testing.T) {
 		},
 	}
 
-	editDistance, _ := GetEditDistance(LEVENSHTEIN, 2)
+	editDistance := &LevenshteinDistance{}
 	for _, c := range cases {
 		actual := editDistance.Calc(GetWordProfile(c.a, 3), GetWordProfile(c.b, 3))
 		if actual != c.distance {
@@ -65,7 +65,7 @@ func BenchmarkNGramDistance(b *testing.B) {
 
 */
 func BenchmarkLevenshtein(b *testing.B) {
-	editDistance, _ := GetEditDistance(LEVENSHTEIN, 3)
+	editDistance := &LevenshteinDistance{}
 	for i := 0; i < b.N; i++ {
 		a, b := "SomeLongWordssdasddsadsadsadasdasdsadasdsadasdasdsadsad", "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada"
 		editDistance.Calc(GetWordProfile(a, 3), GetWordProfile(b, 3))
@@ -73,7 +73,7 @@ func BenchmarkLevenshtein(b *testing.B) {
 }
 
 func BenchmarkJaccard(b *testing.B) {
-	editDistance, _ := GetEditDistance(JACCARD, 3)
+	editDistance := &JaccardDistance{3}
 	for i := 0; i < b.N; i++ {
 		a, b := "SomeLongWordssdasddsadsadsadasdasdsadasdsadasdasdsadsad", "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada"
 		editDistance.Calc(GetWordProfile(a, 3), GetWordProfile(b, 3))

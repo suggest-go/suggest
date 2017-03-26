@@ -58,14 +58,13 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	dis, _ := GetEditDistance(JACCARD, 3)
-	ngramIndex := NewNGramIndex(3, dis)
-
+	editDistance := &JaccardDistance{3}
+	ngramIndex := NewNGramIndex(3)
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
 	}
 
-	candidates := ngramIndex.Suggest("Nissan mar", 2)
+	candidates := ngramIndex.Suggest("Nissan mar", editDistance, 2)
 	expected := []string{
 		"Nissan March",
 		"Nissan Maxima",
@@ -93,8 +92,8 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	dis, _ := GetEditDistance(JACCARD, 3)
-	ngramIndex := NewNGramIndex(3, dis)
+	ngramIndex := NewNGramIndex(3)
+	editDistance := &JaccardDistance{3}
 
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
@@ -102,6 +101,6 @@ func BenchmarkSuggest(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		ngramIndex.Suggest("Nissan mar", 2)
+		ngramIndex.Suggest("Nissan mar", editDistance, 3)
 	}
 }
