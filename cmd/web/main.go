@@ -103,11 +103,9 @@ func GetWordsFromFile(fileName string) []string {
 func init() {
 	words := GetWordsFromFile(dictPath)
 	suggesters = map[int]*suggest.SuggestService{
-		/*
-			suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
-			suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
-		*/
-		suggest.JACCARD: suggest.NewSuggestService(3, suggest.JACCARD),
+		suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
+		suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
+		suggest.JACCARD:     suggest.NewSuggestService(3, suggest.JACCARD),
 	}
 
 	for _, sug := range suggesters {

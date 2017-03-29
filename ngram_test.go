@@ -105,3 +105,34 @@ func BenchmarkSuggest(b *testing.B) {
 		ngramIndex.Suggest("Nissan mar", 2)
 	}
 }
+
+func BenchmarkRealExample(b *testing.B) {
+	b.StopTimer()
+	collection := GetWordsFromFile("cmd/web/cars.dict")
+
+	dis, _ := GetEditDistance(JACCARD, 3)
+	ngramIndex := NewNGramIndex(3, dis)
+
+	for _, word := range collection {
+		ngramIndex.AddWord(word)
+	}
+
+	queries := [...]string{
+		"Nissan Mar",
+		"Hnda Fi",
+		"Mersdes Benz",
+		"Tayota carolla",
+		"Nssan Skylike",
+		"Nissan Juke",
+		"Dodje iper",
+		"Hummer",
+		"tayota",
+	}
+
+	qLen := len(queries)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		word := queries[i%qLen]
+		ngramIndex.Suggest(word, 5)
+	}
+}

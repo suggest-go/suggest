@@ -68,13 +68,6 @@ func BenchmarkSplitIntoNGrams(b *testing.B) {
 	}
 }
 
-func BenchmarkGetProfile(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		a := "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada"
-		getProfile(a, 3)
-	}
-}
-
 func BenchmarkGetWordProfile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		a := "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada"
