@@ -1,40 +1,7 @@
 package suggest
 
-import (
-	"errors"
-	//"math"
-)
-
-const (
-	LEVENSHTEIN = iota
-	NGRAM
-	JACCARD
-)
-
-var MetricName = map[int]string{
-	LEVENSHTEIN: `levenshtein`,
-	NGRAM:       `ngram`,
-	JACCARD:     `jaccard`,
-}
-
 type EditDistance interface {
 	Calc(profileA, profileB *WordProfile) float64
-}
-
-func GetEditDistance(t int, k int) (EditDistance, error) {
-	switch t {
-	case LEVENSHTEIN:
-		return &LevenshteinDistance{}, nil
-
-	case NGRAM:
-		return &NGramDistance{k}, nil
-
-	case JACCARD:
-		return &JaccardDistance{k}, nil
-
-	default:
-		return nil, errors.New("Invalid metric type")
-	}
 }
 
 type LevenshteinDistance struct{}
@@ -113,6 +80,10 @@ func (self *NGramDistance) Calc(profileA, profileB *WordProfile) float64 {
 
 type JaccardDistance struct {
 	k int
+}
+
+func CreateJaccardDistance(k int) *JaccardDistance {
+	return &JaccardDistance{k}
 }
 
 // Jaccard distance = 1 - J(A, B) = 1 - |intersection| / |union|

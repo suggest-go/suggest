@@ -16,9 +16,10 @@ import (
 const TOP_K = 5
 
 var (
-	suggesters map[int]*suggest.SuggestService
-	publicPath = "./cmd/web/public"
-	dictPath   = "./cmd/web/cars.dict"
+	suggestService *suggest.SuggestService
+	configs        []*suggest.Config
+	publicPath     = "./cmd/web/public"
+	dictPath       = "./cmd/web/cars.dict"
 )
 
 func SuggestHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,16 +32,16 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 		Elapsed string   `json:"elapsed"`
 	}
 
-	lenS := len(suggesters)
+	lenS := len(configs)
 	ch := make(chan candidates)
-	for metric, service := range suggesters {
-		go func(metric int, service *suggest.SuggestService) {
+	for i, config := range configs {
+		go func(i int, config *suggest.Config) {
 			start := time.Now()
-			data := service.Suggest(dict, query, TOP_K)
+			data := suggestService.Suggest(dict+string(i), query)
 			elapsed := time.Since(start).String()
-			metricName := suggest.MetricName[metric]
+			metricName := config.GetName()
 			ch <- candidates{metricName, data, elapsed}
-		}(metric, service)
+		}(i, config)
 	}
 
 	result := make([]candidates, 0, lenS)
@@ -102,14 +103,14 @@ func GetWordsFromFile(fileName string) []string {
 
 func init() {
 	words := GetWordsFromFile(dictPath)
-	suggesters = map[int]*suggest.SuggestService{
-		suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
-		suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
-		suggest.JACCARD:     suggest.NewSuggestService(3, suggest.JACCARD),
+	configs = []*suggest.Config{
+		suggest.NewConfig(3, &suggest.LevenshteinDistance{}, 5, "levenshtein"),
+		suggest.NewConfig(3, suggest.CreateJaccardDistance(3), 5, "jaccard"),
 	}
 
-	for _, sug := range suggesters {
-		sug.AddDictionary("cars", words)
+	suggestService = suggest.NewSuggestService()
+	for i, config := range configs {
+		suggestService.AddDictionary("cars"+string(i), words, config)
 	}
 }
 

@@ -58,14 +58,13 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	dis, _ := GetEditDistance(JACCARD, 3)
-	ngramIndex := NewNGramIndex(3, dis)
-
+	ngramIndex := NewNGramIndex(3)
+	metric := &JaccardDistance{3}
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
 	}
 
-	candidates := ngramIndex.Suggest("Nissan mar", 2)
+	candidates := ngramIndex.Suggest("Nissan mar", metric, 2)
 	expected := []string{
 		"Nissan March",
 		"Nissan Maxima",
@@ -93,16 +92,15 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	dis, _ := GetEditDistance(JACCARD, 3)
-	ngramIndex := NewNGramIndex(3, dis)
-
+	metric := &JaccardDistance{3}
+	ngramIndex := NewNGramIndex(3)
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
 	}
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		ngramIndex.Suggest("Nissan mar", 2)
+		ngramIndex.Suggest("Nissan mar", metric, 2)
 	}
 }
 
@@ -110,8 +108,7 @@ func BenchmarkRealExample(b *testing.B) {
 	b.StopTimer()
 	collection := GetWordsFromFile("cmd/web/cars.dict")
 
-	dis, _ := GetEditDistance(JACCARD, 3)
-	ngramIndex := NewNGramIndex(3, dis)
+	ngramIndex := NewNGramIndex(3)
 
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
@@ -129,10 +126,11 @@ func BenchmarkRealExample(b *testing.B) {
 		"tayota",
 	}
 
+	metric := &JaccardDistance{3}
 	qLen := len(queries)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		word := queries[i%qLen]
-		ngramIndex.Suggest(word, 5)
+		ngramIndex.Suggest(word, metric, 5)
 	}
 }
