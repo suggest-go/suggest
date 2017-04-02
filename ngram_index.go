@@ -36,7 +36,6 @@ type NGramIndex struct {
 	k             int
 	invertedLists invertedListsT
 	dictionary    []string
-	profiles      []*WordProfile
 	index         int
 }
 
@@ -46,7 +45,7 @@ func NewNGramIndex(k int) *NGramIndex {
 	}
 
 	return &NGramIndex{
-		k, make(invertedListsT), make([]string, 0), make([]*WordProfile, 0), 0,
+		k, make(invertedListsT), make([]string, 0), 0,
 	}
 }
 
@@ -60,13 +59,12 @@ func (self *NGramIndex) AddWord(word string) {
 	}
 
 	self.dictionary = append(self.dictionary, word)
-	self.profiles = append(self.profiles, profile)
 	self.index++
 }
 
 // Return top-k similar strings
 func (self *NGramIndex) Suggest(word string, editDistance EditDistance, topK int) []string {
-	candidates := self.FuzzySearch(word, editDistance)
+	candidates := self.FuzzySearch(word, editDistance, topK)
 	if topK > len(candidates) {
 		topK = len(candidates)
 	}
@@ -86,19 +84,41 @@ func (self *NGramIndex) Suggest(word string, editDistance EditDistance, topK int
 //1. try to receive corresponding inverted list for word's ngrams
 //2. calculate distance between current word and candidates
 //3. return RankList
-func (self *NGramIndex) FuzzySearch(word string, editDistance EditDistance) RankList {
+func (self *NGramIndex) FuzzySearch(word string, editDistance EditDistance, topK int) RankList {
 	preparedWord := prepareString(word)
 	wordProfile := self.getProfile(preparedWord)
-	dLen := 0
-	for _, ngram := range wordProfile.GetNGrams() {
-		dLen += len(self.invertedLists[ngram.GetValue()])
-	}
 
-	distances := make(map[int]float64, dLen)
+	/* count filtering */
+	max := 0
+	counts := make([]int, self.index+1)
 	for _, ngram := range wordProfile.GetNGrams() {
 		for _, id := range self.invertedLists[ngram.GetValue()] {
-			if _, ok := distances[id]; !ok {
-				distances[id] = editDistance.Calc(wordProfile, self.profiles[id])
+			counts[id]++
+			if max < counts[id] {
+				max = counts[id]
+			}
+		}
+	}
+
+	a := make([][]int, max+1)
+	for id, count := range counts {
+		if count > 0 {
+			a[count] = append(a[count], id)
+		}
+	}
+
+	j := 0
+	distances := make(map[int]float64, topK)
+	for i := max; max-i < topK && i >= 0 && j < topK; i-- {
+		for _, id := range a[i] {
+			candidate := self.dictionary[id]
+			prepared := prepareString(candidate)
+			profile := self.getProfile(prepared)
+			distances[id] = editDistance.Calc(wordProfile, profile)
+			j++
+
+			if j >= topK {
+				break
 			}
 		}
 	}
