@@ -50,7 +50,7 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 	candidates := self.search(word, topK)
 	result := make([]string, 0, topK)
 	for candidates.Len() > 0 {
-		r := heap.Pop(candidates).(rank)
+		r := heap.Pop(candidates).(*rank)
 		result = append([]string{self.dictionary[r.id]}, result...)
 	}
 
@@ -63,9 +63,22 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 func (self *NGramIndex) search(word string, topK int) *rankHeap {
 	preparedWord := prepareString(word)
 	set := self.getNGramSet(preparedWord)
-	counts := make([]int, self.index+1)
 	lenA := len(set)
+
+	// find max word id for memory optimize
+	maxId := 0
+	for _, ngram := range set {
+		list := self.invertedLists[ngram]
+		if len(list) > 0 {
+			curMaxId := list[len(list)-1]
+			if curMaxId > maxId {
+				maxId = curMaxId
+			}
+		}
+	}
+
 	// calc intersections between current word's ngram set and candidates */
+	counts := make([]int, maxId+1)
 	for _, ngram := range set {
 		for _, id := range self.invertedLists[ngram] {
 			counts[id]++
@@ -84,12 +97,12 @@ func (self *NGramIndex) search(word string, topK int) *rankHeap {
 		// use jaccard distance as metric for calc words similarity
 		// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
 		distance := 1 - float64(inter)/float64(lenA+lenB-inter)
-		if h.Len() < topK || h.Min().(rank).distance > distance {
+		if h.Len() < topK || h.Min().(*rank).distance > distance {
 			if h.Len() == topK {
 				heap.Pop(h)
 			}
 
-			heap.Push(h, rank{id, distance})
+			heap.Push(h, &rank{id, distance})
 		}
 	}
 
@@ -99,32 +112,4 @@ func (self *NGramIndex) search(word string, topK int) *rankHeap {
 // Return unique ngrams with frequency
 func (self *NGramIndex) getNGramSet(word string) []string {
 	return GetNGramSet(word, self.k)
-}
-
-type rank struct {
-	id       int
-	distance float64
-}
-
-type rankHeap []rank
-
-func (self rankHeap) Len() int           { return len(self) }
-func (self rankHeap) Less(i, j int) bool { return self[i].distance > self[j].distance }
-func (self rankHeap) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-
-func (self *rankHeap) Push(x interface{}) {
-	*self = append(*self, x.(rank))
-}
-
-func (self *rankHeap) Pop() interface{} {
-	old := *self
-	n := len(old)
-	x := old[n-1]
-	*self = old[0 : n-1]
-	return x
-}
-
-func (self *rankHeap) Min() interface{} {
-	arr := *self
-	return arr[0]
 }
