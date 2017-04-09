@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"github.com/alldroll/suggest"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"time"
 )
@@ -15,9 +14,10 @@ import (
 const TOP_K = 5
 
 var (
-	suggesters map[int]*suggest.SuggestService
-	publicPath = "./cmd/web/public"
-	dictPath   = "./cmd/web/cars.dict"
+	suggestService *suggest.SuggestService
+	configs        []*suggest.Config
+	publicPath     = "./cmd/web/public"
+	dictPath       = "./cmd/web/cars.dict"
 )
 
 func SuggestHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,21 +25,21 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 	dict, query := vars["dict"], vars["query"]
 
 	type candidates struct {
-		Metric  string   `json:"metric"`
+		Config  string   `json:"config"`
 		Data    []string `json:"data"`
 		Elapsed string   `json:"elapsed"`
 	}
 
-	lenS := len(suggesters)
+	lenS := len(configs)
 	ch := make(chan candidates)
-	for metric, service := range suggesters {
-		go func(metric int, service *suggest.SuggestService) {
+	for i, config := range configs {
+		go func(i int, config *suggest.Config) {
 			start := time.Now()
-			data := service.Suggest(dict, query, TOP_K)
+			data := suggestService.Suggest(dict+string(i), query)
 			elapsed := time.Since(start).String()
-			metricName := suggest.MetricName[metric]
-			ch <- candidates{metricName, data, elapsed}
-		}(metric, service)
+			configName := config.GetName()
+			ch <- candidates{configName, data, elapsed}
+		}(i, config)
 	}
 
 	result := make([]candidates, 0, lenS)
@@ -66,50 +66,25 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-/*
-* inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
- */
-func GetWordsFromFile(fileName string) []string {
-	f, err := os.Open(fileName)
-	if err != nil {
-		panic(err)
+func init() {
+	words := suggest.GetWordsFromFile(dictPath)
+	configs = []*suggest.Config{
+		suggest.NewConfig(2, 5, "n2"),
+		suggest.NewConfig(3, 5, "n3"),
+		suggest.NewConfig(4, 5, "n4"),
 	}
 
-	var result []string
-	defer f.Close()
-	buf := bufio.NewReader(f)
-	line, err := buf.ReadBytes('\n')
-	for err == nil {
-		line = bytes.TrimRight(line, "\n")
-		if len(line) > 0 {
-			if line[len(line)-1] == 13 { //'\r'
-				line = bytes.TrimRight(line, "\r")
-			}
-
-			result = append(result, string(line))
-		}
-
-		line, err = buf.ReadBytes('\n')
+	suggestService = suggest.NewSuggestService()
+	for i, config := range configs {
+		suggestService.AddDictionary("cars"+string(i), words, config)
 	}
-
-	if len(line) > 0 {
-		result = append(result, string(line))
-	}
-
-	return result
 }
 
-func init() {
-	words := GetWordsFromFile(dictPath)
-	suggesters = map[int]*suggest.SuggestService{
-		suggest.LEVENSHTEIN: suggest.NewSuggestService(3, suggest.LEVENSHTEIN),
-		suggest.NGRAM:       suggest.NewSuggestService(3, suggest.NGRAM),
-		suggest.JACCARD:     suggest.NewSuggestService(3, suggest.JACCARD),
-	}
-
-	for _, sug := range suggesters {
-		sug.AddDictionary("cars", words)
-	}
+func AttachProfiler(router *mux.Router) {
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
 func main() {
@@ -119,6 +94,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+	AttachProfiler(r)
 	r.Handle("/", http.FileServer(http.Dir(publicPath)))
 	r.HandleFunc("/suggest/{dict}/{query}/", SuggestHandler)
 	log.Fatal(http.ListenAndServe(":"+port, r))

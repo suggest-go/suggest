@@ -1,16 +1,14 @@
 package suggest
 
 import (
+	"bufio"
+	"bytes"
+	"os"
 	"regexp"
 	"strings"
 )
 
 const maxN = 8
-
-type profile struct {
-	frequencies map[string]int
-	ngrams      []string
-}
 
 var reg *regexp.Regexp
 
@@ -42,20 +40,52 @@ func SplitIntoNGrams(word string, k int) []string {
 	return result
 }
 
-// Return unique ngrams with frequency
-func getProfile(word string, k int) *profile {
+func GetNGramSet(word string, k int) []string {
 	ngrams := SplitIntoNGrams(word, k)
-	frequencies := make(map[string]int, len(ngrams))
+	set := make(map[string]struct{}, len(ngrams))
+	list := make([]string, 0, len(ngrams))
 	for _, ngram := range ngrams {
-		frequencies[ngram]++
+		_, found := set[ngram]
+		set[ngram] = struct{}{}
+		if !found {
+			list = append(list, ngram)
+		}
 	}
 
-	unique := make([]string, 0, len(frequencies))
-	for ngram, _ := range frequencies {
-		unique = append(unique, ngram)
+	return list
+}
+
+/*
+* inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
+ */
+func GetWordsFromFile(fileName string) []string {
+	f, err := os.Open(fileName)
+	if err != nil {
+		panic(err)
 	}
 
-	return &profile{frequencies, unique}
+	var result []string
+	defer f.Close()
+	buf := bufio.NewReader(f)
+	line, err := buf.ReadBytes('\n')
+	for err == nil {
+		line = bytes.TrimRight(line, "\n")
+		if len(line) > 0 {
+			if line[len(line)-1] == 13 { //'\r'
+				line = bytes.TrimRight(line, "\r")
+			}
+
+			result = append(result, string(line))
+		}
+
+		line, err = buf.ReadBytes('\n')
+	}
+
+	if len(line) > 0 {
+		result = append(result, string(line))
+	}
+
+	return result
 }
 
 func prepareString(word string) string {

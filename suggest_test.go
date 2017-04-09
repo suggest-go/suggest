@@ -6,14 +6,14 @@ import (
 )
 
 func TestConcurrency(t *testing.T) {
-	service := NewSuggestService(3, JACCARD)
+	service := NewSuggestService()
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		wordsList := []string{"abc", "test2", "test3", "test4", "teta"}
 		for i := 0; i < 5; i++ {
-			service.AddDictionary(wordsList[i], wordsList)
+			service.AddDictionary(wordsList[i], wordsList, &Config{3, 3, "test"})
 		}
 		wg.Done()
 	}()
@@ -21,7 +21,7 @@ func TestConcurrency(t *testing.T) {
 	go func() {
 		wordsList := []string{"abc", "test2", "test3", "test4", "tetsa"}
 		for i := 0; i < 5; i++ {
-			service.Suggest(wordsList[i], wordsList[i], 3)
+			service.Suggest(wordsList[i], wordsList[i])
 		}
 
 		wg.Done()
