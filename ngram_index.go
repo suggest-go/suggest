@@ -47,8 +47,13 @@ func (self *NGramIndex) AddWord(word string) {
 
 // Return top-k similar strings
 func (self *NGramIndex) Suggest(word string, topK int) []string {
-	candidates := self.search(word, topK)
 	result := make([]string, 0, topK)
+	preparedWord := prepareString(word)
+	if len(preparedWord) < self.k {
+		return result
+	}
+
+	candidates := self.search(preparedWord, topK)
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
 		result = append([]string{self.dictionary[r.id]}, result...)
@@ -61,8 +66,7 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 //2. calculate distance between current word and candidates
 //3. return rankHeap
 func (self *NGramIndex) search(word string, topK int) *rankHeap {
-	preparedWord := prepareString(word)
-	set := self.getNGramSet(preparedWord)
+	set := self.getNGramSet(word)
 	lenA := len(set)
 
 	// find max word id for memory optimize
