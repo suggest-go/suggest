@@ -40,6 +40,21 @@ func SplitIntoNGrams(word string, k int) []string {
 	return result
 }
 
+func GetNGramSet(word string, k int) []string {
+	ngrams := SplitIntoNGrams(word, k)
+	set := make(map[string]struct{}, len(ngrams))
+	list := make([]string, 0, len(ngrams))
+	for _, ngram := range ngrams {
+		_, found := set[ngram]
+		set[ngram] = struct{}{}
+		if !found {
+			list = append(list, ngram)
+		}
+	}
+
+	return list
+}
+
 /*
 * inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
  */

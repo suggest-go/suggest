@@ -9,16 +9,14 @@ type SuggestService struct {
 }
 
 type Config struct {
-	ngramSize    int
-	editDistance EditDistance
-	topK         int
-	name         string
+	ngramSize int
+	topK      int
+	name      string
 }
 
-func NewConfig(ngramSize int, editDistance EditDistance, topK int, name string) *Config {
+func NewConfig(ngramSize int, topK int, name string) *Config {
 	return &Config{
 		ngramSize,
-		editDistance,
 		topK,
 		name,
 	}
@@ -57,7 +55,7 @@ func (self *SuggestService) Suggest(dict string, query string) []string {
 	config, okConf := self.configs[dict]
 	self.RUnlock()
 	if okDict && okConf {
-		return index.Suggest(query, config.editDistance, config.topK)
+		return index.Suggest(query, config.topK)
 	}
 
 	return make([]string, 0)

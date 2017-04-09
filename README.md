@@ -12,7 +12,7 @@ Main idea was taken from
 ## Usage
 
 ```go
-service := suggest.NewSuggestService(3, suggest.JACCARD) // n-gram of size 3, Jaccard distance as edit distance
+service := suggest.NewSuggestService()
 collection := []string{
     "Nissan March",
     "Nissan Juke",
@@ -23,12 +23,14 @@ collection := []string{
     "Toyota Corolla",
     "Toyota Corona",
 }
-service.AddDictionary("cars", collection)
 
-service.Suggest("cars", "niss mar", 2)
+// 3 - ngram size, 5 - topK candidates, "somename" - config name
+service.AddDictionary("cars", collection, &suggest.NewConfig(3, 5, "somename"))
+
+service.Suggest("cars", "niss mar")
 // >>> [Nissan March Nissan Maxima]
 
-service.Suggest("cars", "guke", 2)
+service.Suggest("cars", "guke")
 // >>> [Nissan Juke]
 
 ```

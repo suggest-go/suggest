@@ -5,47 +5,6 @@ import (
 	"testing"
 )
 
-/*
-func TestFuzzySearch(t *testing.T) {
-	collection := []string{
-		"blue",
-		"blunder",
-		"blunt",
-		"flank",
-		"flu",
-		"fluence",
-		"fluent",
-		"flunker",
-		"test",
-		"tes hello",
-	}
-
-	expected := map[string]float64{
-		"flu":     4,
-		"fluence": 8,
-		"fluent":  7,
-		"blue":    9,
-		"blunder": 10,
-		"blunt":   8,
-		"flank":   4,
-		"flunker": 4,
-	}
-
-	dis, _ := GetEditDistance(NGRAM, 2)
-	ngramIndex := NewNGramIndex(2, dis)
-	for _, word := range collection {
-		ngramIndex.AddWord(word)
-	}
-
-	candidates := ngramIndex.FuzzySearch("flunk")
-	for _, candidate := range candidates {
-		if rank, ok := expected[candidate.word]; !ok || rank != candidate.distance {
-			t.Errorf("TestFail, expected {%v}, got {%v}", candidates, expected)
-		}
-	}
-}
-*/
-
 func TestSuggestAuto(t *testing.T) {
 	collection := []string{
 		"Nissan March",
@@ -59,12 +18,11 @@ func TestSuggestAuto(t *testing.T) {
 	}
 
 	ngramIndex := NewNGramIndex(3)
-	metric := &JaccardDistance{3}
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
 	}
 
-	candidates := ngramIndex.Suggest("Nissan mar", metric, 2)
+	candidates := ngramIndex.Suggest("Nissan mar", 2)
 	expected := []string{
 		"Nissan March",
 		"Nissan Maxima",
@@ -92,7 +50,6 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	metric := &JaccardDistance{3}
 	ngramIndex := NewNGramIndex(3)
 	for _, word := range collection {
 		ngramIndex.AddWord(word)
@@ -100,7 +57,7 @@ func BenchmarkSuggest(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		ngramIndex.Suggest("Nissan mar", metric, 2)
+		ngramIndex.Suggest("Nissan mar", 2)
 	}
 }
 
@@ -126,11 +83,10 @@ func BenchmarkRealExample(b *testing.B) {
 		"tayota",
 	}
 
-	metric := &JaccardDistance{3}
 	qLen := len(queries)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		word := queries[i%qLen]
-		ngramIndex.Suggest(word, metric, 5)
+		ngramIndex.Suggest(word, 5)
 	}
 }

@@ -13,7 +13,7 @@ func TestConcurrency(t *testing.T) {
 	go func() {
 		wordsList := []string{"abc", "test2", "test3", "test4", "teta"}
 		for i := 0; i < 5; i++ {
-			service.AddDictionary(wordsList[i], wordsList, &Config{3, &JaccardDistance{3}, 3, "test"})
+			service.AddDictionary(wordsList[i], wordsList, &Config{3, 3, "test"})
 		}
 		wg.Done()
 	}()

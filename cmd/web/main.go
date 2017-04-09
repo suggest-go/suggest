@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"github.com/alldroll/suggest"
 	"github.com/gorilla/mux"
@@ -27,7 +25,7 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 	dict, query := vars["dict"], vars["query"]
 
 	type candidates struct {
-		Metric  string   `json:"metric"`
+		Config  string   `json:"config"`
 		Data    []string `json:"data"`
 		Elapsed string   `json:"elapsed"`
 	}
@@ -39,8 +37,8 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			data := suggestService.Suggest(dict+string(i), query)
 			elapsed := time.Since(start).String()
-			metricName := config.GetName()
-			ch <- candidates{metricName, data, elapsed}
+			configName := config.GetName()
+			ch <- candidates{configName, data, elapsed}
 		}(i, config)
 	}
 
@@ -68,44 +66,12 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-/*
-* inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
- */
-func GetWordsFromFile(fileName string) []string {
-	f, err := os.Open(fileName)
-	if err != nil {
-		panic(err)
-	}
-
-	var result []string
-	defer f.Close()
-	buf := bufio.NewReader(f)
-	line, err := buf.ReadBytes('\n')
-	for err == nil {
-		line = bytes.TrimRight(line, "\n")
-		if len(line) > 0 {
-			if line[len(line)-1] == 13 { //'\r'
-				line = bytes.TrimRight(line, "\r")
-			}
-
-			result = append(result, string(line))
-		}
-
-		line, err = buf.ReadBytes('\n')
-	}
-
-	if len(line) > 0 {
-		result = append(result, string(line))
-	}
-
-	return result
-}
-
 func init() {
-	words := GetWordsFromFile(dictPath)
+	words := suggest.GetWordsFromFile(dictPath)
 	configs = []*suggest.Config{
-		suggest.NewConfig(3, &suggest.LevenshteinDistance{}, 5, "levenshtein"),
-		suggest.NewConfig(3, suggest.CreateJaccardDistance(3), 5, "jaccard"),
+		suggest.NewConfig(2, 5, "n2"),
+		suggest.NewConfig(3, 5, "n3"),
+		suggest.NewConfig(4, 5, "n4"),
 	}
 
 	suggestService = suggest.NewSuggestService()

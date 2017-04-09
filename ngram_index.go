@@ -8,27 +8,8 @@ package suggest
  */
 
 import (
-	"sort"
+	"container/heap"
 )
-
-type Rank struct {
-	word     string
-	distance float64
-}
-
-type RankList []Rank
-
-func (p RankList) Len() int {
-	return len(p)
-}
-
-func (p RankList) Less(i, j int) bool {
-	return p[i].distance < p[j].distance
-}
-
-func (p RankList) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
 
 type invertedListsT map[string][]int
 
@@ -36,6 +17,7 @@ type NGramIndex struct {
 	k             int
 	invertedLists invertedListsT
 	dictionary    []string
+	cardinalities []int
 	index         int
 }
 
@@ -45,37 +27,31 @@ func NewNGramIndex(k int) *NGramIndex {
 	}
 
 	return &NGramIndex{
-		k, make(invertedListsT), make([]string, 0), 0,
+		k, make(invertedListsT), make([]string, 0), make([]int, 0), 0,
 	}
 }
 
 // Add given word to invertedList
 func (self *NGramIndex) AddWord(word string) {
 	prepared := prepareString(word)
-	profile := self.getProfile(prepared)
-	for _, ngram := range profile.GetNGrams() {
-		val := ngram.GetValue()
-		self.invertedLists[val] = append(self.invertedLists[val], self.index)
+	ngrams := self.getNGramSet(prepared)
+	cardinality := len(ngrams)
+	for _, ngram := range ngrams {
+		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
 	}
 
 	self.dictionary = append(self.dictionary, word)
+	self.cardinalities = append(self.cardinalities, cardinality)
 	self.index++
 }
 
 // Return top-k similar strings
-func (self *NGramIndex) Suggest(word string, editDistance EditDistance, topK int) []string {
-	candidates := self.FuzzySearch(word, editDistance, topK)
-	if topK > len(candidates) {
-		topK = len(candidates)
-	}
-
-	sort.Sort(candidates)
-	result := make([]string, 0)
-	for i, rank := range candidates {
-		result = append(result, rank.word)
-		if i == topK-1 {
-			break
-		}
+func (self *NGramIndex) Suggest(word string, topK int) []string {
+	candidates := self.search(word, topK)
+	result := make([]string, 0, topK)
+	for candidates.Len() > 0 {
+		r := heap.Pop(candidates).(rank)
+		result = append([]string{self.dictionary[r.id]}, result...)
 	}
 
 	return result
@@ -83,55 +59,72 @@ func (self *NGramIndex) Suggest(word string, editDistance EditDistance, topK int
 
 //1. try to receive corresponding inverted list for word's ngrams
 //2. calculate distance between current word and candidates
-//3. return RankList
-func (self *NGramIndex) FuzzySearch(word string, editDistance EditDistance, topK int) RankList {
+//3. return rankHeap
+func (self *NGramIndex) search(word string, topK int) *rankHeap {
 	preparedWord := prepareString(word)
-	wordProfile := self.getProfile(preparedWord)
-
-	/* count filtering */
-	max := 0
+	set := self.getNGramSet(preparedWord)
 	counts := make([]int, self.index+1)
-	for _, ngram := range wordProfile.GetNGrams() {
-		for _, id := range self.invertedLists[ngram.GetValue()] {
+	lenA := len(set)
+	// calc intersections between current word's ngram set and candidates */
+	for _, ngram := range set {
+		for _, id := range self.invertedLists[ngram] {
 			counts[id]++
-			if max < counts[id] {
-				max = counts[id]
+		}
+	}
+
+	// use heap search for finding top k items in a list efficiently
+	// see http://stevehanov.ca/blog/index.php?id=122
+	h := &rankHeap{}
+	for id, inter := range counts {
+		if inter == 0 {
+			continue
+		}
+
+		lenB := self.cardinalities[id]
+		// use jaccard distance as metric for calc words similarity
+		// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
+		distance := 1 - float64(inter)/float64(lenA+lenB-inter)
+		if h.Len() < topK || h.Min().(rank).distance > distance {
+			if h.Len() == topK {
+				heap.Pop(h)
 			}
+
+			heap.Push(h, rank{id, distance})
 		}
 	}
 
-	a := make([][]int, max+1)
-	for id, count := range counts {
-		if count > 0 {
-			a[count] = append(a[count], id)
-		}
-	}
-
-	j := 0
-	distances := make(map[int]float64, topK)
-	for i := max; max-i < topK && i >= 0 && j < topK; i-- {
-		for _, id := range a[i] {
-			candidate := self.dictionary[id]
-			prepared := prepareString(candidate)
-			profile := self.getProfile(prepared)
-			distances[id] = editDistance.Calc(wordProfile, profile)
-			j++
-
-			if j >= topK {
-				break
-			}
-		}
-	}
-
-	candidates := make(RankList, 0, len(distances))
-	for id, distance := range distances {
-		candidates = append(candidates, Rank{self.dictionary[id], distance})
-	}
-
-	return candidates
+	return h
 }
 
 // Return unique ngrams with frequency
-func (self *NGramIndex) getProfile(word string) *WordProfile {
-	return GetWordProfile(word, self.k)
+func (self *NGramIndex) getNGramSet(word string) []string {
+	return GetNGramSet(word, self.k)
+}
+
+type rank struct {
+	id       int
+	distance float64
+}
+
+type rankHeap []rank
+
+func (self rankHeap) Len() int           { return len(self) }
+func (self rankHeap) Less(i, j int) bool { return self[i].distance > self[j].distance }
+func (self rankHeap) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+
+func (self *rankHeap) Push(x interface{}) {
+	*self = append(*self, x.(rank))
+}
+
+func (self *rankHeap) Pop() interface{} {
+	old := *self
+	n := len(old)
+	x := old[n-1]
+	*self = old[0 : n-1]
+	return x
+}
+
+func (self *rankHeap) Min() interface{} {
+	arr := *self
+	return arr[0]
 }

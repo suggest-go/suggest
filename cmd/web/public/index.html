@@ -22,16 +22,16 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
         <div class="row">
             <div class="col-sm-4">
-                <h4>Levenshtein distance</h4>
-                <span class="holder" id="levenshtein"/>
+                <h4>NGramSize - 2</h4>
+                <span class="holder" id="n2"/>
             </div>
             <div class="col-sm-4">
-                <h4>NGram distance</h4>
-                <span class="holder" id="ngram"/>
+                <h4>NGramSize - 3</h4>
+                <span class="holder" id="n3"/>
             </div>
             <div class="col-sm-4">
-                <h4>Jaccard distance</h4>
-                <p class="holder" id="jaccard"/>
+                <h4>NGramSize - 4</h4>
+                <p class="holder" id="n4"/>
             </div>
         </div>
     </div>
@@ -55,7 +55,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                     var candidates = json.candidates, $holder, candidate, textArr;
                     for (var i = 0; i < candidates.length; ++i) {
                         candidate = candidates[i];
-                        $holder = $('#' + candidate.metric);
+                        $holder = $('#' + candidate.config);
                         textArr = [];
                         for (var j = 0; j < candidate.data.length; ++j) {
                             textArr.push(candidate.data[j]);
