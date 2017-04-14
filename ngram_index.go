@@ -19,6 +19,19 @@ type NGramIndex struct {
 	dictionary    []string
 	cardinalities []int
 	index         int
+	config        *conf
+}
+
+type conf struct {
+	threshold int // count filtering
+	lenDiff   int
+	pad       string
+}
+
+var defaultConf *conf
+
+func init() {
+	defaultConf = &conf{2, -1, "$"}
 }
 
 func NewNGramIndex(k int) *NGramIndex {
@@ -27,13 +40,13 @@ func NewNGramIndex(k int) *NGramIndex {
 	}
 
 	return &NGramIndex{
-		k, make(invertedListsT), make([]string, 0), make([]int, 0), 0,
+		k, make(invertedListsT), make([]string, 0), make([]int, 0), 0, defaultConf,
 	}
 }
 
 // Add given word to invertedList
 func (self *NGramIndex) AddWord(word string) {
-	prepared := prepareString(word)
+	prepared := self.prepareString(word)
 	ngrams := self.getNGramSet(prepared)
 	cardinality := len(ngrams)
 	for _, ngram := range ngrams {
@@ -48,7 +61,7 @@ func (self *NGramIndex) AddWord(word string) {
 // Return top-k similar strings
 func (self *NGramIndex) Suggest(word string, topK int) []string {
 	result := make([]string, 0, topK)
-	preparedWord := prepareString(word)
+	preparedWord := self.prepareString(word)
 	if len(preparedWord) < self.k {
 		return result
 	}
@@ -82,6 +95,7 @@ func (self *NGramIndex) search(word string, topK int) *rankHeap {
 	}
 
 	// calc intersections between current word's ngram set and candidates */
+	// ScanCount algorithm (try to use DivideSkip)
 	counts := make([]int, maxId+1)
 	for _, ngram := range set {
 		for _, id := range self.invertedLists[ngram] {
@@ -93,11 +107,24 @@ func (self *NGramIndex) search(word string, topK int) *rankHeap {
 	// see http://stevehanov.ca/blog/index.php?id=122
 	h := &rankHeap{}
 	for id, inter := range counts {
-		if inter == 0 {
+		if inter < self.config.threshold {
 			continue
 		}
 
 		lenB := self.cardinalities[id]
+
+		// length filtering
+		if self.config.lenDiff > 0 {
+			diff := lenB - lenA
+			if diff < 0 {
+				diff = -diff
+			}
+
+			if diff > self.config.lenDiff {
+				continue
+			}
+		}
+
 		// use jaccard distance as metric for calc words similarity
 		// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
 		distance := 1 - float64(inter)/float64(lenA+lenB-inter)
@@ -116,4 +143,10 @@ func (self *NGramIndex) search(word string, topK int) *rankHeap {
 // Return unique ngrams with frequency
 func (self *NGramIndex) getNGramSet(word string) []string {
 	return GetNGramSet(word, self.k)
+}
+
+// Prepare string for indexing
+func (self *NGramIndex) prepareString(word string) string {
+	word = normalizeWord(word)
+	return wrapWord(word, self.config.pad)
 }

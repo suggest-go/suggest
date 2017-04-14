@@ -45,13 +45,13 @@ func TestPrepareString(t *testing.T) {
 	cases := []struct {
 		word, expected string
 	}{
-		{"", ""},
+		{"", "$$"},
 		{"test", "$test$"},
 		{"hello world", "$hello$world$"},
 	}
 
 	for _, c := range cases {
-		actual := prepareString(c.word)
+		actual := wrapWord(c.word, "$")
 		if actual != c.expected {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",

@@ -88,15 +88,20 @@ func GetWordsFromFile(fileName string) []string {
 	return result
 }
 
-func prepareString(word string) string {
+func normalizeWord(word string) string {
 	if len(word) < 2 {
 		return word
 	}
 
 	word = strings.ToLower(word)
 	word = strings.Trim(word, " ")
-	word = reg.ReplaceAllString(word, "$")
-	return "$" + word + "$"
+	return word
+}
+
+func wrapWord(word, pad string) string {
+	word = normalizeWord(word)
+	word = reg.ReplaceAllString(word, pad)
+	return pad + word + pad
 }
 
 func min3(a, b, c int) int {
@@ -113,7 +118,7 @@ func min3(a, b, c int) int {
 
 func init() {
 	var err error
-	reg, err = regexp.Compile("[^a-z0-9а-яё]+")
+	reg, err = regexp.Compile("[^a-z0-9а-яё]+") // TODO use alphabet entity
 	if err != nil {
 		panic(err)
 	}
