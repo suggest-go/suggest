@@ -78,7 +78,7 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 //1. try to receive corresponding inverted list for word's ngrams
 //2. calculate distance between current word and candidates
 //3. return rankHeap
-func (self *NGramIndex) search(word string, topK int) *rankHeap {
+func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	set := self.getNGramSet(word)
 	lenA := len(set)
 
@@ -105,7 +105,7 @@ func (self *NGramIndex) search(word string, topK int) *rankHeap {
 
 	// use heap search for finding top k items in a list efficiently
 	// see http://stevehanov.ca/blog/index.php?id=122
-	h := &rankHeap{}
+	h := &heapImpl{}
 	for id, inter := range counts {
 		if inter < self.config.threshold {
 			continue
@@ -128,7 +128,7 @@ func (self *NGramIndex) search(word string, topK int) *rankHeap {
 		// use jaccard distance as metric for calc words similarity
 		// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
 		distance := 1 - float64(inter)/float64(lenA+lenB-inter)
-		if h.Len() < topK || h.Min().(*rank).distance > distance {
+		if h.Len() < topK || h.Top().(*rank).distance > distance {
 			if h.Len() == topK {
 				heap.Pop(h)
 			}

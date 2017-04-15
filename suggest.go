@@ -38,7 +38,9 @@ func NewSuggestService() *SuggestService {
 func (self *SuggestService) AddDictionary(name string, words []string, config *Config) error {
 	ngramIndex := NewNGramIndex(config.ngramSize)
 	for _, word := range words {
-		ngramIndex.AddWord(word)
+		if len(word) > config.ngramSize {
+			ngramIndex.AddWord(word)
+		}
 	}
 
 	self.Lock()
