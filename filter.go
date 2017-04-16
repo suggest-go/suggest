@@ -2,7 +2,6 @@ package suggest
 
 import (
 	"container/heap"
-	"fmt"
 )
 
 type record struct {
@@ -13,17 +12,13 @@ func (self *record) Less(other heapItem) bool {
 	return self.strId < other.(*record).strId
 }
 
-func (self *record) String() string {
-	return fmt.Sprintf("{strId: %d, ridId: %d}", self.strId, self.ridId)
-}
-
 // see Efficient Merging and Filtering Algorithms for
 // Approximate String Searches
 
-func mergeSkip(rid [][]int, threshold int) []int {
+func mergeSkip(rid [][]int, threshold int) map[int][]int {
 	iters := make([]int, len(rid))
 	h := &heapImpl{}
-	result := make([]int, 0)
+	result := make(map[int][]int)
 
 	for i, iter := range iters {
 		heap.Push(h, &record{i, rid[i][iter]})
@@ -39,7 +34,7 @@ func mergeSkip(rid [][]int, threshold int) []int {
 
 		n := len(poppedItems)
 		if n >= threshold {
-			result = append(result, t.(*record).strId)
+			result[n] = append(result[n], t.(*record).strId)
 			for _, item := range poppedItems {
 				iters[item.ridId]++
 				if iters[item.ridId] < len(rid[item.ridId]) {

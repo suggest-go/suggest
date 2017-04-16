@@ -83,57 +83,33 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	lenA := len(set)
 
 	// find max word id for memory optimize
-	maxId := 0
+	rid := make([][]int, 0, lenA)
 	for _, ngram := range set {
 		list := self.invertedLists[ngram]
 		if len(list) > 0 {
-			curMaxId := list[len(list)-1]
-			if curMaxId > maxId {
-				maxId = curMaxId
-			}
+			rid = append(rid, list)
 		}
 	}
 
-	// calc intersections between current word's ngram set and candidates */
-	// ScanCount algorithm (try to use DivideSkip)
-	counts := make([]int, maxId+1)
-	for _, ngram := range set {
-		for _, id := range self.invertedLists[ngram] {
-			counts[id]++
-		}
-	}
-
+	counts := mergeSkip(rid, self.config.threshold)
 	// use heap search for finding top k items in a list efficiently
 	// see http://stevehanov.ca/blog/index.php?id=122
 	h := &heapImpl{}
-	for id, inter := range counts {
-		if inter < self.config.threshold {
-			continue
-		}
 
-		lenB := self.cardinalities[id]
+	for inter, list := range counts {
+		for _, id := range list {
+			lenB := self.cardinalities[id]
 
-		// length filtering
-		if self.config.lenDiff > 0 {
-			diff := lenB - lenA
-			if diff < 0 {
-				diff = -diff
+			// use jaccard distance as metric for calc words similarity
+			// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
+			distance := 1 - float64(inter)/float64(lenA+lenB-inter)
+			if h.Len() < topK || h.Top().(*rank).distance > distance {
+				if h.Len() == topK {
+					heap.Pop(h)
+				}
+
+				heap.Push(h, &rank{id, distance})
 			}
-
-			if diff > self.config.lenDiff {
-				continue
-			}
-		}
-
-		// use jaccard distance as metric for calc words similarity
-		// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
-		distance := 1 - float64(inter)/float64(lenA+lenB-inter)
-		if h.Len() < topK || h.Top().(*rank).distance > distance {
-			if h.Len() == topK {
-				heap.Pop(h)
-			}
-
-			heap.Push(h, &rank{id, distance})
 		}
 	}
 

@@ -6,20 +6,10 @@ import (
 )
 
 func TestMergeSkip(t *testing.T) {
-	mergeSkip(
-		[][]int{
-			{1, 2, 3},
-			{1, 2},
-			{2, 3},
-			{2},
-		},
-		2,
-	)
-
 	cases := []struct {
 		rid      [][]int
 		t        int
-		expected []int
+		expected map[int][]int
 	}{
 		{
 			[][]int{
@@ -29,7 +19,10 @@ func TestMergeSkip(t *testing.T) {
 				{2},
 			},
 			2,
-			[]int{1, 2, 3},
+			map[int][]int{
+				2: []int{1, 3},
+				4: []int{2},
+			},
 		},
 		{
 			[][]int{
@@ -39,7 +32,9 @@ func TestMergeSkip(t *testing.T) {
 				{2},
 			},
 			3,
-			[]int{2},
+			map[int][]int{
+				4: []int{2},
+			},
 		},
 		{
 			[][]int{
@@ -49,7 +44,9 @@ func TestMergeSkip(t *testing.T) {
 				{2},
 			},
 			4,
-			[]int{2},
+			map[int][]int{
+				4: []int{2},
+			},
 		},
 		{
 			[][]int{
@@ -60,7 +57,9 @@ func TestMergeSkip(t *testing.T) {
 				{100, 200},
 			},
 			4,
-			[]int{50},
+			map[int][]int{
+				4: []int{50},
+			},
 		},
 		{
 			[][]int{
@@ -71,7 +70,9 @@ func TestMergeSkip(t *testing.T) {
 				{100, 200},
 			},
 			3,
-			[]int{50},
+			map[int][]int{
+				4: []int{50},
+			},
 		},
 		{
 			[][]int{
@@ -82,7 +83,10 @@ func TestMergeSkip(t *testing.T) {
 				{100, 200},
 			},
 			2,
-			[]int{10, 50, 60, 100},
+			map[int][]int{
+				2: []int{10, 60, 100},
+				4: []int{50},
+			},
 		},
 	}
 
