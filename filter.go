@@ -2,6 +2,9 @@ package suggest
 
 import (
 	"container/heap"
+	//"log"
+	"math"
+	"sort"
 )
 
 type record struct {
@@ -10,6 +13,39 @@ type record struct {
 
 func (self *record) Less(other heapItem) bool {
 	return self.strId < other.(*record).strId
+}
+
+func divideSkip(rid [][]int, threshold int) map[int][]int {
+	sort.Slice(rid, func(i, j int) bool {
+		return len(rid[i]) > len(rid[j])
+	})
+
+	m := len(rid[0])
+	mu := 0.0085
+	l := int(float64(threshold) / (mu*math.Log2(float64(m)) + 1))
+	lLong := rid[:l]
+	lShort := rid[l:]
+
+	//	log.Printf("%v, %v\n", lShort, lLong)
+
+	result := make(map[int][]int)
+	for count, list := range mergeSkip(lShort, threshold-l) {
+		//log.Printf("list: %v\n", list)
+		for _, r := range list {
+			j := count
+			for _, longList := range lLong {
+				idx := binarySearch(longList, 0, r)
+				if idx != -1 && longList[idx] == r {
+					j++
+				}
+			}
+
+			result[j] = append(result[j], r)
+			//log.Printf("count: %d, val: %d\n", j, r)
+		}
+	}
+
+	return result
 }
 
 // see Efficient Merging and Filtering Algorithms for

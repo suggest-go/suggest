@@ -5,6 +5,19 @@ import (
 	"testing"
 )
 
+func TestDivideSkip(t *testing.T) {
+	divideSkip(
+		[][]int{
+			{1, 2, 3, 5, 7, 10, 30, 50},
+			{10, 11, 13, 16, 50, 60, 131},
+			{40, 50, 60},
+			{50, 100},
+			{100, 200},
+		},
+		2,
+	)
+}
+
 func TestMergeSkip(t *testing.T) {
 	cases := []struct {
 		rid      [][]int
