@@ -52,26 +52,29 @@ func divideSkip(rid [][]int, threshold int) map[int][]int {
 // Approximate String Searches
 
 func mergeSkip(rid [][]int, threshold int) map[int][]int {
-	iters := make([]int, len(rid))
 	h := &heapImpl{}
 	result := make(map[int][]int)
+	iters := make([]int, len(rid))
 
 	for i, iter := range iters {
 		heap.Push(h, &record{i, rid[i][iter]})
 	}
 
+	poppedItems := make([]*record, len(rid))
 	for h.Len() > 0 {
+		poppedIter := 0
 		t := h.Top()
-		poppedItems := make([]*record, 0, len(rid))
 		for h.Len() > 0 && h.Top().(*record).strId == t.(*record).strId {
 			item := heap.Pop(h)
-			poppedItems = append(poppedItems, item.(*record))
+			poppedItems[poppedIter] = item.(*record)
+			poppedIter++
 		}
 
-		n := len(poppedItems)
+		n := poppedIter
 		if n >= threshold {
 			result[n] = append(result[n], t.(*record).strId)
-			for _, item := range poppedItems {
+			for j := 0; j < poppedIter; j++ {
+				item := poppedItems[j]
 				iters[item.ridId]++
 				if iters[item.ridId] < len(rid[item.ridId]) {
 					item.strId = rid[item.ridId][iters[item.ridId]]
@@ -83,22 +86,17 @@ func mergeSkip(rid [][]int, threshold int) map[int][]int {
 			for j > 0 && h.Len() > 0 {
 				item := heap.Pop(h)
 				j--
-				poppedItems = append(poppedItems, item.(*record))
+				poppedItems[poppedIter] = item.(*record)
+				poppedIter++
 			}
 
 			if h.Len() == 0 {
-				for _, item := range poppedItems {
-					iters[item.ridId]++
-					if iters[item.ridId] < len(rid[item.ridId]) {
-						item.strId = rid[item.ridId][iters[item.ridId]]
-						heap.Push(h, item)
-					}
-				}
-				continue
+				break
 			}
 
 			t = h.Top()
-			for _, item := range poppedItems {
+			for j := 0; j < poppedIter; j++ {
+				item := poppedItems[j]
 				i := item.ridId
 				if len(rid[i]) <= iters[i] {
 					continue

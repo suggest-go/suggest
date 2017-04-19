@@ -31,7 +31,7 @@ type conf struct {
 var defaultConf *conf
 
 func init() {
-	defaultConf = &conf{4, -1, "$"}
+	defaultConf = &conf{3, -1, "$"}
 }
 
 func NewNGramIndex(k int) *NGramIndex {
@@ -91,8 +91,13 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 		}
 	}
 
-	counts := divideSkip(rid, self.config.threshold)
-	//counts := mergeSkip(rid, self.config.threshold)
+	t := lenA - self.config.threshold
+	if t == 0 {
+		t = lenA - 1
+	}
+
+	counts := divideSkip(rid, t)
+	//counts := mergeSkip(rid, t)
 	// use heap search for finding top k items in a list efficiently
 	// see http://stevehanov.ca/blog/index.php?id=122
 	h := &heapImpl{}
