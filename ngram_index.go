@@ -9,6 +9,7 @@ package suggest
 
 import (
 	"container/heap"
+	"sort"
 )
 
 type invertedListsT map[string][]int
@@ -91,16 +92,24 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 		}
 	}
 
+	sort.Slice(rid, func(i, j int) bool {
+		return len(rid[i]) > len(rid[j])
+	})
+
 	t := lenA - self.config.threshold
 	if t == 0 {
 		t = lenA - 1
 	}
 
-	counts := divideSkip(rid, t)
-	//counts := mergeSkip(rid, t)
+	h := &heapImpl{}
+	if len(rid) == 0 || t == 0 {
+		return h
+	}
+
+	//counts := divideSkip(rid, t)
+	counts := mergeSkip(rid, t)
 	// use heap search for finding top k items in a list efficiently
 	// see http://stevehanov.ca/blog/index.php?id=122
-	h := &heapImpl{}
 
 	for inter, list := range counts {
 		for _, id := range list {

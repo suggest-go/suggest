@@ -4,7 +4,6 @@ import (
 	"container/heap"
 	//"log"
 	"math"
-	"sort"
 )
 
 type record struct {
@@ -16,19 +15,19 @@ func (self *record) Less(other heapItem) bool {
 }
 
 func divideSkip(rid [][]int, threshold int) map[int][]int {
-	sort.Slice(rid, func(i, j int) bool {
-		return len(rid[i]) > len(rid[j])
-	})
-
 	m := len(rid[0])
 	mu := 0.0085
-	l := int(float64(threshold) / (mu*math.Log2(float64(m)) + 1))
+	l := int(float64(threshold) / (mu*math.Log(float64(m)) + 1))
+
+	if l <= 0 {
+		return mergeSkip(rid, threshold)
+	}
+
 	lLong := rid[:l]
 	lShort := rid[l:]
 
 	//	log.Printf("%v, %v\n", lShort, lLong)
-
-	result := make(map[int][]int)
+	result := make(map[int][]int, len(rid)+1)
 	for count, list := range mergeSkip(lShort, threshold-l) {
 		//log.Printf("list: %v\n", list)
 		for _, r := range list {
@@ -40,7 +39,9 @@ func divideSkip(rid [][]int, threshold int) map[int][]int {
 				}
 			}
 
-			result[j] = append(result[j], r)
+			if j >= threshold {
+				result[j] = append(result[j], r)
+			}
 			//log.Printf("count: %d, val: %d\n", j, r)
 		}
 	}
@@ -53,7 +54,7 @@ func divideSkip(rid [][]int, threshold int) map[int][]int {
 
 func mergeSkip(rid [][]int, threshold int) map[int][]int {
 	h := &heapImpl{}
-	result := make(map[int][]int)
+	result := make(map[int][]int, len(rid)+1)
 	iters := make([]int, len(rid))
 
 	for i, iter := range iters {
