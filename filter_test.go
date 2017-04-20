@@ -105,7 +105,16 @@ func TestMergeSkip(t *testing.T) {
 
 	for _, c := range cases {
 		actual := mergeSkip(c.rid, c.t)
-		if !reflect.DeepEqual(actual, c.expected) {
+		actualMap := make(map[int][]int)
+		for n, list := range actual {
+			if len(list) == 0 {
+				continue
+			}
+
+			actualMap[n] = list
+		}
+
+		if !reflect.DeepEqual(actualMap, c.expected) {
 			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
 		}
 	}

@@ -32,7 +32,7 @@ type conf struct {
 var defaultConf *conf
 
 func init() {
-	defaultConf = &conf{3, -1, "$"}
+	defaultConf = &conf{5, -1, "$"}
 }
 
 func NewNGramIndex(k int) *NGramIndex {
@@ -97,8 +97,8 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	})
 
 	t := lenA - self.config.threshold
-	if t == 0 {
-		t = lenA - 1
+	if t <= 0 {
+		t = len(rid) - 1
 	}
 
 	h := &heapImpl{}
@@ -106,12 +106,22 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 		return h
 	}
 
-	//counts := divideSkip(rid, t)
-	counts := mergeSkip(rid, t)
+	var counts [][]int
+	if t == 1 || len(rid) <= t {
+		counts = mergeSkip(rid, t)
+	} else {
+		counts = divideSkip(rid, t)
+	}
+
 	// use heap search for finding top k items in a list efficiently
 	// see http://stevehanov.ca/blog/index.php?id=122
 
-	for inter, list := range counts {
+	for inter := len(counts) - 1; inter >= t && inter >= 0; inter-- {
+		if len(counts[inter]) == 0 {
+			continue
+		}
+
+		list := counts[inter]
 		for _, id := range list {
 			lenB := self.cardinalities[id]
 
