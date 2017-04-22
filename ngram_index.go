@@ -9,22 +9,22 @@ package suggest
 
 import (
 	"container/heap"
+	//"log"
 	"sort"
 )
 
 type invertedListsT map[string][]int
 
 type NGramIndex struct {
-	k             int
-	invertedLists invertedListsT
-	dictionary    []string
-	cardinalities []int
-	index         int
-	config        *conf
+	k          int
+	indices    []invertedListsT
+	dictionary []string
+	index      int
+	config     *conf
 }
 
 type conf struct {
-	threshold int // count filtering
+	threshold float64 // count filtering
 	lenDiff   int
 	pad       string
 }
@@ -32,7 +32,7 @@ type conf struct {
 var defaultConf *conf
 
 func init() {
-	defaultConf = &conf{5, -1, "$"}
+	defaultConf = &conf{0.7, -1, "$"}
 }
 
 func NewNGramIndex(k int) *NGramIndex {
@@ -41,7 +41,7 @@ func NewNGramIndex(k int) *NGramIndex {
 	}
 
 	return &NGramIndex{
-		k, make(invertedListsT), make([]string, 0), make([]int, 0), 0, defaultConf,
+		k, make([]invertedListsT, 0), make([]string, 0), 0, defaultConf,
 	}
 }
 
@@ -50,12 +50,24 @@ func (self *NGramIndex) AddWord(word string) {
 	prepared := self.prepareString(word)
 	ngrams := self.getNGramSet(prepared)
 	cardinality := len(ngrams)
+
+	if len(self.indices) <= cardinality {
+		tmp := make([]invertedListsT, cardinality, cardinality*2)
+		copy(tmp, self.indices)
+		self.indices = tmp
+	}
+
+	invertedLists := self.indices[cardinality-1]
+	if invertedLists == nil {
+		invertedLists = make(invertedListsT)
+		self.indices[cardinality-1] = invertedLists
+	}
+
 	for _, ngram := range ngrams {
-		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
+		invertedLists[ngram] = append(invertedLists[ngram], self.index)
 	}
 
 	self.dictionary = append(self.dictionary, word)
-	self.cardinalities = append(self.cardinalities, cardinality)
 	self.index++
 }
 
@@ -76,64 +88,65 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 	return result
 }
 
-//1. try to receive corresponding inverted list for word's ngrams
-//2. calculate distance between current word and candidates
-//3. return rankHeap
 func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	set := self.getNGramSet(word)
 	lenA := len(set)
 
-	// find max word id for memory optimize
-	rid := make([][]int, 0, lenA)
-	for _, ngram := range set {
-		list := self.invertedLists[ngram]
-		if len(list) > 0 {
-			rid = append(rid, list)
-		}
-	}
-
-	sort.Slice(rid, func(i, j int) bool {
-		return len(rid[i]) > len(rid[j])
-	})
-
-	t := lenA - self.config.threshold
-	if t <= 0 {
-		t = len(rid) - 1
-	}
-
 	h := &heapImpl{}
-	if len(rid) == 0 || t == 0 {
-		return h
-	}
-
-	var counts [][]int
-	if t == 1 || len(rid) <= t {
-		counts = mergeSkip(rid, t)
-	} else {
-		counts = divideSkip(rid, t)
-	}
-
-	// use heap search for finding top k items in a list efficiently
-	// see http://stevehanov.ca/blog/index.php?id=122
-
-	for inter := len(counts) - 1; inter >= t && inter >= 0; inter-- {
-		if len(counts[inter]) == 0 {
+	mm := &jaccard{}
+	alpha := self.config.threshold
+	xmin, xmax := mm.minY(alpha, lenA), mm.maxY(alpha, lenA)
+	for i := xmin; i <= xmax; i++ {
+		if len(self.indices) <= i {
 			continue
 		}
 
-		list := counts[inter]
-		for _, id := range list {
-			lenB := self.cardinalities[id]
+		// find max word id for memory optimize
+		rid := make([][]int, 0)
+		invertedLists := self.indices[i]
+		for _, ngram := range set {
+			list := invertedLists[ngram]
+			if len(list) > 0 {
+				rid = append(rid, list)
+			}
+		}
 
-			// use jaccard distance as metric for calc words similarity
-			// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
-			distance := 1 - float64(inter)/float64(lenA+lenB-inter)
-			if h.Len() < topK || h.Top().(*rank).distance > distance {
-				if h.Len() == topK {
-					heap.Pop(h)
+		sort.Slice(rid, func(i, j int) bool {
+			return len(rid[i]) > len(rid[j])
+		})
+
+		mMin := mm.threshold(alpha, lenA, i)
+		t := lenA - mMin + 1
+
+		var counts [][]int
+		if t == 1 || len(rid) <= t {
+			counts = mergeSkip(rid, t)
+		} else {
+			counts = divideSkip(rid, t)
+		}
+
+		// TODO remove it
+		// use heap search for finding top k items in a list efficiently
+		// see http://stevehanov.ca/blog/index.php?id=122
+		for inter := len(counts) - 1; inter >= 0; inter-- {
+			if len(counts[inter]) == 0 {
+				continue
+			}
+
+			list := counts[inter]
+			for _, id := range list {
+				lenB := i
+
+				// use jaccard distance as metric for calc words similarity
+				// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
+				distance := 1 - float64(inter)/float64(lenA+lenB-inter)
+				if h.Len() < topK || h.Top().(*rank).distance > distance {
+					if h.Len() == topK {
+						heap.Pop(h)
+					}
+
+					heap.Push(h, &rank{id, distance})
 				}
-
-				heap.Push(h, &rank{id, distance})
 			}
 		}
 	}
