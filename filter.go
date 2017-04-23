@@ -19,28 +19,26 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 	})
 
 	result := make([][]int, len(rid)+1)
-	maxId := 0
+	mapSize := 0
 	size := len(rid)
-	for _, list := range rid {
-		tmp := list[len(list)-1]
-		if tmp > maxId {
-			maxId = tmp
+	k := size - threshold
+	for i, _ := range rid {
+		if i >= k {
+			break
 		}
+
+		mapSize += len(rid[i])
 	}
 
-	counts := make([]int, maxId+1)
+	counts := make(map[int]int, mapSize+1)
 	i := 0
-	for ; i < size-threshold; i++ {
+	for ; i < k; i++ {
 		for _, strId := range rid[i] {
 			counts[strId]++
 		}
 	}
 
 	for strId, count := range counts {
-		if count == 0 { //?
-			continue
-		}
-
 		for j := i; j < size; j++ {
 			idx := binarySearch(rid[j], 0, strId)
 			if idx != -1 && rid[j][idx] == strId {
