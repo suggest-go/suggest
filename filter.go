@@ -2,6 +2,7 @@ package suggest
 
 import (
 	"container/heap"
+	"sort"
 )
 
 type record struct {
@@ -12,13 +13,54 @@ func (self *record) Less(other heapItem) bool {
 	return self.strId < other.(*record).strId
 }
 
-// TODO implement me
 func cpMerge(rid [][]int, threshold int) [][]int {
+	sort.Slice(rid, func(i, j int) bool {
+		return len(rid[i]) < len(rid[j])
+	})
+
 	result := make([][]int, len(rid)+1)
+	maxId := 0
+	size := len(rid)
+	for _, list := range rid {
+		tmp := list[len(list)-1]
+		if tmp > maxId {
+			maxId = tmp
+		}
+	}
+
+	counts := make([]int, maxId+1)
+	i := 0
+	for ; i < size-threshold; i++ {
+		for _, strId := range rid[i] {
+			counts[strId]++
+		}
+	}
+
+	for strId, count := range counts {
+		if count == 0 { //?
+			continue
+		}
+
+		for j := i; j < size; j++ {
+			idx := binarySearch(rid[j], 0, strId)
+			if idx != -1 && rid[j][idx] == strId {
+				count++
+			}
+		}
+
+		if count >= threshold {
+			result[count] = append(result[count], strId)
+		}
+	}
+
 	return result
 }
 
 func divideSkip(rid [][]int, threshold int) [][]int {
+	sort.Slice(rid, func(i, j int) bool {
+		return len(rid[i]) > len(rid[j])
+	})
+
 	l := threshold - 1
 	lLong := rid[:l]
 	lShort := rid[l:]

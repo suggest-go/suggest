@@ -10,7 +10,6 @@ package suggest
 
 import (
 	"container/heap"
-	"sort"
 )
 
 type invertedListsT map[string][]int
@@ -33,7 +32,7 @@ type conf struct {
 var defaultConf *conf
 
 func init() {
-	defaultConf = &conf{0.7, COSINE, "_", "$$"}
+	defaultConf = &conf{0.7, JACCARD, "$", "$"}
 }
 
 func NewNGramIndex(k int) *NGramIndex {
@@ -116,10 +115,6 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 		if len(rid) < t || t == 0 {
 			continue
 		}
-
-		sort.Slice(rid, func(i, j int) bool {
-			return len(rid[i]) > len(rid[j])
-		})
 
 		counts := divideSkip(rid, t)
 		// use heap search for finding top k items in a list efficiently
