@@ -98,10 +98,10 @@ func normalizeWord(word string) string {
 	return word
 }
 
-func wrapWord(word, pad string) string {
+func wrapWord(word, pad, wrap string) string {
 	word = normalizeWord(word)
 	word = reg.ReplaceAllString(word, pad)
-	return pad + word + pad
+	return wrap + word + wrap
 }
 
 func min3(a, b, c int) int {

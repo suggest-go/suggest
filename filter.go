@@ -12,28 +12,9 @@ func (self *record) Less(other heapItem) bool {
 	return self.strId < other.(*record).strId
 }
 
-func scanCount(rid [][]int, threshold int) [][]int {
-	// TODO implement me
+// TODO implement me
+func cpMerge(rid [][]int, threshold int) [][]int {
 	result := make([][]int, len(rid)+1)
-
-	// find max word id for memory optimize
-	maxId := 0
-	for _, list := range rid {
-		if len(list) > 0 {
-			curMaxId := list[len(list)-1]
-			if curMaxId > maxId {
-				maxId = curMaxId
-			}
-		}
-	}
-
-	counts := make([]int, maxId+1)
-	for _, list := range rid {
-		for _, id := range list {
-			counts[id]++
-		}
-	}
-
 	return result
 }
 

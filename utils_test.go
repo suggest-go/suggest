@@ -51,7 +51,7 @@ func TestPrepareString(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		actual := wrapWord(c.word, "$")
+		actual := wrapWord(c.word, "$", "$")
 		if actual != c.expected {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",
