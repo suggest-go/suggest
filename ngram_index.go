@@ -32,7 +32,7 @@ type conf struct {
 var defaultConf *conf
 
 func init() {
-	defaultConf = &conf{0.7, JACCARD, "$", "$"}
+	defaultConf = &conf{0.5, JACCARD, "$", "$"}
 }
 
 func NewNGramIndex(k int) *NGramIndex {
