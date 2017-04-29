@@ -12,10 +12,11 @@ import (
 	"container/heap"
 )
 
-type invertedListsT map[string][]int
+type invertedListsT map[int][]int
 
 type NGramIndex struct {
 	k          int
+	alphabet   Alphabet
 	indices    []invertedListsT
 	dictionary []string
 	index      int
@@ -32,7 +33,7 @@ type conf struct {
 var defaultConf *conf
 
 func init() {
-	defaultConf = &conf{0.5, JACCARD, "$", "$"}
+	defaultConf = &conf{0.5, COSINE, "$", "$"}
 }
 
 func NewNGramIndex(k int) *NGramIndex {
@@ -40,8 +41,17 @@ func NewNGramIndex(k int) *NGramIndex {
 		panic("k should be in [2, 4]")
 	}
 
+	// TODO declare as constructor argument
+	alphabet := NewCompositeAlphabet([]Alphabet{
+		NewEnglishAlphabet(),
+		NewNumberAlphabet(),
+		NewRussianAlphabet(),
+		// TODO use config.pad here
+		NewSimpleAlphabet([]rune{'$'}),
+	})
+
 	return &NGramIndex{
-		k, make([]invertedListsT, 0), make([]string, 0), 0, defaultConf,
+		k, alphabet, make([]invertedListsT, 0), make([]string, 0), 0, defaultConf,
 	}
 }
 
@@ -63,8 +73,9 @@ func (self *NGramIndex) AddWord(word string) {
 		self.indices[cardinality-1] = invertedLists
 	}
 
-	for _, ngram := range ngrams {
-		invertedLists[ngram] = append(invertedLists[ngram], self.index)
+	indexes := self.ngramSetToIndexSet(ngrams)
+	for _, index := range indexes {
+		invertedLists[index] = append(invertedLists[index], self.index)
 	}
 
 	self.dictionary = append(self.dictionary, word)
@@ -91,6 +102,7 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	set := self.getNGramSet(word)
 	sizeA := len(set)
+	indexes := self.ngramSetToIndexSet(set)
 
 	h := &heapImpl{}
 	mm := getMeasure(self.config.measureName)
@@ -104,8 +116,8 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 		// find max word id for memory optimize
 		rid := make([][]int, 0)
 		invertedLists := self.indices[sizeB]
-		for _, ngram := range set {
-			list := invertedLists[ngram]
+		for _, index := range indexes {
+			list := invertedLists[index]
 			if len(list) > 0 {
 				rid = append(rid, list)
 			}
@@ -144,6 +156,25 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 // Return unique ngrams with frequency
 func (self *NGramIndex) getNGramSet(word string) []string {
 	return GetNGramSet(word, self.k)
+}
+
+func (self *NGramIndex) ngramSetToIndexSet(set []string) []int {
+	result := make([]int, 0, len(set))
+	for _, ngram := range set {
+		index := 0
+		for _, char := range ngram {
+			i := self.alphabet.MapChar(char)
+			if index == INVALID_CHAR {
+				panic("Invalid char was detected")
+			}
+
+			index = index*self.alphabet.Size() + i
+		}
+
+		result = append(result, index)
+	}
+
+	return result
 }
 
 // Prepare string for indexing
