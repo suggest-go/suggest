@@ -17,6 +17,7 @@ type invertedListsT map[int][]int
 type NGramIndex struct {
 	k          int
 	alphabet   Alphabet
+	clean      *cleaner
 	indices    []invertedListsT
 	dictionary []string
 	index      int
@@ -50,16 +51,19 @@ func NewNGramIndex(k int) *NGramIndex {
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 
+	// TODO use in constructor
+	clean := newCleaner(alphabet.Chars(), defaultConf.pad, defaultConf.wrap)
+
 	return &NGramIndex{
-		k, alphabet, make([]invertedListsT, 0), make([]string, 0), 0, defaultConf,
+		k, alphabet, clean, make([]invertedListsT, 0), make([]string, 0), 0, defaultConf,
 	}
 }
 
 // Add given word to invertedList
 func (self *NGramIndex) AddWord(word string) {
 	prepared := self.prepareString(word)
-	ngrams := self.getNGramSet(prepared)
-	cardinality := len(ngrams)
+	set := self.getNGramSet(prepared)
+	cardinality := len(set)
 
 	if len(self.indices) <= cardinality {
 		tmp := make([]invertedListsT, cardinality, cardinality*2)
@@ -73,8 +77,7 @@ func (self *NGramIndex) AddWord(word string) {
 		self.indices[cardinality-1] = invertedLists
 	}
 
-	indexes := self.ngramSetToIndexSet(ngrams)
-	for _, index := range indexes {
+	for _, index := range set {
 		invertedLists[index] = append(invertedLists[index], self.index)
 	}
 
@@ -102,7 +105,6 @@ func (self *NGramIndex) Suggest(word string, topK int) []string {
 func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	set := self.getNGramSet(word)
 	sizeA := len(set)
-	indexes := self.ngramSetToIndexSet(set)
 
 	h := &heapImpl{}
 	mm := getMeasure(self.config.measureName)
@@ -116,7 +118,7 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 		// find max word id for memory optimize
 		rid := make([][]int, 0)
 		invertedLists := self.indices[sizeB]
-		for _, index := range indexes {
+		for _, index := range set {
 			list := invertedLists[index]
 			if len(list) > 0 {
 				rid = append(rid, list)
@@ -153,32 +155,39 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	return h
 }
 
-// Return unique ngrams with frequency
-func (self *NGramIndex) getNGramSet(word string) []string {
-	return GetNGramSet(word, self.k)
-}
-
-func (self *NGramIndex) ngramSetToIndexSet(set []string) []int {
-	result := make([]int, 0, len(set))
-	for _, ngram := range set {
-		index := 0
-		for _, char := range ngram {
-			i := self.alphabet.MapChar(char)
-			if index == INVALID_CHAR {
-				panic("Invalid char was detected")
-			}
-
-			index = index*self.alphabet.Size() + i
+// Return unique ngrams
+func (self *NGramIndex) getNGramSet(word string) []int {
+	ngrams := SplitIntoNGrams(word, self.k)
+	set := make(map[int]struct{}, len(ngrams))
+	list := make([]int, 0, len(ngrams))
+	for _, ngram := range ngrams {
+		index := self.ngramToIndex(ngram)
+		_, found := set[index]
+		set[index] = struct{}{}
+		if !found {
+			list = append(list, index)
 		}
-
-		result = append(result, index)
 	}
 
-	return result
+	return list
+}
+
+//
+func (self *NGramIndex) ngramToIndex(ngram string) int {
+	index := 0
+	for _, char := range ngram {
+		i := self.alphabet.MapChar(char)
+		if index == INVALID_CHAR {
+			panic("Invalid char was detected")
+		}
+
+		index = index*self.alphabet.Size() + i
+	}
+
+	return index
 }
 
 // Prepare string for indexing
 func (self *NGramIndex) prepareString(word string) string {
-	word = normalizeWord(word)
-	return wrapWord(word, self.config.pad, self.config.wrap)
+	return self.clean.cleanAndWrap(word)
 }
