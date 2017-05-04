@@ -18,9 +18,9 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 		return len(rid[i]) < len(rid[j])
 	})
 
-	result := make([][]int, len(rid)+1)
-	mapSize := 0
 	size := len(rid)
+	result := make([][]int, size+1)
+	mapSize := 0
 	k := size - threshold
 	for i, _ := range rid {
 		if i >= k {
@@ -86,28 +86,28 @@ func divideSkip(rid [][]int, threshold int) [][]int {
 // Approximate String Searches
 func mergeSkip(rid [][]int, threshold int) [][]int {
 	h := &heapImpl{}
-	result := make([][]int, len(rid)+1)
-	iters := make([]int, len(rid))
+	lenRid := len(rid)
+	result := make([][]int, lenRid+1)
+	iters := make([]int, lenRid)
 
 	for i, iter := range iters {
 		heap.Push(h, &record{i, rid[i][iter]})
 	}
 
-	poppedItems := make([]*record, len(rid))
+	poppedItems := make([]*record, 0, lenRid)
 	for h.Len() > 0 {
-		poppedIter := 0
+		// reset slice
+		poppedItems = poppedItems[:0]
 		t := h.Top()
 		for h.Len() > 0 && h.Top().(*record).strId == t.(*record).strId {
 			item := heap.Pop(h)
-			poppedItems[poppedIter] = item.(*record)
-			poppedIter++
+			poppedItems = append(poppedItems, item.(*record))
 		}
 
-		n := poppedIter
+		n := len(poppedItems)
 		if n >= threshold {
 			result[n] = append(result[n], t.(*record).strId)
-			for j := 0; j < poppedIter; j++ {
-				item := poppedItems[j]
+			for _, item := range poppedItems {
 				iters[item.ridId]++
 				if iters[item.ridId] < len(rid[item.ridId]) {
 					item.strId = rid[item.ridId][iters[item.ridId]]
@@ -119,8 +119,7 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 			for j > 0 && h.Len() > 0 {
 				item := heap.Pop(h)
 				j--
-				poppedItems[poppedIter] = item.(*record)
-				poppedIter++
+				poppedItems = append(poppedItems, item.(*record))
 			}
 
 			if h.Len() == 0 {
@@ -128,8 +127,7 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 			}
 
 			t = h.Top()
-			for j := 0; j < poppedIter; j++ {
-				item := poppedItems[j]
+			for _, item := range poppedItems {
 				i := item.ridId
 				if len(rid[i]) <= iters[i] {
 					continue

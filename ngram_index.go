@@ -110,13 +110,14 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	mm := getMeasure(self.config.measureName)
 	alpha := self.config.threshold
 	bMin, bMax := mm.minY(alpha, sizeA), mm.maxY(alpha, sizeA)
+	rid := make([][]int, 0, sizeA)
 	for sizeB := bMax; sizeB >= bMin; sizeB-- {
 		if len(self.indices) <= sizeB {
 			continue
 		}
 
+		rid = rid[:0]
 		// find max word id for memory optimize
-		rid := make([][]int, 0)
 		invertedLists := self.indices[sizeB]
 		for _, index := range set {
 			list := invertedLists[index]
