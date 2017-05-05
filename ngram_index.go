@@ -111,13 +111,18 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	alpha := self.config.threshold
 	bMin, bMax := mm.minY(alpha, sizeA), mm.maxY(alpha, sizeA)
 	rid := make([][]int, 0, sizeA)
+	lenIndices := len(self.indices)
 	for sizeB := bMax; sizeB >= bMin; sizeB-- {
-		if len(self.indices) <= sizeB {
+		if lenIndices <= sizeB {
+			continue
+		}
+
+		threshold := mm.threshold(alpha, sizeA, sizeB)
+		if threshold == 0 {
 			continue
 		}
 
 		rid = rid[:0]
-		// find max word id for memory optimize
 		invertedLists := self.indices[sizeB]
 		for _, index := range set {
 			list := invertedLists[index]
@@ -126,21 +131,15 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 			}
 		}
 
-		t := mm.threshold(alpha, sizeA, sizeB)
-		if len(rid) < t || t == 0 {
+		if len(rid) < threshold {
 			continue
 		}
 
-		counts := divideSkip(rid, t)
+		counts := divideSkip(rid, threshold)
 		// use heap search for finding top k items in a list efficiently
 		// see http://stevehanov.ca/blog/index.php?id=122
-		for inter := len(counts) - 1; inter >= 0; inter-- {
-			if len(counts[inter]) == 0 {
-				continue
-			}
-
-			list := counts[inter]
-			for _, id := range list {
+		for inter := len(counts) - 1; inter >= threshold; inter-- {
+			for _, id := range counts[inter] {
 				distance := mm.distance(inter, sizeA, sizeB)
 				if h.Len() < topK || h.Top().(*rank).distance > distance {
 					if h.Len() == topK {
