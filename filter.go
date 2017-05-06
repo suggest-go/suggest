@@ -63,6 +63,7 @@ func divideSkip(rid [][]int, threshold int) [][]int {
 	lLong := rid[:l]
 	lShort := rid[l:]
 	result := make([][]int, len(rid)+1)
+
 	for count, list := range mergeSkip(lShort, threshold-l) {
 		for _, r := range list {
 			j := count
@@ -88,10 +89,9 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 	h := &heapImpl{}
 	lenRid := len(rid)
 	result := make([][]int, lenRid+1)
-	iters := make([]int, lenRid)
 
-	for i, iter := range iters {
-		heap.Push(h, &record{i, rid[i][iter]})
+	for i := 0; i < lenRid; i++ {
+		heap.Push(h, &record{i, rid[i][0]})
 	}
 
 	poppedItems := make([]*record, 0, lenRid)
@@ -108,9 +108,11 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 		if n >= threshold {
 			result[n] = append(result[n], t.(*record).strId)
 			for _, item := range poppedItems {
-				iters[item.ridId]++
-				if iters[item.ridId] < len(rid[item.ridId]) {
-					item.strId = rid[item.ridId][iters[item.ridId]]
+				cur := rid[item.ridId]
+				if len(cur) > 1 {
+					cur = cur[1:]
+					rid[item.ridId] = cur
+					item.strId = cur[0]
 					heap.Push(h, item)
 				}
 			}
@@ -128,20 +130,20 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 
 			t = h.Top()
 			for _, item := range poppedItems {
-				i := item.ridId
-				if len(rid[i]) <= iters[i] {
+				cur := rid[item.ridId]
+				if len(cur) == 0 {
 					continue
 				}
 
-				r := binarySearch(rid[i], iters[i], t.(*record).strId)
+				r := binarySearch(cur, 0, t.(*record).strId)
 				if r == -1 {
 					continue
 				}
 
-				iters[i] = r
-				val := rid[i][r]
 				if r != -1 {
-					item.strId = val
+					cur = cur[r:]
+					rid[item.ridId] = cur
+					item.strId = cur[0]
 					heap.Push(h, item)
 				}
 			}

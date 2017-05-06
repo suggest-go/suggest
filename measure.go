@@ -14,6 +14,8 @@ type MeasureT byte
 const (
 	JACCARD MeasureT = iota
 	COSINE
+	DICE
+	EXACT
 	last
 )
 
@@ -50,7 +52,7 @@ func (self *jaccard) distance(inter, sizeA, sizeB int) float64 {
 type cosine struct{}
 
 func (self *cosine) minY(alpha float64, size int) int {
-	return int(alpha*alpha) * size
+	return int(alpha * alpha * float64(size))
 }
 
 func (self *cosine) maxY(alpha float64, size int) int {
@@ -65,7 +67,45 @@ func (self *cosine) distance(inter, sizeA, sizeB int) float64 {
 	return 1 - float64(inter)/math.Sqrt(float64(sizeA*sizeB))
 }
 
+type dice struct{}
+
+func (self *dice) minY(alpha float64, size int) int {
+	return int(alpha / (2 - alpha) * float64(size))
+}
+
+func (self *dice) maxY(alpha float64, size int) int {
+	return int((2 - alpha) / alpha * float64(size))
+}
+
+func (self *dice) threshold(alpha float64, sizeA, sizeB int) int {
+	return int(0.5 * alpha * float64(sizeA+sizeB))
+}
+
+func (self *dice) distance(inter, sizeA, sizeB int) float64 {
+	return 1 - float64(2*inter)/float64(sizeA+sizeB)
+}
+
+type exact struct{}
+
+func (self *exact) minY(alpha float64, size int) int {
+	return size
+}
+
+func (self *exact) maxY(alpha float64, size int) int {
+	return size
+}
+
+func (self *exact) threshold(alpha float64, sizeA, sizeB int) int {
+	return sizeA
+}
+
+func (self *exact) distance(inter, sizeA, sizeB int) float64 {
+	return 0
+}
+
 func init() {
 	measureHolder[JACCARD] = &jaccard{}
 	measureHolder[COSINE] = &cosine{}
+	measureHolder[DICE] = &dice{}
+	measureHolder[EXACT] = &exact{}
 }

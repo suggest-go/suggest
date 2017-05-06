@@ -66,15 +66,15 @@ func (self *NGramIndex) AddWord(word string) {
 	cardinality := len(set)
 
 	if len(self.indices) <= cardinality {
-		tmp := make([]invertedListsT, cardinality, cardinality*2)
+		tmp := make([]invertedListsT, cardinality+1, cardinality*2)
 		copy(tmp, self.indices)
 		self.indices = tmp
 	}
 
-	invertedLists := self.indices[cardinality-1]
+	invertedLists := self.indices[cardinality]
 	if invertedLists == nil {
 		invertedLists = make(invertedListsT)
-		self.indices[cardinality-1] = invertedLists
+		self.indices[cardinality] = invertedLists
 	}
 
 	for _, index := range set {
@@ -112,22 +112,33 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 	bMin, bMax := mm.minY(alpha, sizeA), mm.maxY(alpha, sizeA)
 	rid := make([][]int, 0, sizeA)
 	lenIndices := len(self.indices)
-	for sizeB := bMax; sizeB >= bMin; sizeB-- {
-		if lenIndices <= sizeB {
-			continue
-		}
 
+	if bMax >= lenIndices {
+		bMax = lenIndices - 1
+	}
+
+	for sizeB := bMax; sizeB >= bMin; sizeB-- {
 		threshold := mm.threshold(alpha, sizeA, sizeB)
 		if threshold == 0 {
 			continue
 		}
 
+		// reset slice
 		rid = rid[:0]
 		invertedLists := self.indices[sizeB]
+		// maximum allowable ngram miss count
+		allowedSkips := sizeA - threshold + 1
 		for _, index := range set {
+			// there is no reason to continue, because of threshold
+			if allowedSkips == 0 {
+				break
+			}
+
 			list := invertedLists[index]
 			if len(list) > 0 {
 				rid = append(rid, list)
+			} else {
+				allowedSkips--
 			}
 		}
 
@@ -172,7 +183,7 @@ func (self *NGramIndex) getNGramSet(word string) []int {
 	return list
 }
 
-//
+// Map ngram to int (index)
 func (self *NGramIndex) ngramToIndex(ngram string) int {
 	index := 0
 	for _, char := range ngram {
