@@ -15,52 +15,21 @@ import (
 type invertedListsT map[int][]int
 
 type NGramIndex struct {
-	k          int
-	alphabet   Alphabet
 	clean      *cleaner
 	indices    []invertedListsT
-	dictionary []string
-	index      int
-	config     *conf
+	dictionary []WordKey
+	config     *IndexConfig
 }
 
-type conf struct {
-	threshold   float64 // 0 - 1
-	measureName MeasureT
-	pad         string
-	wrap        string
-}
-
-var defaultConf *conf
-
-func init() {
-	defaultConf = &conf{0.5, COSINE, "$", "$"}
-}
-
-func NewNGramIndex(k int) *NGramIndex {
-	if k < 2 || k > 4 {
-		panic("k should be in [2, 4]")
-	}
-
-	// TODO declare as constructor argument
-	alphabet := NewCompositeAlphabet([]Alphabet{
-		NewEnglishAlphabet(),
-		NewNumberAlphabet(),
-		NewRussianAlphabet(),
-		// TODO use config.pad here
-		NewSimpleAlphabet([]rune{'$'}),
-	})
-
-	// TODO use in constructor
-	clean := newCleaner(alphabet.Chars(), defaultConf.pad, defaultConf.wrap)
-
+func NewNGramIndex(config *IndexConfig) *NGramIndex {
+	clean := newCleaner(config.alphabet.Chars(), config.pad, config.wrap)
 	return &NGramIndex{
-		k, alphabet, clean, make([]invertedListsT, 0), make([]string, 0), 0, defaultConf,
+		clean, make([]invertedListsT, 0), make([]WordKey, 0), config,
 	}
 }
 
 // Add given word to invertedList
-func (self *NGramIndex) AddWord(word string) {
+func (self *NGramIndex) AddWord(word string, key WordKey) {
 	prepared := self.prepareString(word)
 	set := self.getNGramSet(prepared)
 	cardinality := len(set)
@@ -77,38 +46,40 @@ func (self *NGramIndex) AddWord(word string) {
 		self.indices[cardinality] = invertedLists
 	}
 
+	keyToIndex := len(self.dictionary)
 	for _, index := range set {
-		invertedLists[index] = append(invertedLists[index], self.index)
+		invertedLists[index] = append(invertedLists[index], keyToIndex)
 	}
 
-	self.dictionary = append(self.dictionary, word)
-	self.index++
+	self.dictionary = append(self.dictionary, key)
 }
 
 // Return top-k similar strings
-func (self *NGramIndex) Suggest(word string, topK int) []string {
-	result := make([]string, 0, topK)
-	preparedWord := self.prepareString(word)
-	if len(preparedWord) < self.k {
+func (self *NGramIndex) Suggest(config *SearchConfig) []WordKey {
+	result := make([]WordKey, 0, config.topK)
+	preparedQuery := self.prepareString(config.query)
+	if len(preparedQuery) < self.config.ngramSize {
 		return result
 	}
 
-	candidates := self.search(preparedWord, topK)
+	candidates := self.search(preparedQuery, config)
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
-		result = append([]string{self.dictionary[r.id]}, result...)
+		result = append([]WordKey{self.dictionary[r.id]}, result...)
 	}
 
 	return result
 }
 
-func (self *NGramIndex) search(word string, topK int) *heapImpl {
-	set := self.getNGramSet(word)
+func (self *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
+	set := self.getNGramSet(query)
 	sizeA := len(set)
 
+	mm := getMeasure(config.measureName)
+	alpha := config.threshold
+	topK := config.topK
+
 	h := &heapImpl{}
-	mm := getMeasure(self.config.measureName)
-	alpha := self.config.threshold
 	bMin, bMax := mm.minY(alpha, sizeA), mm.maxY(alpha, sizeA)
 	rid := make([][]int, 0, sizeA)
 	lenIndices := len(self.indices)
@@ -168,7 +139,7 @@ func (self *NGramIndex) search(word string, topK int) *heapImpl {
 
 // Return unique ngrams
 func (self *NGramIndex) getNGramSet(word string) []int {
-	ngrams := SplitIntoNGrams(word, self.k)
+	ngrams := SplitIntoNGrams(word, self.config.ngramSize)
 	set := make(map[int]struct{}, len(ngrams))
 	list := make([]int, 0, len(ngrams))
 	for _, ngram := range ngrams {
@@ -186,13 +157,15 @@ func (self *NGramIndex) getNGramSet(word string) []int {
 // Map ngram to int (index)
 func (self *NGramIndex) ngramToIndex(ngram string) int {
 	index := 0
+	alphabet := self.config.alphabet
+	size := alphabet.Size()
 	for _, char := range ngram {
-		i := self.alphabet.MapChar(char)
+		i := alphabet.MapChar(char)
 		if index == INVALID_CHAR {
 			panic("Invalid char was detected")
 		}
 
-		index = index*self.alphabet.Size() + i
+		index = index*size + i
 	}
 
 	return index
