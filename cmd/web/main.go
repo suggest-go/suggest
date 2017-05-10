@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/alldroll/suggest"
 	"github.com/gorilla/mux"
 	"log"
@@ -42,7 +43,7 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 
 			data := suggestService.Suggest(dict+string(i), searchConf)
 			elapsed := time.Since(start).String()
-			configName := "n" + string(i+2)
+			configName := fmt.Sprintf("n%d", i+2)
 			ch <- candidates{configName, data, elapsed}
 		}(i)
 	}

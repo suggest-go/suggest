@@ -22,15 +22,15 @@ func TestSuggestAuto(t *testing.T) {
 		ngramIndex.AddWord(word, i)
 	}
 
-	conf, err := NewSearchConfig("Nissan mar", 2, JACCARD, 0.5)
+	conf, err := NewSearchConfig("Nissan ma", 2, JACCARD, 0.5)
 	if err != nil {
 		panic(err)
 	}
 
 	candidates := ngramIndex.Suggest(conf)
 	expected := []WordKey{
-		0,
 		2,
+		0,
 	}
 
 	if !reflect.DeepEqual(expected, candidates) {
@@ -61,7 +61,7 @@ func BenchmarkSuggest(b *testing.B) {
 	}
 
 	b.StartTimer()
-	conf, err := NewSearchConfig("Nissan mar", 2, JACCARD, 0.7)
+	conf, err := NewSearchConfig("Nissan mar", 2, JACCARD, 0.5)
 	if err != nil {
 		panic(err)
 	}
