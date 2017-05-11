@@ -37,22 +37,22 @@ type SearchConfig struct {
 	query       string
 	topK        int
 	measureName MeasureT
-	threshold   float64
+	similarity  float64
 }
 
-func NewSearchConfig(query string, topK int, measureName MeasureT, threshold float64) (*SearchConfig, error) {
+func NewSearchConfig(query string, topK int, measureName MeasureT, similarity float64) (*SearchConfig, error) {
 	if topK < 0 {
 		return nil, fmt.Errorf("topK is invalid") //TODO fixme
 	}
 
-	if threshold <= 0 || threshold > 1 {
-		return nil, fmt.Errorf("threshold shouble be in (0.0, 1.0]")
+	if similarity <= 0 || similarity > 1 {
+		return nil, fmt.Errorf("similarity shouble be in (0.0, 1.0]")
 	}
 
 	return &SearchConfig{
 		query,
 		topK,
 		measureName,
-		threshold,
+		similarity,
 	}, nil
 }

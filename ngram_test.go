@@ -96,7 +96,7 @@ func BenchmarkRealExample(b *testing.B) {
 	qLen := len(queries)
 	b.StartTimer()
 
-	conf, err := NewSearchConfig("Nissan mar", 5, COSINE, 0.5)
+	conf, err := NewSearchConfig("Nissan mar", 5, COSINE, 0.3)
 	if err != nil {
 		panic(err)
 	}

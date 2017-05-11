@@ -2,6 +2,7 @@ package suggest
 
 import (
 	"container/heap"
+	"math"
 	"sort"
 )
 
@@ -54,12 +55,15 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 	return result
 }
 
-func divideSkip(rid [][]int, threshold int) [][]int {
+// TODO придумать как выбирать параметр mu
+func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 	sort.Slice(rid, func(i, j int) bool {
 		return len(rid[i]) > len(rid[j])
 	})
 
-	l := threshold - 1
+	M := float64(len(rid[0]))
+	l := int(float64(threshold) / (mu*math.Log(M) + 1))
+
 	lLong := rid[:l]
 	lShort := rid[l:]
 	result := make([][]int, len(rid)+1)

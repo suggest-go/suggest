@@ -28,6 +28,7 @@ func TestDivideSkip(t *testing.T) {
 			{100, 200},
 		},
 		2,
+		0.85,
 	)
 }
 

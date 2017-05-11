@@ -117,7 +117,7 @@ func (self *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 			continue
 		}
 
-		counts := divideSkip(rid, threshold)
+		counts := mergeSkip(rid, threshold)
 		// use heap search for finding top k items in a list efficiently
 		// see http://stevehanov.ca/blog/index.php?id=122
 		for inter := len(counts) - 1; inter >= threshold; inter-- {
