@@ -5,148 +5,174 @@ package suggest
  * http://www.aaai.org/ocs/index.php/AAAI/AAAI10/paper/viewFile/1939/2234
  * http://nlp.stanford.edu/IR-book/html/htmledition/k-gram-indexes-for-wildcard-queries-1.html
  * http://bazhenov.me/blog/2012/08/04/autocomplete.html
+ * http://www.aclweb.org/anthology/C10-1096
  */
 
 import (
 	"container/heap"
 )
 
-type invertedListsT map[string][]int
+type invertedListsT map[int][]int
 
 type NGramIndex struct {
-	k             int
-	invertedLists invertedListsT
-	dictionary    []string
-	cardinalities []int
-	index         int
-	config        *conf
+	clean      *cleaner
+	indices    []invertedListsT
+	dictionary []WordKey
+	config     *IndexConfig
 }
 
-type conf struct {
-	threshold int // count filtering
-	lenDiff   int
-	pad       string
-}
-
-var defaultConf *conf
-
-func init() {
-	defaultConf = &conf{2, -1, "$"}
-}
-
-func NewNGramIndex(k int) *NGramIndex {
-	if k < 2 || k > 4 {
-		panic("k should be in [2, 4]")
-	}
-
+func NewNGramIndex(config *IndexConfig) *NGramIndex {
+	clean := newCleaner(config.alphabet.Chars(), config.pad, config.wrap)
 	return &NGramIndex{
-		k, make(invertedListsT), make([]string, 0), make([]int, 0), 0, defaultConf,
+		clean, make([]invertedListsT, 0), make([]WordKey, 0), config,
 	}
 }
 
 // Add given word to invertedList
-func (self *NGramIndex) AddWord(word string) {
+func (self *NGramIndex) AddWord(word string, key WordKey) {
 	prepared := self.prepareString(word)
-	ngrams := self.getNGramSet(prepared)
-	cardinality := len(ngrams)
-	for _, ngram := range ngrams {
-		self.invertedLists[ngram] = append(self.invertedLists[ngram], self.index)
+	set := self.getNGramSet(prepared)
+	cardinality := len(set)
+
+	if len(self.indices) <= cardinality {
+		tmp := make([]invertedListsT, cardinality+1, cardinality*2)
+		copy(tmp, self.indices)
+		self.indices = tmp
 	}
 
-	self.dictionary = append(self.dictionary, word)
-	self.cardinalities = append(self.cardinalities, cardinality)
-	self.index++
+	invertedLists := self.indices[cardinality]
+	if invertedLists == nil {
+		invertedLists = make(invertedListsT)
+		self.indices[cardinality] = invertedLists
+	}
+
+	keyToIndex := len(self.dictionary)
+	for _, index := range set {
+		invertedLists[index] = append(invertedLists[index], keyToIndex)
+	}
+
+	self.dictionary = append(self.dictionary, key)
 }
 
 // Return top-k similar strings
-func (self *NGramIndex) Suggest(word string, topK int) []string {
-	result := make([]string, 0, topK)
-	preparedWord := self.prepareString(word)
-	if len(preparedWord) < self.k {
+func (self *NGramIndex) Suggest(config *SearchConfig) []WordKey {
+	result := make([]WordKey, 0, config.topK)
+	preparedQuery := self.prepareString(config.query)
+	if len(preparedQuery) < self.config.ngramSize {
 		return result
 	}
 
-	candidates := self.search(preparedWord, topK)
+	candidates := self.search(preparedQuery, config)
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
-		result = append([]string{self.dictionary[r.id]}, result...)
+		result = append([]WordKey{self.dictionary[r.id]}, result...)
 	}
 
 	return result
 }
 
-//1. try to receive corresponding inverted list for word's ngrams
-//2. calculate distance between current word and candidates
-//3. return rankHeap
-func (self *NGramIndex) search(word string, topK int) *heapImpl {
-	set := self.getNGramSet(word)
-	lenA := len(set)
+func (self *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
+	set := self.getNGramSet(query)
+	sizeA := len(set)
 
-	// find max word id for memory optimize
-	maxId := 0
-	for _, ngram := range set {
-		list := self.invertedLists[ngram]
-		if len(list) > 0 {
-			curMaxId := list[len(list)-1]
-			if curMaxId > maxId {
-				maxId = curMaxId
-			}
-		}
-	}
+	mm := getMeasure(config.measureName)
+	similarity := config.similarity
+	topK := config.topK
 
-	// calc intersections between current word's ngram set and candidates */
-	// ScanCount algorithm (try to use DivideSkip)
-	counts := make([]int, maxId+1)
-	for _, ngram := range set {
-		for _, id := range self.invertedLists[ngram] {
-			counts[id]++
-		}
-	}
-
-	// use heap search for finding top k items in a list efficiently
-	// see http://stevehanov.ca/blog/index.php?id=122
 	h := &heapImpl{}
-	for id, inter := range counts {
-		if inter < self.config.threshold {
+	bMin, bMax := mm.minY(similarity, sizeA), mm.maxY(similarity, sizeA)
+	rid := make([][]int, 0, sizeA)
+	lenIndices := len(self.indices)
+
+	if bMax >= lenIndices {
+		bMax = lenIndices - 1
+	}
+
+	for sizeB := bMax; sizeB >= bMin; sizeB-- {
+		threshold := mm.threshold(similarity, sizeA, sizeB)
+		if threshold == 0 {
 			continue
 		}
 
-		lenB := self.cardinalities[id]
-
-		// length filtering
-		if self.config.lenDiff > 0 {
-			diff := lenB - lenA
-			if diff < 0 {
-				diff = -diff
+		// reset slice
+		rid = rid[:0]
+		invertedLists := self.indices[sizeB]
+		// maximum allowable ngram miss count
+		allowedSkips := sizeA - threshold + 1
+		for _, index := range set {
+			// there is no reason to continue, because of threshold
+			if allowedSkips == 0 {
+				break
 			}
 
-			if diff > self.config.lenDiff {
-				continue
+			list := invertedLists[index]
+			if len(list) > 0 {
+				rid = append(rid, list)
+			} else {
+				allowedSkips--
 			}
 		}
 
-		// use jaccard distance as metric for calc words similarity
-		// 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
-		distance := 1 - float64(inter)/float64(lenA+lenB-inter)
-		if h.Len() < topK || h.Top().(*rank).distance > distance {
-			if h.Len() == topK {
-				heap.Pop(h)
-			}
+		if len(rid) < threshold {
+			continue
+		}
 
-			heap.Push(h, &rank{id, distance})
+		counts := mergeSkip(rid, threshold)
+		// use heap search for finding top k items in a list efficiently
+		// see http://stevehanov.ca/blog/index.php?id=122
+		for inter := len(counts) - 1; inter >= threshold; inter-- {
+			for _, id := range counts[inter] {
+				distance := mm.distance(inter, sizeA, sizeB)
+
+				if h.Len() < topK || h.Top().(*rank).distance > distance {
+					if h.Len() == topK {
+						heap.Pop(h)
+					}
+
+					heap.Push(h, &rank{id, distance})
+				}
+			}
 		}
 	}
 
 	return h
 }
 
-// Return unique ngrams with frequency
-func (self *NGramIndex) getNGramSet(word string) []string {
-	return GetNGramSet(word, self.k)
+// Return unique ngrams
+func (self *NGramIndex) getNGramSet(word string) []int {
+	ngrams := SplitIntoNGrams(word, self.config.ngramSize)
+	set := make(map[int]struct{}, len(ngrams))
+	list := make([]int, 0, len(ngrams))
+	for _, ngram := range ngrams {
+		index := self.ngramToIndex(ngram)
+		_, found := set[index]
+		set[index] = struct{}{}
+		if !found {
+			list = append(list, index)
+		}
+	}
+
+	return list
+}
+
+// Map ngram to int (index)
+func (self *NGramIndex) ngramToIndex(ngram string) int {
+	index := 0
+	alphabet := self.config.alphabet
+	size := alphabet.Size()
+	for _, char := range ngram {
+		i := alphabet.MapChar(char)
+		if index == INVALID_CHAR {
+			panic("Invalid char was detected")
+		}
+
+		index = index*size + i
+	}
+
+	return index
 }
 
 // Prepare string for indexing
 func (self *NGramIndex) prepareString(word string) string {
-	word = normalizeWord(word)
-	return wrapWord(word, self.config.pad)
+	return self.clean.cleanAndWrap(word)
 }

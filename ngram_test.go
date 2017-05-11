@@ -17,15 +17,20 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	ngramIndex := NewNGramIndex(3)
-	for _, word := range collection {
-		ngramIndex.AddWord(word)
+	ngramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
+	for i, word := range collection {
+		ngramIndex.AddWord(word, i)
 	}
 
-	candidates := ngramIndex.Suggest("Nissan mar", 2)
-	expected := []string{
-		"Nissan March",
-		"Nissan Maxima",
+	conf, err := NewSearchConfig("Nissan ma", 2, JACCARD, 0.5)
+	if err != nil {
+		panic(err)
+	}
+
+	candidates := ngramIndex.Suggest(conf)
+	expected := []WordKey{
+		2,
+		0,
 	}
 
 	if !reflect.DeepEqual(expected, candidates) {
@@ -50,14 +55,19 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	ngramIndex := NewNGramIndex(3)
-	for _, word := range collection {
-		ngramIndex.AddWord(word)
+	ngramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
+	for i, word := range collection {
+		ngramIndex.AddWord(word, i)
 	}
 
 	b.StartTimer()
+	conf, err := NewSearchConfig("Nissan mar", 2, JACCARD, 0.5)
+	if err != nil {
+		panic(err)
+	}
+
 	for i := 0; i < b.N; i++ {
-		ngramIndex.Suggest("Nissan mar", 2)
+		ngramIndex.Suggest(conf)
 	}
 }
 
@@ -65,10 +75,10 @@ func BenchmarkRealExample(b *testing.B) {
 	b.StopTimer()
 	collection := GetWordsFromFile("cmd/web/cars.dict")
 
-	ngramIndex := NewNGramIndex(3)
+	ngramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
 
-	for _, word := range collection {
-		ngramIndex.AddWord(word)
+	for i, word := range collection {
+		ngramIndex.AddWord(word, i)
 	}
 
 	queries := [...]string{
@@ -85,8 +95,30 @@ func BenchmarkRealExample(b *testing.B) {
 
 	qLen := len(queries)
 	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		word := queries[i%qLen]
-		ngramIndex.Suggest(word, 5)
+
+	conf, err := NewSearchConfig("Nissan mar", 5, COSINE, 0.3)
+	if err != nil {
+		panic(err)
 	}
+
+	for i := 0; i < b.N; i++ {
+		conf.query = queries[i%qLen]
+		ngramIndex.Suggest(conf)
+	}
+}
+
+func getIndexConfWithBaseAlphabet(ngramSize int) *IndexConfig {
+	alphabet := NewCompositeAlphabet([]Alphabet{
+		NewEnglishAlphabet(),
+		NewNumberAlphabet(),
+		NewRussianAlphabet(),
+		NewSimpleAlphabet([]rune{'$'}),
+	})
+
+	conf, err := NewIndexConfig(ngramSize, alphabet, "$", "$")
+	if err != nil {
+		panic(err)
+	}
+
+	return conf
 }

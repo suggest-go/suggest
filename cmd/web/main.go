@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/alldroll/suggest"
 	"github.com/gorilla/mux"
 	"log"
@@ -15,7 +16,7 @@ const TOP_K = 5
 
 var (
 	suggestService *suggest.SuggestService
-	configs        []*suggest.Config
+	configs        []*suggest.IndexConfig
 	publicPath     = "./cmd/web/public"
 	dictPath       = "./cmd/web/cars.dict"
 )
@@ -32,14 +33,19 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 
 	lenS := len(configs)
 	ch := make(chan candidates)
-	for i, config := range configs {
-		go func(i int, config *suggest.Config) {
+	for i, _ := range configs {
+		go func(i int) {
 			start := time.Now()
-			data := suggestService.Suggest(dict+string(i), query)
+			searchConf, err := suggest.NewSearchConfig(query, 5, suggest.COSINE, 0.5)
+			if err == nil {
+				// TODO fixme
+			}
+
+			data := suggestService.Suggest(dict+string(i), searchConf)
 			elapsed := time.Since(start).String()
-			configName := config.GetName()
+			configName := fmt.Sprintf("n%d", i+2)
 			ch <- candidates{configName, data, elapsed}
-		}(i, config)
+		}(i)
 	}
 
 	result := make([]candidates, 0, lenS)
@@ -62,21 +68,33 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "public, cache, store, s-maxage=3600, max-age=3600")
+	//w.Header().Set("Cache-Control", "public, cache, store, s-maxage=3600, max-age=3600")
 	w.Write(data)
 }
 
 func init() {
 	words := suggest.GetWordsFromFile(dictPath)
-	configs = []*suggest.Config{
-		suggest.NewConfig(2, 5, "n2"),
-		suggest.NewConfig(3, 5, "n3"),
-		suggest.NewConfig(4, 5, "n4"),
+	alphabet := suggest.NewCompositeAlphabet([]suggest.Alphabet{
+		suggest.NewEnglishAlphabet(),
+		suggest.NewNumberAlphabet(),
+		suggest.NewRussianAlphabet(),
+		suggest.NewSimpleAlphabet([]rune{'$'}),
+	})
+
+	for j := 2; j <= 4; j++ {
+		conf, err := suggest.NewIndexConfig(j, alphabet, "$", "$")
+		if err != nil {
+			panic(err)
+		}
+
+		configs = append(configs, conf)
 	}
 
+	dictionary := suggest.NewInMemoryDictionary(words)
 	suggestService = suggest.NewSuggestService()
 	for i, config := range configs {
-		suggestService.AddDictionary("cars"+string(i), words, config)
+		dictionary.Reset()
+		suggestService.AddDictionary("cars"+string(i), dictionary, config)
 	}
 }
 

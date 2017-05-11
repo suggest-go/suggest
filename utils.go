@@ -4,13 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"os"
-	"regexp"
-	"strings"
 )
 
 const maxN = 8
-
-var reg *regexp.Regexp
 
 // inspired by https://github.com/Lazin/go-ngram
 func SplitIntoNGrams(word string, k int) []string {
@@ -38,21 +34,6 @@ func SplitIntoNGrams(word string, k int) []string {
 	result = append(result, substr)
 
 	return result
-}
-
-func GetNGramSet(word string, k int) []string {
-	ngrams := SplitIntoNGrams(word, k)
-	set := make(map[string]struct{}, len(ngrams))
-	list := make([]string, 0, len(ngrams))
-	for _, ngram := range ngrams {
-		_, found := set[ngram]
-		set[ngram] = struct{}{}
-		if !found {
-			list = append(list, ngram)
-		}
-	}
-
-	return list
 }
 
 /*
@@ -88,22 +69,6 @@ func GetWordsFromFile(fileName string) []string {
 	return result
 }
 
-func normalizeWord(word string) string {
-	if len(word) < 2 {
-		return word
-	}
-
-	word = strings.ToLower(word)
-	word = strings.Trim(word, " ")
-	return word
-}
-
-func wrapWord(word, pad string) string {
-	word = normalizeWord(word)
-	word = reg.ReplaceAllString(word, pad)
-	return pad + word + pad
-}
-
 func min3(a, b, c int) int {
 	if a < b && a < c {
 		return a
@@ -114,12 +79,4 @@ func min3(a, b, c int) int {
 	}
 
 	return c
-}
-
-func init() {
-	var err error
-	reg, err = regexp.Compile("[^a-z0-9а-яё]+") // TODO use alphabet entity
-	if err != nil {
-		panic(err)
-	}
 }

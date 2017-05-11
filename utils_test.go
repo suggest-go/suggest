@@ -47,11 +47,20 @@ func TestPrepareString(t *testing.T) {
 	}{
 		{"", "$$"},
 		{"test", "$test$"},
-		{"hello world", "$hello$world$"},
+		{"helLo world", "$hello$world$"},
+		{"-+=tesla", "$$tesla$"},
 	}
 
+	alphabet := NewCompositeAlphabet([]Alphabet{
+		NewEnglishAlphabet(),
+		NewNumberAlphabet(),
+		NewRussianAlphabet(),
+		NewSimpleAlphabet([]rune{'$'}),
+	})
+
+	clean := newCleaner(alphabet.Chars(), "$", "$")
 	for _, c := range cases {
-		actual := wrapWord(c.word, "$")
+		actual := clean.cleanAndWrap(c.word)
 		if actual != c.expected {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",
@@ -60,17 +69,5 @@ func TestPrepareString(t *testing.T) {
 			)
 		}
 	}
-}
 
-func BenchmarkSplitIntoNGrams(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		SplitIntoNGrams("TestStringAbabacaMacacaTsaksn", 3)
-	}
-}
-
-func BenchmarkNGramSet(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		a := "SomeLongWordsadsadsadsadsadsadsadsadsadssadsada"
-		GetNGramSet(a, 3)
-	}
 }

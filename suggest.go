@@ -4,60 +4,57 @@ import "sync"
 
 type SuggestService struct {
 	sync.RWMutex
-	dictionaries map[string]*NGramIndex
-	configs      map[string]*Config
-}
-
-type Config struct {
-	ngramSize int
-	topK      int
-	name      string
-}
-
-func NewConfig(ngramSize int, topK int, name string) *Config {
-	return &Config{
-		ngramSize,
-		topK,
-		name,
-	}
-}
-
-func (self *Config) GetName() string {
-	return self.name
+	indexes      map[string]*NGramIndex
+	dictionaries map[string]Dictionary
 }
 
 // Creates an empty SuggestService which uses given metric as "edit distance metric"
 func NewSuggestService() *SuggestService {
+	// fixme
 	return &SuggestService{
-		dictionaries: make(map[string]*NGramIndex),
-		configs:      make(map[string]*Config),
+		indexes:      make(map[string]*NGramIndex),
+		dictionaries: make(map[string]Dictionary),
 	}
 }
 
 // add/replace new dictionary with given name
-func (self *SuggestService) AddDictionary(name string, words []string, config *Config) error {
-	ngramIndex := NewNGramIndex(config.ngramSize)
-	for _, word := range words {
+func (self *SuggestService) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
+	ngramIndex := NewNGramIndex(config)
+
+	for {
+		key, word := dictionary.Next()
+		if key == nil {
+			break
+		}
+
+		// monkey code, fixme
 		if len(word) > config.ngramSize {
-			ngramIndex.AddWord(word)
+			ngramIndex.AddWord(word, key)
 		}
 	}
 
 	self.Lock()
-	self.dictionaries[name] = ngramIndex
-	self.configs[name] = config
+	self.indexes[name] = ngramIndex
+	self.dictionaries[name] = dictionary
 	self.Unlock()
 	return nil
 }
 
 // return Top-k approximate strings for given query in dict
-func (self *SuggestService) Suggest(dict string, query string) []string {
+func (self *SuggestService) Suggest(dict string, config *SearchConfig) []string {
 	self.RLock()
-	index, okDict := self.dictionaries[dict]
-	config, okConf := self.configs[dict]
+	index, okIndex := self.indexes[dict]
+	dictionary, okDict := self.dictionaries[dict]
 	self.RUnlock()
-	if okDict && okConf {
-		return index.Suggest(query, config.topK)
+	if okDict && okIndex {
+		keys := index.Suggest(config)
+		result := make([]string, 0, len(keys))
+		for _, key := range keys {
+			val, _ := dictionary.Get(key)
+			result = append(result, val)
+		}
+
+		return result
 	}
 
 	return make([]string, 0)
