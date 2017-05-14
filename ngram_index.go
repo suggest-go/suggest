@@ -125,11 +125,16 @@ func (self *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 				distance := mm.distance(inter, sizeA, sizeB)
 
 				if h.Len() < topK || h.Top().(*rank).distance > distance {
+					var r *rank
 					if h.Len() == topK {
-						heap.Pop(h)
+						r = heap.Pop(h).(*rank)
+					} else {
+						r = &rank{0, 0}
 					}
 
-					heap.Push(h, &rank{id, distance})
+					r.id = id
+					r.distance = distance
+					heap.Push(h, r)
 				}
 			}
 		}
