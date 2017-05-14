@@ -2,42 +2,77 @@ package suggest
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
 
+// IMPLEMENT ME
 func TestCPMerge(t *testing.T) {
-	cpMerge(
-		[][]int{
-			{50, 100},
-			{100, 200},
-			{40, 50, 60},
-			{10, 11, 13, 16, 50, 60, 131},
-			{1, 2, 3, 5, 7, 10, 30, 50},
-		},
-		3,
-	)
+}
+
+func TestScanCount(t *testing.T) {
+	for _, c := range dataProvider() {
+		actual := scanCount(c.rid, c.t)
+		actualMap := make(map[int][]int)
+		for n, list := range actual {
+			if len(list) == 0 {
+				continue
+			}
+
+			sort.Sort(sort.IntSlice(list))
+			actualMap[n] = list
+		}
+
+		if !reflect.DeepEqual(actualMap, c.expected) {
+			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
+		}
+	}
 }
 
 func TestDivideSkip(t *testing.T) {
-	divideSkip(
-		[][]int{
-			{1, 2, 3, 5, 7, 10, 30, 50},
-			{10, 11, 13, 16, 50, 60, 131},
-			{40, 50, 60},
-			{50, 100},
-			{100, 200},
-		},
-		2,
-		0.85,
-	)
+	for _, c := range dataProvider() {
+		actual := divideSkip(c.rid, c.t, 0.085)
+		actualMap := make(map[int][]int)
+		for n, list := range actual {
+			if len(list) == 0 {
+				continue
+			}
+
+			actualMap[n] = list
+		}
+
+		if !reflect.DeepEqual(actualMap, c.expected) {
+			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
+		}
+	}
 }
 
 func TestMergeSkip(t *testing.T) {
-	cases := []struct {
-		rid      [][]int
-		t        int
-		expected map[int][]int
-	}{
+	for _, c := range dataProvider() {
+		actual := mergeSkip(c.rid, c.t)
+		actualMap := make(map[int][]int)
+		for n, list := range actual {
+			if len(list) == 0 {
+				continue
+			}
+
+			actualMap[n] = list
+		}
+
+		if !reflect.DeepEqual(actualMap, c.expected) {
+			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
+		}
+	}
+}
+
+type oneCase struct {
+	rid      [][]int
+	t        int
+	expected map[int][]int
+}
+
+func dataProvider() []oneCase {
+	return []oneCase{
 		{
 			[][]int{
 				{1, 2, 3},
@@ -116,23 +151,6 @@ func TestMergeSkip(t *testing.T) {
 			},
 		},
 	}
-
-	for _, c := range cases {
-		actual := mergeSkip(c.rid, c.t)
-		actualMap := make(map[int][]int)
-		for n, list := range actual {
-			if len(list) == 0 {
-				continue
-			}
-
-			actualMap[n] = list
-		}
-
-		if !reflect.DeepEqual(actualMap, c.expected) {
-			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
-		}
-	}
-
 }
 
 func TestBinSearch(t *testing.T) {
