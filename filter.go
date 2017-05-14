@@ -14,6 +14,33 @@ func (self *record) Less(other heapItem) bool {
 	return self.strId < other.(*record).strId
 }
 
+func scanCount(rid [][]int, threshold int) [][]int {
+	size := len(rid)
+	result := make([][]int, size+1)
+
+	mapSize := 0
+	for i, _ := range rid {
+		mapSize += len(rid[i])
+	}
+
+	counts := make(map[int]int, mapSize+1)
+	for _, curRid := range rid {
+		for _, strId := range curRid {
+			counts[strId]++
+		}
+	}
+
+	for strId, count := range counts {
+		if count < threshold {
+			continue
+		}
+
+		result[count] = append(result[count], strId)
+	}
+
+	return result
+}
+
 func cpMerge(rid [][]int, threshold int) [][]int {
 	sort.Slice(rid, func(i, j int) bool {
 		return len(rid[i]) < len(rid[j])
