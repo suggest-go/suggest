@@ -2,17 +2,20 @@
 
 Tool for Top-k Approximate String Matching.
 
-This code was developed only for self education, so algorithm is not memory effective and so on.
-
-Main idea was taken from
-* http://www.aaai.org/ocs/index.php/AAAI/AAAI10/paper/viewFile/1939/2234
-* http://nlp.stanford.edu/IR-book/html/htmledition/k-gram-indexes-for-wildcard-queries-1.html
-* http://bazhenov.me/blog/2012/08/04/autocomplete.html
-
 ## Usage
 
 ```go
-service := suggest.NewSuggestService()
+alphabet := suggest.NewCompositeAlphabet([]suggest.Alphabet{
+    suggest.NewEnglishAlphabet(),
+    suggest.NewSimpleAlphabet([]rune{'$'}),
+})
+
+wrap, pad := "$", "$"
+conf, err := suggest.NewIndexConfig(3 /*Ngram size*/, alphabet, wrap, pad)
+if err != nil {
+    panic(err)
+}
+
 collection := []string{
     "Nissan March",
     "Nissan Juke",
@@ -23,16 +26,21 @@ collection := []string{
     "Toyota Corolla",
     "Toyota Corona",
 }
+dictionary := suggest.NewInMemoryDictionary(collection)
 
-// 3 - ngram size, 5 - topK candidates, "somename" - config name
-service.AddDictionary("cars", collection, &suggest.NewConfig(3, 5, "somename"))
+service := suggest.NewSuggestService()
+service.AddDictionary("cars", dictionary, conf)
 
-service.Suggest("cars", "niss mar")
-// >>> [Nissan March Nissan Maxima]
+topK := 5
+sim := 0.5
+query := "niss ma"
+searchConf, err := suggest.NewSearchConfig(query, topK, suggest.COSINE, sim)
+if err != nil {
+    panic(err)
+}
 
-service.Suggest("cars", "guke")
-// >>> [Nissan Juke]
-
+fmt.Println(service.Suggest("cars", searchConf))
+// Output: [Nissan Maxima Nissan March]
 ```
 
 ## Demo
