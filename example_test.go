@@ -5,7 +5,7 @@ import (
 	"github.com/alldroll/suggest"
 )
 
-func ExampleSuggest() {
+func ExampleServiceSuggest() {
 	alphabet := suggest.NewCompositeAlphabet([]suggest.Alphabet{
 		suggest.NewEnglishAlphabet(),
 		suggest.NewSimpleAlphabet([]rune{'$'}),
