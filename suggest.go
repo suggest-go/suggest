@@ -18,7 +18,7 @@ func NewSuggestService() *SuggestService {
 }
 
 // add/replace new dictionary with given name
-func (self *SuggestService) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
+func (s *SuggestService) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
 	ngramIndex := NewNGramIndex(config)
 
 	for {
@@ -33,19 +33,19 @@ func (self *SuggestService) AddDictionary(name string, dictionary Dictionary, co
 		}
 	}
 
-	self.Lock()
-	self.indexes[name] = ngramIndex
-	self.dictionaries[name] = dictionary
-	self.Unlock()
+	s.Lock()
+	s.indexes[name] = ngramIndex
+	s.dictionaries[name] = dictionary
+	s.Unlock()
 	return nil
 }
 
 // return Top-k approximate strings for given query in dict
-func (self *SuggestService) Suggest(dict string, config *SearchConfig) []string {
-	self.RLock()
-	index, okIndex := self.indexes[dict]
-	dictionary, okDict := self.dictionaries[dict]
-	self.RUnlock()
+func (s *SuggestService) Suggest(dict string, config *SearchConfig) []string {
+	s.RLock()
+	index, okIndex := s.indexes[dict]
+	dictionary, okDict := s.dictionaries[dict]
+	s.RUnlock()
 	if okDict && okIndex {
 		keys := index.Suggest(config)
 		result := make([]string, 0, len(keys))

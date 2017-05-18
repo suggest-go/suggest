@@ -7,11 +7,11 @@ import (
 )
 
 type record struct {
-	ridId, strId int
+	ridID, strID int
 }
 
-func (self *record) Less(other heapItem) bool {
-	return self.strId < other.(*record).strId
+func (r *record) Less(other heapItem) bool {
+	return r.strID < other.(*record).strID
 }
 
 func scanCount(rid [][]int, threshold int) [][]int {
@@ -19,23 +19,23 @@ func scanCount(rid [][]int, threshold int) [][]int {
 	result := make([][]int, size+1)
 
 	mapSize := 0
-	for i, _ := range rid {
+	for i := range rid {
 		mapSize += len(rid[i])
 	}
 
 	counts := make(map[int]int, mapSize+1)
 	for _, curRid := range rid {
-		for _, strId := range curRid {
-			counts[strId]++
+		for _, strID := range curRid {
+			counts[strID]++
 		}
 	}
 
-	for strId, count := range counts {
+	for strID, count := range counts {
 		if count < threshold {
 			continue
 		}
 
-		result[count] = append(result[count], strId)
+		result[count] = append(result[count], strID)
 	}
 
 	return result
@@ -50,7 +50,7 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 	result := make([][]int, size+1)
 	mapSize := 0
 	k := size - threshold
-	for i, _ := range rid {
+	for i := range rid {
 		if i >= k {
 			break
 		}
@@ -61,21 +61,21 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 	counts := make(map[int]int, mapSize+1)
 	i := 0
 	for ; i < k; i++ {
-		for _, strId := range rid[i] {
-			counts[strId]++
+		for _, strID := range rid[i] {
+			counts[strID]++
 		}
 	}
 
-	for strId, count := range counts {
+	for strID, count := range counts {
 		for j := i; j < size; j++ {
-			idx := binarySearch(rid[j], 0, strId)
-			if idx != -1 && rid[j][idx] == strId {
+			idx := binarySearch(rid[j], 0, strID)
+			if idx != -1 && rid[j][idx] == strID {
 				count++
 			}
 		}
 
 		if count >= threshold {
-			result[count] = append(result[count], strId)
+			result[count] = append(result[count], strID)
 		}
 	}
 
@@ -130,20 +130,20 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 		// reset slice
 		poppedItems = poppedItems[:0]
 		t := h.Top()
-		for h.Len() > 0 && h.Top().(*record).strId == t.(*record).strId {
+		for h.Len() > 0 && h.Top().(*record).strID == t.(*record).strID {
 			item := heap.Pop(h)
 			poppedItems = append(poppedItems, item.(*record))
 		}
 
 		n := len(poppedItems)
 		if n >= threshold {
-			result[n] = append(result[n], t.(*record).strId)
+			result[n] = append(result[n], t.(*record).strID)
 			for _, item := range poppedItems {
-				cur := rid[item.ridId]
+				cur := rid[item.ridID]
 				if len(cur) > 1 {
 					cur = cur[1:]
-					rid[item.ridId] = cur
-					item.strId = cur[0]
+					rid[item.ridID] = cur
+					item.strID = cur[0]
 					heap.Push(h, item)
 				}
 			}
@@ -161,20 +161,20 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 
 			t = h.Top()
 			for _, item := range poppedItems {
-				cur := rid[item.ridId]
+				cur := rid[item.ridID]
 				if len(cur) == 0 {
 					continue
 				}
 
-				r := binarySearch(cur, 0, t.(*record).strId)
+				r := binarySearch(cur, 0, t.(*record).strID)
 				if r == -1 {
 					continue
 				}
 
 				if r != -1 {
 					cur = cur[r:]
-					rid[item.ridId] = cur
-					item.strId = cur[0]
+					rid[item.ridID] = cur
+					item.strID = cur[0]
 					heap.Push(h, item)
 				}
 			}

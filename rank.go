@@ -7,7 +7,7 @@ type rank struct {
 	distance float64
 }
 
-func (self *rank) Less(other heapItem) bool {
+func (r *rank) Less(other heapItem) bool {
 	o := other.(*rank)
-	return self.distance > o.distance
+	return r.distance > o.distance
 }

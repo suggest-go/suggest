@@ -169,7 +169,7 @@ func (n *NGramIndex) ngramToIndex(ngram string) int {
 	size := alphabet.Size()
 	for _, char := range ngram {
 		i := alphabet.MapChar(char)
-		if index == INVALID_CHAR {
+		if index == InvalidChar {
 			panic("Invalid char was detected")
 		}
 

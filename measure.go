@@ -32,74 +32,74 @@ func getMeasure(name MeasureT) measure {
 
 type jaccard struct{}
 
-func (self *jaccard) minY(alpha float64, size int) int {
+func (m *jaccard) minY(alpha float64, size int) int {
 	return int(math.Ceil(alpha * float64(size)))
 }
 
-func (self *jaccard) maxY(alpha float64, size int) int {
+func (m *jaccard) maxY(alpha float64, size int) int {
 	return int(math.Floor(float64(size) / alpha))
 }
 
-func (self *jaccard) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *jaccard) threshold(alpha float64, sizeA, sizeB int) int {
 	return int(math.Ceil(alpha * float64(sizeA+sizeB) / (1 + alpha)))
 }
 
 // 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
-func (self *jaccard) distance(inter, sizeA, sizeB int) float64 {
+func (m *jaccard) distance(inter, sizeA, sizeB int) float64 {
 	return 1 - float64(inter)/float64(sizeA+sizeB-inter)
 }
 
 type cosine struct{}
 
-func (self *cosine) minY(alpha float64, size int) int {
+func (m *cosine) minY(alpha float64, size int) int {
 	return int(alpha * alpha * float64(size))
 }
 
-func (self *cosine) maxY(alpha float64, size int) int {
+func (m *cosine) maxY(alpha float64, size int) int {
 	return int(float64(size) / (alpha * alpha))
 }
 
-func (self *cosine) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *cosine) threshold(alpha float64, sizeA, sizeB int) int {
 	return int(alpha * math.Sqrt(float64(sizeA*sizeB)))
 }
 
-func (self *cosine) distance(inter, sizeA, sizeB int) float64 {
+func (m *cosine) distance(inter, sizeA, sizeB int) float64 {
 	return 1 - float64(inter)/math.Sqrt(float64(sizeA*sizeB))
 }
 
 type dice struct{}
 
-func (self *dice) minY(alpha float64, size int) int {
+func (m *dice) minY(alpha float64, size int) int {
 	return int(alpha / (2 - alpha) * float64(size))
 }
 
-func (self *dice) maxY(alpha float64, size int) int {
+func (m *dice) maxY(alpha float64, size int) int {
 	return int((2 - alpha) / alpha * float64(size))
 }
 
-func (self *dice) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *dice) threshold(alpha float64, sizeA, sizeB int) int {
 	return int(0.5 * alpha * float64(sizeA+sizeB))
 }
 
-func (self *dice) distance(inter, sizeA, sizeB int) float64 {
+func (m *dice) distance(inter, sizeA, sizeB int) float64 {
 	return 1 - float64(2*inter)/float64(sizeA+sizeB)
 }
 
 type exact struct{}
 
-func (self *exact) minY(alpha float64, size int) int {
+func (m *exact) minY(alpha float64, size int) int {
 	return size
 }
 
-func (self *exact) maxY(alpha float64, size int) int {
+func (m *exact) maxY(alpha float64, size int) int {
 	return size
 }
 
-func (self *exact) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *exact) threshold(alpha float64, sizeA, sizeB int) int {
 	return sizeA
 }
 
-func (self *exact) distance(inter, sizeA, sizeB int) float64 {
+func (m *exact) distance(inter, sizeA, sizeB int) float64 {
 	return 0
 }
 

@@ -15,8 +15,8 @@ func TestSequentialAlphabet(t *testing.T) {
 		{'е', 5},
 		{'ё', 5},
 		{'я', 31},
-		{'j', INVALID_CHAR},
-		{'7', INVALID_CHAR},
+		{'j', InvalidChar},
+		{'7', InvalidChar},
 	}
 
 	for _, c := range cases {
@@ -45,7 +45,7 @@ func TestCompositeAlphabet(t *testing.T) {
 		{'ё', 26 + 5},
 		{'я', 26 + 31},
 		{'7', 26 + 32 + 7},
-		{'-', INVALID_CHAR},
+		{'-', InvalidChar},
 	}
 
 	for _, c := range cases {

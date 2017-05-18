@@ -36,9 +36,7 @@ func SplitIntoNGrams(word string, k int) []string {
 	return result
 }
 
-/*
-* inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
- */
+// inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
 func GetWordsFromFile(fileName string) []string {
 	f, err := os.Open(fileName)
 	if err != nil {

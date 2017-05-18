@@ -20,7 +20,7 @@ func newCleaner(chars []rune, pad, wrapper string) *cleaner {
 	return &cleaner{reg, pad, wrapper}
 }
 
-func (self *cleaner) normalize(word string) string {
+func (c *cleaner) normalize(word string) string {
 	if len(word) < 2 {
 		return word
 	}
@@ -30,15 +30,15 @@ func (self *cleaner) normalize(word string) string {
 	return word
 }
 
-func (self *cleaner) clean(word string) string {
-	word = self.normalize(word)
-	return self.reg.ReplaceAllString(word, self.pad)
+func (c *cleaner) clean(word string) string {
+	word = c.normalize(word)
+	return c.reg.ReplaceAllString(word, c.pad)
 }
 
-func (self *cleaner) wrap(word string) string {
-	return self.wrapper + word + self.wrapper
+func (c *cleaner) wrap(word string) string {
+	return c.wrapper + word + c.wrapper
 }
 
-func (self *cleaner) cleanAndWrap(word string) string {
-	return self.wrap(self.clean(word))
+func (c *cleaner) cleanAndWrap(word string) string {
+	return c.wrap(c.clean(word))
 }

@@ -1,6 +1,7 @@
 package suggest
 
-const INVALID_CHAR = -1
+//
+const InvalidChar = -1
 
 //
 type Alphabet interface {
@@ -15,6 +16,7 @@ type SimpleAlphabet struct {
 	chars []rune
 }
 
+//
 func NewSimpleAlphabet(chars []rune) *SimpleAlphabet {
 	table := make(map[rune]int, len(chars))
 	index := 0
@@ -26,21 +28,24 @@ func NewSimpleAlphabet(chars []rune) *SimpleAlphabet {
 	return &SimpleAlphabet{table, chars}
 }
 
-func (self *SimpleAlphabet) MapChar(char rune) int {
-	index, ok := self.table[char]
+//
+func (a *SimpleAlphabet) MapChar(char rune) int {
+	index, ok := a.table[char]
 	if !ok {
-		index = INVALID_CHAR
+		index = InvalidChar
 	}
 
 	return index
 }
 
-func (self *SimpleAlphabet) Chars() []rune {
-	return self.chars
+//
+func (a *SimpleAlphabet) Chars() []rune {
+	return a.chars
 }
 
-func (self *SimpleAlphabet) Size() int {
-	return len(self.chars)
+//
+func (a *SimpleAlphabet) Size() int {
+	return len(a.chars)
 }
 
 //
@@ -49,6 +54,7 @@ type SequentialAlphabet struct {
 	min, max rune
 }
 
+//
 func NewSequentialAlphabet(min, max rune) *SequentialAlphabet {
 	chars := make([]rune, 0, max-min+1)
 	for ch := min; ch <= max; ch++ {
@@ -60,22 +66,26 @@ func NewSequentialAlphabet(min, max rune) *SequentialAlphabet {
 	}
 }
 
-func (self *SequentialAlphabet) MapChar(char rune) int {
-	if char < self.min || char > self.max {
-		return INVALID_CHAR
+//
+func (a *SequentialAlphabet) MapChar(char rune) int {
+	if char < a.min || char > a.max {
+		return InvalidChar
 	}
 
-	return int(char - self.min)
+	return int(char - a.min)
 }
 
-func (self *SequentialAlphabet) Size() int {
-	return len(self.chars)
+//
+func (a *SequentialAlphabet) Size() int {
+	return len(a.chars)
 }
 
-func (self *SequentialAlphabet) Chars() []rune {
-	return self.chars
+//
+func (a *SequentialAlphabet) Chars() []rune {
+	return a.chars
 }
 
+//
 type RussianAlphabet struct {
 	parent *SequentialAlphabet
 }
@@ -87,20 +97,23 @@ func NewRussianAlphabet() *RussianAlphabet {
 	}
 }
 
-func (self *RussianAlphabet) MapChar(char rune) int {
+//
+func (a *RussianAlphabet) MapChar(char rune) int {
 	if char == 'ё' {
-		return self.parent.MapChar('е')
+		return a.parent.MapChar('е')
 	}
 
-	return self.parent.MapChar(char)
+	return a.parent.MapChar(char)
 }
 
-func (self *RussianAlphabet) Size() int {
-	return self.parent.Size()
+//
+func (a *RussianAlphabet) Size() int {
+	return a.parent.Size()
 }
 
-func (self *RussianAlphabet) Chars() []rune {
-	return self.parent.Chars()
+//
+func (a *RussianAlphabet) Chars() []rune {
+	return a.parent.Chars()
 }
 
 //
@@ -119,6 +132,7 @@ type NumberAlphabet struct {
 	*SequentialAlphabet
 }
 
+//
 func NewNumberAlphabet() *NumberAlphabet {
 	return &NumberAlphabet{
 		NewSequentialAlphabet('0', '9'),
@@ -131,6 +145,7 @@ type CompositeAlphabet struct {
 	chars     []rune
 }
 
+//
 func NewCompositeAlphabet(alphabets []Alphabet) *CompositeAlphabet {
 	size := 0
 	for _, alphabet := range alphabets {
@@ -145,12 +160,13 @@ func NewCompositeAlphabet(alphabets []Alphabet) *CompositeAlphabet {
 	return &CompositeAlphabet{alphabets, chars}
 }
 
-func (self *CompositeAlphabet) MapChar(char rune) int {
-	key := INVALID_CHAR
+//
+func (a *CompositeAlphabet) MapChar(char rune) int {
+	key := InvalidChar
 	shift := 0
-	for _, alphabet := range self.alphabets {
+	for _, alphabet := range a.alphabets {
 		key = alphabet.MapChar(char)
-		if key != INVALID_CHAR {
+		if key != InvalidChar {
 			key += shift
 			break
 		}
@@ -161,10 +177,12 @@ func (self *CompositeAlphabet) MapChar(char rune) int {
 	return key
 }
 
-func (self *CompositeAlphabet) Size() int {
-	return len(self.chars)
+//
+func (a *CompositeAlphabet) Size() int {
+	return len(a.chars)
 }
 
-func (self *CompositeAlphabet) Chars() []rune {
-	return self.chars
+//
+func (a *CompositeAlphabet) Chars() []rune {
+	return a.chars
 }

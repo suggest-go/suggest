@@ -6,31 +6,37 @@ type heapItem interface {
 
 type heapImpl []heapItem
 
-func (self heapImpl) Len() int {
-	return len(self)
+//
+func (h heapImpl) Len() int {
+	return len(h)
 }
 
-func (self heapImpl) Less(i, j int) bool {
-	return self[i].Less(self[j])
+//
+func (h heapImpl) Less(i, j int) bool {
+	return h[i].Less(h[j])
 }
 
-func (self heapImpl) Swap(i, j int) {
-	self[i], self[j] = self[j], self[i]
+//
+func (h heapImpl) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
 }
 
-func (self *heapImpl) Push(x interface{}) {
-	*self = append(*self, x.(heapItem))
+//
+func (h *heapImpl) Push(x interface{}) {
+	*h = append(*h, x.(heapItem))
 }
 
-func (self *heapImpl) Pop() interface{} {
-	old := *self
+//
+func (h *heapImpl) Pop() interface{} {
+	old := *h
 	n := len(old)
 	x := old[n-1]
-	*self = old[0 : n-1]
+	*h = old[0 : n-1]
 	return x
 }
 
-func (self *heapImpl) Top() interface{} {
-	arr := *self
+//
+func (h *heapImpl) Top() interface{} {
+	arr := *h
 	return arr[0]
 }
