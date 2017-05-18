@@ -171,7 +171,7 @@ func TestBinSearch(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		actual := binarySearch(items, 0, c.val)
+		actual := binarySearch(items, c.val)
 		if actual != -1 {
 			actual = items[actual]
 		}

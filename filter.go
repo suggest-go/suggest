@@ -1,5 +1,10 @@
 package suggest
 
+// Algorithms given below solve `threshold`-occurence problem:
+// For given inverted lists find the set of strings ids, that appears at least
+// `threshold` times.
+// All filters returns [][]int - [intersection][corresponding string ids]
+
 import (
 	"container/heap"
 	"math"
@@ -14,6 +19,10 @@ func (r *record) Less(other heapItem) bool {
 	return r.strID < other.(*record).strID
 }
 
+// scanCount scan the N inverted lists one by one.
+// For each string id on each list, we increment the count
+// corresponding to the string by 1. We report the string ids that
+// appear at least `threshold` times on the lists.
 func scanCount(rid [][]int, threshold int) [][]int {
 	size := len(rid)
 	result := make([][]int, size+1)
@@ -41,6 +50,8 @@ func scanCount(rid [][]int, threshold int) [][]int {
 	return result
 }
 
+// cpMerge was described in paper
+// "Simple and Efficient Algorithm for Approximate Dictionary Matching"
 func cpMerge(rid [][]int, threshold int) [][]int {
 	sort.Slice(rid, func(i, j int) bool {
 		return len(rid[i]) < len(rid[j])
@@ -68,7 +79,7 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 
 	for strID, count := range counts {
 		for j := i; j < size; j++ {
-			idx := binarySearch(rid[j], 0, strID)
+			idx := binarySearch(rid[j], strID)
 			if idx != -1 && rid[j][idx] == strID {
 				count++
 			}
@@ -82,7 +93,10 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 	return result
 }
 
-// TODO придумать как выбирать параметр mu
+// divideSkip was described in paper
+// "Efficient Merging and Filtering Algorithms for Approximate String Searches"
+// We have to choose `good` parameter mu, for improving speed. So, mu depends
+// only on given dictionary, so we can find it
 func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 	sort.Slice(rid, func(i, j int) bool {
 		return len(rid[i]) > len(rid[j])
@@ -99,7 +113,7 @@ func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 		for _, r := range list {
 			j := count
 			for _, longList := range lLong {
-				idx := binarySearch(longList, 0, r)
+				idx := binarySearch(longList, r)
 				if idx != -1 && longList[idx] == r {
 					j++
 				}
@@ -114,8 +128,10 @@ func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 	return result
 }
 
-// see Efficient Merging and Filtering Algorithms for
-// Approximate String Searches
+// mergeSkip was described in paper
+// "Efficient Merging and Filtering Algorithms for Approximate String Searches"
+// Formaly, main idea is to skip on the lists those record ids that cannot be in
+// the answer to the query, by utilizing the threshold
 func mergeSkip(rid [][]int, threshold int) [][]int {
 	h := &heapImpl{}
 	lenRid := len(rid)
@@ -166,7 +182,7 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 					continue
 				}
 
-				r := binarySearch(cur, 0, t.(*record).strID)
+				r := binarySearch(cur, t.(*record).strID)
 				if r == -1 {
 					continue
 				}
@@ -184,7 +200,9 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 	return result
 }
 
-func binarySearch(arr []int, i int, value int) int {
+// binarySearch find the smallest record t in given arr such that t >= value
+func binarySearch(arr []int, value int) int {
+	i := 0
 	j := len(arr)
 	if i == j || arr[j-1] < value {
 		return -1
