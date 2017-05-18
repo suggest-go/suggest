@@ -93,7 +93,6 @@ func init() {
 	dictionary := suggest.NewInMemoryDictionary(words)
 	suggestService = suggest.NewSuggestService()
 	for i, config := range configs {
-		dictionary.Reset()
 		suggestService.AddDictionary("cars"+string(i), dictionary, config)
 	}
 }
