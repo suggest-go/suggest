@@ -1,6 +1,9 @@
 package suggest
 
-import "sync"
+import (
+	//"log"
+	"sync"
+)
 
 type SuggestService struct {
 	sync.RWMutex
@@ -21,16 +24,15 @@ func NewSuggestService() *SuggestService {
 func (s *SuggestService) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
 	ngramIndex := NewNGramIndex(config)
 
-	for {
-		key, word := dictionary.Next()
-		if key == nil {
-			break
-		}
-
+	iter := dictionary.Iter()
+	for iter.IsValid() {
+		key, word := iter.GetPair()
 		// monkey code, fixme
 		if len(word) > config.ngramSize {
 			ngramIndex.AddWord(word, key)
 		}
+
+		iter.Next()
 	}
 
 	s.Lock()
