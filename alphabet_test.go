@@ -42,9 +42,13 @@ func TestCompositeAlphabet(t *testing.T) {
 	}{
 		{'a', 0},
 		{'b', 1},
+		{'z', 25},
+		{'а', 26 + 0},
 		{'ё', 26 + 5},
+		{'е', 26 + 5},
+		{'ж', 26 + 6},
 		{'я', 26 + 31},
-		{'7', 26 + 32 + 7},
+		{'7', 26 + 32 + 7}, //exclude ё, thats why 32 for russian
 		{'-', InvalidChar},
 	}
 
