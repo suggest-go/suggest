@@ -1,6 +1,6 @@
 package suggest
 
-// Algorithms given below solve `threshold`-occurence problem:
+// Algorithms given below solve `threshold`-occurrence problem:
 // For given inverted lists find the set of strings ids, that appears at least
 // `threshold` times.
 // All filters returns [][]int - [intersection][corresponding string ids]
@@ -130,7 +130,7 @@ func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 
 // mergeSkip was described in paper
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
-// Formaly, main idea is to skip on the lists those record ids that cannot be in
+// Formally, main idea is to skip on the lists those record ids that cannot be in
 // the answer to the query, by utilizing the threshold
 func mergeSkip(rid [][]int, threshold int) [][]int {
 	h := &heapImpl{}
