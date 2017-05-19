@@ -1,3 +1,4 @@
+// This example demonstrates an usage of suggest.Service
 package suggest_test
 
 import (
@@ -5,18 +6,23 @@ import (
 	"github.com/alldroll/suggest"
 )
 
-func ExampleSuggest() {
+// This example demonstrates how to use this package.
+func Example() {
+	// here we define our alphabet for given collection of words
 	alphabet := suggest.NewCompositeAlphabet([]suggest.Alphabet{
 		suggest.NewEnglishAlphabet(),
-		suggest.NewSimpleAlphabet([]rune{'$'}),
+		suggest.NewSimpleAlphabet([]rune{'$'}), // pad wrap
 	})
 
+	// create IndexConfig with ngramSize, alphabet, wrap and pad
 	wrap, pad := "$", "$"
 	conf, err := suggest.NewIndexConfig(3 /*Ngram size*/, alphabet, wrap, pad)
 	if err != nil {
 		panic(err)
 	}
 
+	// we create InMemoryDictionary. Here we can use anything we want,
+	// for example SqlDictionary
 	collection := []string{
 		"Nissan March",
 		"Nissan Juke",
