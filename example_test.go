@@ -29,13 +29,13 @@ func ExampleServiceSuggest() {
 	}
 	dictionary := suggest.NewInMemoryDictionary(collection)
 
-	service := suggest.NewSuggestService()
+	service := suggest.NewService()
 	service.AddDictionary("cars", dictionary, conf)
 
 	topK := 5
 	sim := 0.5
 	query := "niss ma"
-	searchConf, err := suggest.NewSearchConfig(query, topK, suggest.COSINE, sim)
+	searchConf, err := suggest.NewSearchConfig(query, topK, suggest.Cosine, sim)
 	if err != nil {
 		panic(err)
 	}

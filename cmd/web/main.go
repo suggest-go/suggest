@@ -12,16 +12,16 @@ import (
 	"time"
 )
 
-const TOP_K = 5
+const topK = 5
 
 var (
-	suggestService *suggest.SuggestService
+	suggestService *suggest.Service
 	configs        []*suggest.IndexConfig
 	publicPath     = "./cmd/web/public"
 	dictPath       = "./cmd/web/cars.dict"
 )
 
-func SuggestHandler(w http.ResponseWriter, r *http.Request) {
+func suggestHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	dict, query := vars["dict"], vars["query"]
 
@@ -33,10 +33,10 @@ func SuggestHandler(w http.ResponseWriter, r *http.Request) {
 
 	lenS := len(configs)
 	ch := make(chan candidates)
-	for i, _ := range configs {
+	for i := range configs {
 		go func(i int) {
 			start := time.Now()
-			searchConf, err := suggest.NewSearchConfig(query, 5, suggest.COSINE, 0.5)
+			searchConf, err := suggest.NewSearchConfig(query, topK, suggest.Cosine, 0.5)
 			if err == nil {
 				// TODO fixme
 			}
@@ -91,13 +91,13 @@ func init() {
 	}
 
 	dictionary := suggest.NewInMemoryDictionary(words)
-	suggestService = suggest.NewSuggestService()
+	suggestService = suggest.NewService()
 	for i, config := range configs {
 		suggestService.AddDictionary("cars"+string(i), dictionary, config)
 	}
 }
 
-func AttachProfiler(router *mux.Router) {
+func attachProfiler(router *mux.Router) {
 	router.HandleFunc("/debug/pprof/", pprof.Index)
 	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
@@ -111,8 +111,8 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	AttachProfiler(r)
+	attachProfiler(r)
 	r.Handle("/", http.FileServer(http.Dir(publicPath)))
-	r.HandleFunc("/suggest/{dict}/{query}/", SuggestHandler)
+	r.HandleFunc("/suggest/{dict}/{query}/", suggestHandler)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }

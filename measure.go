@@ -2,25 +2,37 @@ package suggest
 
 import "math"
 
+// measure
 type measure interface {
+	// minY returns the minimum ngram cardinality for candidate
 	minY(alpha float64, size int) int
+	// minY returns the maximum ngram cardinality for candidate
 	maxY(alpha float64, size int) int
+	// threshold returns required intersection between A and B for given alpha
 	threshold(alpha float64, sizeA, sizeB int) int
+	// distance calculate distance between 2 strings
 	distance(inter, sizeA, sizeB int) float64
 }
 
+// MeasureT represents type of measure name
 type MeasureT byte
 
 const (
-	JACCARD MeasureT = iota
-	COSINE
-	DICE
-	EXACT
+	// Jaccard represents Jaccard distance
+	Jaccard MeasureT = iota
+	// Cosine represents Cosine distance
+	Cosine
+	// Dice represents Dice distance
+	Dice
+	// Exact represents ngrams sets equality
+	Exact
 	last
 )
 
+// measureHolder is a holder for existing measures
 var measureHolder [last]measure
 
+// getMeasure returns measure implements by given name
 func getMeasure(name MeasureT) measure {
 	// monkeycode fix me
 	if len(measureHolder) <= int(name) || int(name) < 0 {
@@ -104,8 +116,8 @@ func (m *exact) distance(inter, sizeA, sizeB int) float64 {
 }
 
 func init() {
-	measureHolder[JACCARD] = &jaccard{}
-	measureHolder[COSINE] = &cosine{}
-	measureHolder[DICE] = &dice{}
-	measureHolder[EXACT] = &exact{}
+	measureHolder[Jaccard] = &jaccard{}
+	measureHolder[Cosine] = &cosine{}
+	measureHolder[Dice] = &dice{}
+	measureHolder[Exact] = &exact{}
 }

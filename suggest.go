@@ -1,27 +1,25 @@
 package suggest
 
-import (
-	//"log"
-	"sync"
-)
+import "sync"
 
-type SuggestService struct {
+// Service is a service for topK approximate string search in dictionary
+type Service struct {
 	sync.RWMutex
 	indexes      map[string]*NGramIndex
 	dictionaries map[string]Dictionary
 }
 
-// Creates an empty SuggestService which uses given metric as "edit distance metric"
-func NewSuggestService() *SuggestService {
+// NewService creates an empty SuggestService
+func NewService() *Service {
 	// fixme
-	return &SuggestService{
+	return &Service{
 		indexes:      make(map[string]*NGramIndex),
 		dictionaries: make(map[string]Dictionary),
 	}
 }
 
-// add/replace new dictionary with given name
-func (s *SuggestService) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
+// AddDictionary add/replace new dictionary with given name
+func (s *Service) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
 	ngramIndex := NewNGramIndex(config)
 
 	iter := dictionary.Iter()
@@ -42,8 +40,8 @@ func (s *SuggestService) AddDictionary(name string, dictionary Dictionary, confi
 	return nil
 }
 
-// return Top-k approximate strings for given query in dict
-func (s *SuggestService) Suggest(dict string, config *SearchConfig) []string {
+// Suggest returns Top-k approximate strings for given query in dict
+func (s *Service) Suggest(dict string, config *SearchConfig) []string {
 	s.RLock()
 	index, okIndex := s.indexes[dict]
 	dictionary, okDict := s.dictionaries[dict]

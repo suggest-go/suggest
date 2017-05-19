@@ -8,6 +8,7 @@ import (
 
 const maxN = 8
 
+// SplitIntoNGrams split given word on k-gram list
 // inspired by https://github.com/Lazin/go-ngram
 func SplitIntoNGrams(word string, k int) []string {
 	sliceLen := len(word) - k + 1
@@ -36,6 +37,7 @@ func SplitIntoNGrams(word string, k int) []string {
 	return result
 }
 
+// GetWordsFromFile is a helper for getting list of string from given fileName
 // inspired by https://github.com/jprichardson/readline-go/blob/master/readline.go
 func GetWordsFromFile(fileName string) []string {
 	f, err := os.Open(fileName)

@@ -22,7 +22,7 @@ func TestSuggestAuto(t *testing.T) {
 		ngramIndex.AddWord(word, i)
 	}
 
-	conf, err := NewSearchConfig("Nissan ma", 2, JACCARD, 0.5)
+	conf, err := NewSearchConfig("Nissan ma", 2, Jaccard, 0.5)
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +61,7 @@ func BenchmarkSuggest(b *testing.B) {
 	}
 
 	b.StartTimer()
-	conf, err := NewSearchConfig("Nissan mar", 2, JACCARD, 0.5)
+	conf, err := NewSearchConfig("Nissan mar", 2, Jaccard, 0.5)
 	if err != nil {
 		panic(err)
 	}
@@ -96,7 +96,7 @@ func BenchmarkRealExample(b *testing.B) {
 	qLen := len(queries)
 	b.StartTimer()
 
-	conf, err := NewSearchConfig("Nissan mar", 5, COSINE, 0.3)
+	conf, err := NewSearchConfig("Nissan mar", 5, Cosine, 0.3)
 	if err != nil {
 		panic(err)
 	}

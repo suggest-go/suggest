@@ -1,22 +1,39 @@
 package suggest
 
-//
+// InvalidChar represents unmapped value of given char
 const InvalidChar = -1
 
-//
+// Alphabet is abstract for manipulating with set of symbols
 type Alphabet interface {
+	// MapChar map given char to int
 	MapChar(char rune) int
+	// Size returns the size of alphabet
 	Size() int
+	// Chars returns the current set of symbols
 	Chars() []rune
 }
 
-//
-type SimpleAlphabet struct {
-	table map[rune]int
+type charHolder struct {
 	chars []rune
 }
 
-//
+// Size returns the size of alphabet
+func (c *charHolder) Size() int {
+	return len(c.chars)
+}
+
+// Chars returns the current set of symbols
+func (c *charHolder) Chars() []rune {
+	return c.chars
+}
+
+// SimpleAlphabet is alphabet, which use map for mapping char to int
+type SimpleAlphabet struct {
+	table map[rune]int
+	charHolder
+}
+
+// NewSimpleAlphabet returns new instance of SimpleAlphabet
 func NewSimpleAlphabet(chars []rune) *SimpleAlphabet {
 	table := make(map[rune]int, len(chars))
 	index := 0
@@ -25,10 +42,10 @@ func NewSimpleAlphabet(chars []rune) *SimpleAlphabet {
 		index++
 	}
 
-	return &SimpleAlphabet{table, chars}
+	return &SimpleAlphabet{table, charHolder{chars}}
 }
 
-//
+// MapChar map given char to int
 func (a *SimpleAlphabet) MapChar(char rune) int {
 	index, ok := a.table[char]
 	if !ok {
@@ -38,23 +55,13 @@ func (a *SimpleAlphabet) MapChar(char rune) int {
 	return index
 }
 
-//
-func (a *SimpleAlphabet) Chars() []rune {
-	return a.chars
-}
-
-//
-func (a *SimpleAlphabet) Size() int {
-	return len(a.chars)
-}
-
-//
+// SequentialAlphabet represents alphabet with continuous list of ascii characters
 type SequentialAlphabet struct {
-	chars    []rune
 	min, max rune
+	charHolder
 }
 
-//
+// NewSequentialAlphabet returns new instance of SequentialAlphabet
 func NewSequentialAlphabet(min, max rune) *SequentialAlphabet {
 	chars := make([]rune, 0, max-min+1)
 	for ch := min; ch <= max; ch++ {
@@ -62,11 +69,11 @@ func NewSequentialAlphabet(min, max rune) *SequentialAlphabet {
 	}
 
 	return &SequentialAlphabet{
-		chars, min, max,
+		min, max, charHolder{chars},
 	}
 }
 
-//
+// MapChar map given char to int
 func (a *SequentialAlphabet) MapChar(char rune) int {
 	if char < a.min || char > a.max {
 		return InvalidChar
@@ -75,29 +82,19 @@ func (a *SequentialAlphabet) MapChar(char rune) int {
 	return int(char - a.min)
 }
 
-//
-func (a *SequentialAlphabet) Size() int {
-	return len(a.chars)
-}
-
-//
-func (a *SequentialAlphabet) Chars() []rune {
-	return a.chars
-}
-
-//
+// RussianAlphabet represents russian alphabet а-я
 type RussianAlphabet struct {
 	parent *SequentialAlphabet
 }
 
-//
+// NewRussianAlphabet returns new instance of RussianAlphabet
 func NewRussianAlphabet() *RussianAlphabet {
 	return &RussianAlphabet{
 		NewSequentialAlphabet('а', 'я'),
 	}
 }
 
-//
+// MapChar map given char to int. Note, that we map ё as e
 func (a *RussianAlphabet) MapChar(char rune) int {
 	if char == 'ё' {
 		return a.parent.MapChar('е')
@@ -106,46 +103,47 @@ func (a *RussianAlphabet) MapChar(char rune) int {
 	return a.parent.MapChar(char)
 }
 
-//
+// Size returns the size of alphabet
 func (a *RussianAlphabet) Size() int {
 	return a.parent.Size()
 }
 
-//
+// Chars returns the current set of symbols
 func (a *RussianAlphabet) Chars() []rune {
 	return a.parent.Chars()
 }
 
-//
+// EnglishAlphabet represents english aphabet
 type EnglishAlphabet struct {
 	*SequentialAlphabet
 }
 
+// NewEnglishAlphabet returns new instance of EnglishAlphabet
 func NewEnglishAlphabet() *EnglishAlphabet {
 	return &EnglishAlphabet{
 		NewSequentialAlphabet('a', 'z'),
 	}
 }
 
-//
+// NumberAlphabet represents number alphabet [0-9]
 type NumberAlphabet struct {
 	*SequentialAlphabet
 }
 
-//
+// NewNumberAlphabet returns new instance of NumberAlphabet
 func NewNumberAlphabet() *NumberAlphabet {
 	return &NumberAlphabet{
 		NewSequentialAlphabet('0', '9'),
 	}
 }
 
-//
+// CompositeAlphabet represents composite pattern for a group of alphabets
 type CompositeAlphabet struct {
 	alphabets []Alphabet
-	chars     []rune
+	charHolder
 }
 
-//
+// NewCompositeAlphabet returns new instance of CompositeAlphabet
 func NewCompositeAlphabet(alphabets []Alphabet) *CompositeAlphabet {
 	size := 0
 	for _, alphabet := range alphabets {
@@ -157,10 +155,10 @@ func NewCompositeAlphabet(alphabets []Alphabet) *CompositeAlphabet {
 		chars = append(chars, alphabet.Chars()...)
 	}
 
-	return &CompositeAlphabet{alphabets, chars}
+	return &CompositeAlphabet{alphabets, charHolder{chars}}
 }
 
-//
+// MapChar map given char to int
 func (a *CompositeAlphabet) MapChar(char rune) int {
 	key := InvalidChar
 	shift := 0
@@ -175,14 +173,4 @@ func (a *CompositeAlphabet) MapChar(char rune) int {
 	}
 
 	return key
-}
-
-//
-func (a *CompositeAlphabet) Size() int {
-	return len(a.chars)
-}
-
-//
-func (a *CompositeAlphabet) Chars() []rune {
-	return a.chars
 }

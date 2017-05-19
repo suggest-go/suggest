@@ -5,11 +5,13 @@ import (
 )
 
 const (
-	MIN_NGRAM_SIZE = 2
-	MAX_NGRAM_SIZE = 4
+	// MinNGramSize is a minimum allowed size of ngram
+	MinNGramSize = 2
+	// MaxNGramSize is a maximum allowed size of ngram
+	MaxNGramSize = 4
 )
 
-//
+// IndexConfig is config for NgramIndex structure
 type IndexConfig struct {
 	ngramSize int
 	alphabet  Alphabet
@@ -17,10 +19,10 @@ type IndexConfig struct {
 	pad       string
 }
 
-//
+// NewIndexConfig returns new instance of IndexConfig
 func NewIndexConfig(k int, alphabet Alphabet, wrap, pad string) (*IndexConfig, error) {
-	if k < MIN_NGRAM_SIZE || k > MAX_NGRAM_SIZE {
-		return nil, fmt.Errorf("k should be in [%d, %d]", MIN_NGRAM_SIZE, MAX_NGRAM_SIZE)
+	if k < MinNGramSize || k > MaxNGramSize {
+		return nil, fmt.Errorf("k should be in [%d, %d]", MinNGramSize, MaxNGramSize)
 	}
 
 	if len(alphabet.Chars()) == 0 {
@@ -35,7 +37,7 @@ func NewIndexConfig(k int, alphabet Alphabet, wrap, pad string) (*IndexConfig, e
 	}, nil
 }
 
-//
+// SearchConfig is a config for NGramIndex Suggest method
 type SearchConfig struct {
 	query       string
 	topK        int
@@ -43,7 +45,7 @@ type SearchConfig struct {
 	similarity  float64
 }
 
-//
+// NewSearchConfig returns new instance of SearchConfig
 func NewSearchConfig(query string, topK int, measureName MeasureT, similarity float64) (*SearchConfig, error) {
 	if topK < 0 {
 		return nil, fmt.Errorf("topK is invalid") //TODO fixme
