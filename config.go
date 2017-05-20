@@ -39,14 +39,14 @@ func NewIndexConfig(k int, alphabet Alphabet, wrap, pad string) (*IndexConfig, e
 
 // SearchConfig is a config for NGramIndex Suggest method
 type SearchConfig struct {
-	query       string
-	topK        int
-	measureName MeasureT
-	similarity  float64
+	query      string
+	topK       int
+	metric     Metric
+	similarity float64
 }
 
 // NewSearchConfig returns new instance of SearchConfig
-func NewSearchConfig(query string, topK int, measureName MeasureT, similarity float64) (*SearchConfig, error) {
+func NewSearchConfig(query string, topK int, metric Metric, similarity float64) (*SearchConfig, error) {
 	if topK < 0 {
 		return nil, fmt.Errorf("topK is invalid") //TODO fixme
 	}
@@ -58,7 +58,7 @@ func NewSearchConfig(query string, topK int, measureName MeasureT, similarity fl
 	return &SearchConfig{
 		query,
 		topK,
-		measureName,
+		metric,
 		similarity,
 	}, nil
 }

@@ -2,122 +2,109 @@ package suggest
 
 import "math"
 
-// measure
-type measure interface {
-	// minY returns the minimum ngram cardinality for candidate
-	minY(alpha float64, size int) int
-	// minY returns the maximum ngram cardinality for candidate
-	maxY(alpha float64, size int) int
-	// threshold returns required intersection between A and B for given alpha
-	threshold(alpha float64, sizeA, sizeB int) int
-	// distance calculate distance between 2 strings
-	distance(inter, sizeA, sizeB int) float64
-}
-
-// MeasureT represents type of measure name
-type MeasureT byte
-
-const (
-	// Jaccard represents Jaccard distance
-	Jaccard MeasureT = iota
-	// Cosine represents Cosine distance
-	Cosine
-	// Dice represents Dice distance
-	Dice
-	// Exact represents ngrams sets equality
-	Exact
-	last
-)
-
-// measureHolder is a holder for existing measures
-var measureHolder [last]measure
-
-// getMeasure returns measure implements by given name
-func getMeasure(name MeasureT) measure {
-	// monkeycode fix me
-	if len(measureHolder) <= int(name) || int(name) < 0 {
-		panic("Given measure doesn't exists")
-	}
-
-	return measureHolder[name]
+// Metric defined here, is not pure mathematics metric definition as distance between each pair of elements of a set.
+// Here we can also ask metric to give as minimum intersection between A and B for given alpha,
+// min/max candidate cardinality
+type Metric interface {
+	// MinY returns the minimum ngram cardinality for candidate
+	MinY(alpha float64, size int) int
+	// MinY returns the maximum ngram cardinality for candidate
+	MaxY(alpha float64, size int) int
+	// Threshold returns required intersection between A and B for given alpha
+	Threshold(alpha float64, sizeA, sizeB int) int
+	// Distance calculate distance between 2 sets
+	Distance(inter, sizeA, sizeB int) float64
 }
 
 type jaccard struct{}
 
-func (m *jaccard) minY(alpha float64, size int) int {
+// JaccardMetric returns a Metric that represents Jaccard Metric
+func JaccardMetric() Metric {
+	return &jaccard{}
+}
+
+func (m *jaccard) MinY(alpha float64, size int) int {
 	return int(math.Ceil(alpha * float64(size)))
 }
 
-func (m *jaccard) maxY(alpha float64, size int) int {
+func (m *jaccard) MaxY(alpha float64, size int) int {
 	return int(math.Floor(float64(size) / alpha))
 }
 
-func (m *jaccard) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *jaccard) Threshold(alpha float64, sizeA, sizeB int) int {
 	return int(math.Ceil(alpha * float64(sizeA+sizeB) / (1 + alpha)))
 }
 
 // 1 - |intersection| / |union| = 1 - |intersection| / (|A| + |B| - |intersection|)
-func (m *jaccard) distance(inter, sizeA, sizeB int) float64 {
+func (m *jaccard) Distance(inter, sizeA, sizeB int) float64 {
 	return 1 - float64(inter)/float64(sizeA+sizeB-inter)
+}
+
+// CosineMetric returns a Metric that represents Cosine Metric
+func CosineMetric() Metric {
+	return &cosine{}
 }
 
 type cosine struct{}
 
-func (m *cosine) minY(alpha float64, size int) int {
+func (m *cosine) MinY(alpha float64, size int) int {
 	return int(alpha * alpha * float64(size))
 }
 
-func (m *cosine) maxY(alpha float64, size int) int {
+func (m *cosine) MaxY(alpha float64, size int) int {
 	return int(float64(size) / (alpha * alpha))
 }
 
-func (m *cosine) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *cosine) Threshold(alpha float64, sizeA, sizeB int) int {
 	return int(alpha * math.Sqrt(float64(sizeA*sizeB)))
 }
 
-func (m *cosine) distance(inter, sizeA, sizeB int) float64 {
+func (m *cosine) Distance(inter, sizeA, sizeB int) float64 {
 	return 1 - float64(inter)/math.Sqrt(float64(sizeA*sizeB))
+}
+
+// DiceMetric returns a Metric that represents Dice Metric
+func DiceMetric() Metric {
+	return &dice{}
 }
 
 type dice struct{}
 
-func (m *dice) minY(alpha float64, size int) int {
+func (m *dice) MinY(alpha float64, size int) int {
 	return int(alpha / (2 - alpha) * float64(size))
 }
 
-func (m *dice) maxY(alpha float64, size int) int {
+func (m *dice) MaxY(alpha float64, size int) int {
 	return int((2 - alpha) / alpha * float64(size))
 }
 
-func (m *dice) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *dice) Threshold(alpha float64, sizeA, sizeB int) int {
 	return int(0.5 * alpha * float64(sizeA+sizeB))
 }
 
-func (m *dice) distance(inter, sizeA, sizeB int) float64 {
+func (m *dice) Distance(inter, sizeA, sizeB int) float64 {
 	return 1 - float64(2*inter)/float64(sizeA+sizeB)
+}
+
+// ExactMetric returns a Metric that represents exact matching between 2 ngram sets
+func ExactMetric() Metric {
+	return &exact{}
 }
 
 type exact struct{}
 
-func (m *exact) minY(alpha float64, size int) int {
+func (m *exact) MinY(alpha float64, size int) int {
 	return size
 }
 
-func (m *exact) maxY(alpha float64, size int) int {
+func (m *exact) MaxY(alpha float64, size int) int {
 	return size
 }
 
-func (m *exact) threshold(alpha float64, sizeA, sizeB int) int {
+func (m *exact) Threshold(alpha float64, sizeA, sizeB int) int {
 	return sizeA
 }
 
-func (m *exact) distance(inter, sizeA, sizeB int) float64 {
+func (m *exact) Distance(inter, sizeA, sizeB int) float64 {
 	return 0
-}
-
-func init() {
-	measureHolder[Jaccard] = &jaccard{}
-	measureHolder[Cosine] = &cosine{}
-	measureHolder[Dice] = &dice{}
-	measureHolder[Exact] = &exact{}
 }

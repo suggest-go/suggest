@@ -41,7 +41,7 @@ func Example() {
 	topK := 5
 	sim := 0.5
 	query := "niss ma"
-	searchConf, err := suggest.NewSearchConfig(query, topK, suggest.Cosine, sim)
+	searchConf, err := suggest.NewSearchConfig(query, topK, suggest.CosineMetric(), sim)
 	if err != nil {
 		panic(err)
 	}

@@ -36,7 +36,7 @@ func suggestHandler(w http.ResponseWriter, r *http.Request) {
 	for i := range configs {
 		go func(i int) {
 			start := time.Now()
-			searchConf, err := suggest.NewSearchConfig(query, topK, suggest.Cosine, 0.5)
+			searchConf, err := suggest.NewSearchConfig(query, topK, suggest.CosineMetric(), 0.5)
 			if err == nil {
 				// TODO fixme
 			}

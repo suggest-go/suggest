@@ -77,12 +77,12 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 	set := n.getNGramSet(query)
 	sizeA := len(set)
 
-	mm := getMeasure(config.measureName)
+	metric := config.metric
 	similarity := config.similarity
 	topK := config.topK
 
 	h := &heapImpl{}
-	bMin, bMax := mm.minY(similarity, sizeA), mm.maxY(similarity, sizeA)
+	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
 	rid := make([][]int, 0, sizeA)
 	lenIndices := len(n.indices)
 
@@ -91,7 +91,7 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 	}
 
 	for sizeB := bMax; sizeB >= bMin; sizeB-- {
-		threshold := mm.threshold(similarity, sizeA, sizeB)
+		threshold := metric.Threshold(similarity, sizeA, sizeB)
 		if threshold == 0 {
 			continue
 		}
@@ -124,7 +124,7 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 		// see http://stevehanov.ca/blog/index.php?id=122
 		for inter := len(counts) - 1; inter >= threshold; inter-- {
 			for _, id := range counts[inter] {
-				distance := mm.distance(inter, sizeA, sizeB)
+				distance := metric.Distance(inter, sizeA, sizeB)
 
 				if h.Len() < topK || h.Top().(*rank).distance > distance {
 					var r *rank

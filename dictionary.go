@@ -25,25 +25,24 @@ type Dictionary interface {
 	Iter() DictIter
 }
 
-// InMemoryDictionary implements Dictionary with in-memory data access
-type InMemoryDictionary struct {
+// inMemoryDictionary implements Dictionary with in-memory data access
+type inMemoryDictionary struct {
 	holder []string
 	index  int
 }
 
-// NewInMemoryDictionary creates new instance of InMemoryDictionary
-func NewInMemoryDictionary(words []string) *InMemoryDictionary {
+// NewInMemoryDictionary creates new instance of inMemoryDictionary
+func NewInMemoryDictionary(words []string) Dictionary {
 	holder := make([]string, len(words))
 	copy(holder, words)
 
-	return &InMemoryDictionary{
+	return &inMemoryDictionary{
 		holder,
 		len(words),
 	}
 }
 
-// Get returns value associated with a particular key
-func (d *InMemoryDictionary) Get(key WordKey) (string, error) {
+func (d *inMemoryDictionary) Get(key WordKey) (string, error) {
 	k := key.(int)
 	if k < 0 || k >= len(d.holder) {
 		return "", errors.New("Key is not exists")
@@ -52,8 +51,7 @@ func (d *InMemoryDictionary) Get(key WordKey) (string, error) {
 	return d.holder[k], nil
 }
 
-// MGet returns map of founded pairs
-func (d *InMemoryDictionary) MGet(keys []WordKey) map[WordKey]string {
+func (d *inMemoryDictionary) MGet(keys []WordKey) map[WordKey]string {
 	m := make(map[WordKey]string)
 	for _, key := range keys {
 		val, err := d.Get(key)
@@ -65,14 +63,13 @@ func (d *InMemoryDictionary) MGet(keys []WordKey) map[WordKey]string {
 	return m
 }
 
-// Iter returns an iterator over the elements in this dictionary
-func (d *InMemoryDictionary) Iter() DictIter {
+func (d *inMemoryDictionary) Iter() DictIter {
 	return &inMemoryDictIter{d, 0}
 }
 
-// inMemoryDictIter implements interface DictIter for InMemoryDictionary
+// inMemoryDictIter implements interface DictIter for inMemoryDictionary
 type inMemoryDictIter struct {
-	dict  *InMemoryDictionary
+	dict  *inMemoryDictionary
 	index int
 }
 
