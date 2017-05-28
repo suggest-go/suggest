@@ -52,11 +52,10 @@ func (d *inMemoryDictionary) Get(key WordKey) (string, error) {
 }
 
 func (d *inMemoryDictionary) MGet(keys []WordKey) map[WordKey]string {
-	m := make(map[WordKey]string, len(keys))
-
+	m := make(map[WordKey]string)
 	for _, key := range keys {
 		val, err := d.Get(key)
-		if err == nil {
+		if err != nil {
 			m[key] = val
 		}
 	}

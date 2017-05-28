@@ -26,9 +26,9 @@ func suggestHandler(w http.ResponseWriter, r *http.Request) {
 	dict, query := vars["dict"], vars["query"]
 
 	type candidates struct {
-		Config  string            `json:"config"`
-		Data    map[string]string `json:"data"`
-		Elapsed string            `json:"elapsed"`
+		Config  string   `json:"config"`
+		Data    []string `json:"data"`
+		Elapsed string   `json:"elapsed"`
 	}
 
 	lenS := len(configs)
@@ -44,13 +44,7 @@ func suggestHandler(w http.ResponseWriter, r *http.Request) {
 			data := suggestService.Suggest(dict+string(i), searchConf)
 			elapsed := time.Since(start).String()
 			configName := fmt.Sprintf("n%d", i+2)
-
-			m := make(map[string]string, len(data))
-			for k, v := range data {
-				m[string(k.(int))] = v
-			}
-
-			ch <- candidates{configName, m, elapsed}
+			ch <- candidates{configName, data, elapsed}
 		}(i)
 	}
 

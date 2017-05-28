@@ -57,8 +57,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                         candidate = candidates[i];
                         $holder = $('#' + candidate.config);
                         textArr = [];
-                        console.log(candidate.data);
-                        for (var j in candidate.data) {
+                        for (var j = 0; j < candidate.data.length; ++j) {
                             textArr.push(candidate.data[j]);
                         }
                         
