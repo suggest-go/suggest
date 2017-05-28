@@ -47,5 +47,5 @@ func Example() {
 	}
 
 	fmt.Println(service.Suggest("cars", searchConf))
-	// Output: [Nissan Maxima Nissan March]
+	// Output: map[2:Nissan Maxima 0:Nissan March]
 }

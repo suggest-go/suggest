@@ -41,21 +41,16 @@ func (s *Service) AddDictionary(name string, dictionary Dictionary, config *Inde
 }
 
 // Suggest returns Top-k approximate strings for given query in dict
-func (s *Service) Suggest(dict string, config *SearchConfig) []string {
+func (s *Service) Suggest(dict string, config *SearchConfig) map[WordKey]string {
 	s.RLock()
 	index, okIndex := s.indexes[dict]
 	dictionary, okDict := s.dictionaries[dict]
 	s.RUnlock()
 	if okDict && okIndex {
 		keys := index.Suggest(config)
-		result := make([]string, 0, len(keys))
-		for _, key := range keys {
-			val, _ := dictionary.Get(key)
-			result = append(result, val)
-		}
-
+		result := dictionary.MGet(keys)
 		return result
 	}
 
-	return make([]string, 0)
+	return make(map[WordKey]string, 0)
 }
