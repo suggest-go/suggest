@@ -48,15 +48,15 @@ func CosineMetric() Metric {
 type cosine struct{}
 
 func (m *cosine) MinY(alpha float64, size int) int {
-	return int(alpha * alpha * float64(size))
+	return int(math.Ceil(alpha * alpha * float64(size)))
 }
 
 func (m *cosine) MaxY(alpha float64, size int) int {
-	return int(float64(size) / (alpha * alpha))
+	return int(math.Floor(float64(size) / (alpha * alpha)))
 }
 
 func (m *cosine) Threshold(alpha float64, sizeA, sizeB int) int {
-	return int(alpha * math.Sqrt(float64(sizeA*sizeB)))
+	return int(math.Ceil(alpha * math.Sqrt(float64(sizeA*sizeB))))
 }
 
 func (m *cosine) Distance(inter, sizeA, sizeB int) float64 {
@@ -71,15 +71,15 @@ func DiceMetric() Metric {
 type dice struct{}
 
 func (m *dice) MinY(alpha float64, size int) int {
-	return int(alpha / (2 - alpha) * float64(size))
+	return int(math.Ceil(alpha / (2 - alpha) * float64(size)))
 }
 
 func (m *dice) MaxY(alpha float64, size int) int {
-	return int((2 - alpha) / alpha * float64(size))
+	return int(math.Floor((2 - alpha) / alpha * float64(size)))
 }
 
 func (m *dice) Threshold(alpha float64, sizeA, sizeB int) int {
-	return int(0.5 * alpha * float64(sizeA+sizeB))
+	return int(math.Ceil(0.5 * alpha * float64(sizeA+sizeB)))
 }
 
 func (m *dice) Distance(inter, sizeA, sizeB int) float64 {
