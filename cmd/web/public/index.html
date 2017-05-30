@@ -58,7 +58,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                         $holder = $('#' + candidate.config);
                         textArr = [];
                         for (var j = 0; j < candidate.data.length; ++j) {
-                            textArr.push(candidate.data[j]);
+                            textArr.push(candidate.data[j].Value);
                         }
                         
                         textArr.push("<small>Elapsed time: " + candidate.elapsed + "</small>");

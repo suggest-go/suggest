@@ -28,16 +28,21 @@ func TestSuggestAuto(t *testing.T) {
 	}
 
 	candidates := ngramIndex.Suggest(conf)
+	actual := make([]WordKey, 0, len(candidates))
+	for _, candidate := range candidates {
+		actual = append(actual, candidate.Key)
+	}
+
 	expected := []WordKey{
 		2,
 		0,
 	}
 
-	if !reflect.DeepEqual(expected, candidates) {
+	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf(
 			"Test Fail, expected %v, got %v",
 			expected,
-			candidates,
+			actual,
 		)
 	}
 }

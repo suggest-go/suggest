@@ -26,9 +26,9 @@ func suggestHandler(w http.ResponseWriter, r *http.Request) {
 	dict, query := vars["dict"], vars["query"]
 
 	type candidates struct {
-		Config  string   `json:"config"`
-		Data    []string `json:"data"`
-		Elapsed string   `json:"elapsed"`
+		Config  string               `json:"config"`
+		Data    []suggest.ResultItem `json:"data"`
+		Elapsed string               `json:"elapsed"`
 	}
 
 	lenS := len(configs)

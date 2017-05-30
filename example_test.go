@@ -16,7 +16,8 @@ func Example() {
 
 	// create IndexConfig with ngramSize, alphabet, wrap and pad
 	wrap, pad := "$", "$"
-	conf, err := suggest.NewIndexConfig(3 /*Ngram size*/, alphabet, wrap, pad)
+	ngramSize := 3
+	conf, err := suggest.NewIndexConfig(ngramSize, alphabet, wrap, pad)
 	if err != nil {
 		panic(err)
 	}
@@ -46,6 +47,12 @@ func Example() {
 		panic(err)
 	}
 
-	fmt.Println(service.Suggest("cars", searchConf))
+	result := service.Suggest("cars", searchConf)
+	values := make([]string, 0, len(result))
+	for _, item := range result {
+		values = append(values, item.Value)
+	}
+
+	fmt.Println(values)
 	// Output: [Nissan Maxima Nissan March]
 }

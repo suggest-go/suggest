@@ -1,6 +1,14 @@
 package suggest
 
-import "sync"
+import (
+	"sort"
+	"sync"
+)
+
+type ResultItem struct {
+	Candidate
+	Value string
+}
 
 // Service is a service for topK approximate string search in dictionary
 type Service struct {
@@ -41,21 +49,35 @@ func (s *Service) AddDictionary(name string, dictionary Dictionary, config *Inde
 }
 
 // Suggest returns Top-k approximate strings for given query in dict
-func (s *Service) Suggest(dict string, config *SearchConfig) []string {
+func (s *Service) Suggest(dict string, config *SearchConfig) []ResultItem {
 	s.RLock()
 	index, okIndex := s.indexes[dict]
 	dictionary, okDict := s.dictionaries[dict]
 	s.RUnlock()
-	if okDict && okIndex {
-		keys := index.Suggest(config)
-		result := make([]string, 0, len(keys))
-		for _, key := range keys {
-			val, _ := dictionary.Get(key)
-			result = append(result, val)
-		}
 
-		return result
+	if !okDict || !okIndex {
+		return nil
 	}
 
-	return make([]string, 0)
+	candidates := index.Suggest(config)
+	l := len(candidates)
+	result := make([]ResultItem, 0, l)
+	keys := make([]WordKey, 0, l)
+	m := make(map[WordKey]Candidate, l)
+
+	for _, candidate := range candidates {
+		keys = append(keys, candidate.Key)
+		m[candidate.Key] = candidate
+	}
+
+	for key, value := range dictionary.MGet(keys) {
+		candidate := m[key]
+		result = append(result, ResultItem{candidate, value})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Distance < result[j].Distance
+	})
+
+	return result
 }

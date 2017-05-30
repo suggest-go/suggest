@@ -57,8 +57,8 @@ func (n *NGramIndex) AddWord(word string, key WordKey) {
 }
 
 // Suggest returns top-k similar strings
-func (n *NGramIndex) Suggest(config *SearchConfig) []WordKey {
-	result := make([]WordKey, 0, config.topK)
+func (n *NGramIndex) Suggest(config *SearchConfig) []Candidate {
+	result := make([]Candidate, 0, config.topK)
 	preparedQuery := n.prepareString(config.query)
 	if len(preparedQuery) < n.config.ngramSize {
 		return result
@@ -67,7 +67,10 @@ func (n *NGramIndex) Suggest(config *SearchConfig) []WordKey {
 	candidates := n.search(preparedQuery, config)
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
-		result = append([]WordKey{n.dictionary[r.id]}, result...)
+		result = append(
+			[]Candidate{Candidate{n.dictionary[r.id], r.distance}},
+			result...,
+		)
 	}
 
 	return result
