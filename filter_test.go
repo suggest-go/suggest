@@ -82,8 +82,8 @@ func dataProvider() []oneCase {
 			},
 			2,
 			map[int][]int{
-				2: []int{1, 3},
-				4: []int{2},
+				2: {1, 3},
+				4: {2},
 			},
 		},
 		{
@@ -95,7 +95,7 @@ func dataProvider() []oneCase {
 			},
 			3,
 			map[int][]int{
-				4: []int{2},
+				4: {2},
 			},
 		},
 		{
@@ -107,7 +107,7 @@ func dataProvider() []oneCase {
 			},
 			4,
 			map[int][]int{
-				4: []int{2},
+				4: {2},
 			},
 		},
 		{
@@ -120,7 +120,7 @@ func dataProvider() []oneCase {
 			},
 			4,
 			map[int][]int{
-				4: []int{50},
+				4: {50},
 			},
 		},
 		{
@@ -133,7 +133,7 @@ func dataProvider() []oneCase {
 			},
 			3,
 			map[int][]int{
-				4: []int{50},
+				4: {50},
 			},
 		},
 		{
@@ -146,8 +146,8 @@ func dataProvider() []oneCase {
 			},
 			2,
 			map[int][]int{
-				2: []int{10, 60, 100},
-				4: []int{50},
+				2: {10, 60, 100},
+				4: {50},
 			},
 		},
 	}

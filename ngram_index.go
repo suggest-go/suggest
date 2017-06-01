@@ -68,7 +68,7 @@ func (n *NGramIndex) Suggest(config *SearchConfig) []Candidate {
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
 		result = append(
-			[]Candidate{Candidate{n.dictionary[r.id], r.distance}},
+			[]Candidate{{n.dictionary[r.id], r.distance}},
 			result...,
 		)
 	}
