@@ -1,12 +1,15 @@
 package suggest
 
 import (
+	"errors"
 	"sort"
 	"sync"
 )
 
+// ResultItem represents element of top-k similar strings in dictionary for given query
 type ResultItem struct {
 	Candidate
+	// Value is a string value of candidate
 	Value string
 }
 
@@ -33,11 +36,11 @@ func (s *Service) AddDictionary(name string, dictionary Dictionary, config *Inde
 	iter := dictionary.Iter()
 	for iter.IsValid() {
 		key, word := iter.GetPair()
-		// monkey code, fixme
-		if len(word) > config.ngramSize {
-			ngramIndex.AddWord(word, key)
+		if len(word) < config.ngramSize {
+			return errors.New("Invalid word length, less than ngramSize")
 		}
 
+		ngramIndex.AddWord(word, key)
 		iter.Next()
 	}
 

@@ -40,7 +40,7 @@ service := suggest.NewService()
 service.AddDictionary("cars", dictionary, conf)
 
 topK := 5
-sim := 0.5
+sim := 0.4
 query := "niss ma"
 searchConf, err := suggest.NewSearchConfig(query, topK, suggest.CosineMetric(), sim)
 if err != nil {

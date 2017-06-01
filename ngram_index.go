@@ -122,15 +122,15 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 			continue
 		}
 
-		counts := mergeSkip(rid, threshold)
+		counts := n.getCounts(rid, threshold)
 		// use heap search for finding top k items in a list efficiently
 		// see http://stevehanov.ca/blog/index.php?id=122
+		var r *rank
 		for inter := len(counts) - 1; inter >= threshold; inter-- {
 			for _, id := range counts[inter] {
 				distance := metric.Distance(inter, sizeA, sizeB)
 
 				if h.Len() < topK || h.Top().(*rank).distance > distance {
-					var r *rank
 					if h.Len() == topK {
 						r = heap.Pop(h).(*rank)
 					} else {
@@ -146,6 +146,15 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 	}
 
 	return h
+}
+
+// TODO describe me!
+func (n *NGramIndex) getCounts(rid [][]int, threshold int) [][]int {
+	if threshold == 1 {
+		return scanCount(rid, threshold)
+	}
+
+	return mergeSkip(rid, threshold)
 }
 
 // Return unique ngrams
