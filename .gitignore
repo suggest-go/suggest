@@ -3,3 +3,4 @@ vendor/*/
 *.out
 *.test
 cmd/web/models.dict
+.idea/*
