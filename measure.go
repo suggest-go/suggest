@@ -129,5 +129,5 @@ func (m *overlap) Threshold(alpha float64, sizeA, sizeB int) int {
 }
 
 func (m *overlap) Distance(inter, sizeA, sizeB int) float64 {
-	return 1 - float64(inter) / (math.Min(float64(sizeA), float64(sizeB)))
+	return 1 - float64(inter)/(math.Min(float64(sizeA), float64(sizeB)))
 }
