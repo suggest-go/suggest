@@ -59,4 +59,3 @@ fmt.Println(values)
 
 ## Demo
 see https://tranquil-journey-12522.herokuapp.com/ as complete example
-or run it localy by `go run cmd/web/main.go`
