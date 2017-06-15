@@ -78,7 +78,7 @@ func BenchmarkSuggest(b *testing.B) {
 
 func BenchmarkRealExample(b *testing.B) {
 	b.StopTimer()
-	collection := GetWordsFromFile("cmd/web/cars.dict")
+	collection := GetWordsFromFile("cars.dict")
 
 	ngramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
 
