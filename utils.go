@@ -68,15 +68,3 @@ func GetWordsFromFile(fileName string) []string {
 
 	return result
 }
-
-func min3(a, b, c int) int {
-	if a < b && a < c {
-		return a
-	}
-
-	if b < c {
-		return b
-	}
-
-	return c
-}
