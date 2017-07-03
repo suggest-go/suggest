@@ -2,6 +2,8 @@ package suggest
 
 import (
 	"reflect"
+	"os"
+	"bufio"
 	"testing"
 )
 
@@ -17,9 +19,9 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	ngramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
+	nGramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
 	for i, word := range collection {
-		ngramIndex.AddWord(word, i)
+		nGramIndex.AddWord(word, i)
 	}
 
 	conf, err := NewSearchConfig("Nissan ma", 2, JaccardMetric(), 0.5)
@@ -27,7 +29,7 @@ func TestSuggestAuto(t *testing.T) {
 		panic(err)
 	}
 
-	candidates := ngramIndex.Suggest(conf)
+	candidates := nGramIndex.Suggest(conf)
 	actual := make([]WordKey, 0, len(candidates))
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
@@ -60,9 +62,9 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	ngramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
+	nGramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
 	for i, word := range collection {
-		ngramIndex.AddWord(word, i)
+		nGramIndex.AddWord(word, i)
 	}
 
 	b.StartTimer()
@@ -72,18 +74,26 @@ func BenchmarkSuggest(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		ngramIndex.Suggest(conf)
+		nGramIndex.Suggest(conf)
 	}
 }
 
 func BenchmarkRealExample(b *testing.B) {
 	b.StopTimer()
-	collection := GetWordsFromFile("cars.dict")
 
-	ngramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
+	file, err := os.Open("cars.dict")
+	defer file.Close()
+	if err != nil {
+		panic(err)
+	}
 
-	for i, word := range collection {
-		ngramIndex.AddWord(word, i)
+	scanner := bufio.NewScanner(file)
+	nGramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
+	i := 0
+	for scanner.Scan() {
+		word := scanner.Text()
+		nGramIndex.AddWord(word, i)
+		i++
 	}
 
 	queries := [...]string{
@@ -108,11 +118,11 @@ func BenchmarkRealExample(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		conf.query = queries[i%qLen]
-		ngramIndex.Suggest(conf)
+		nGramIndex.Suggest(conf)
 	}
 }
 
-func getIndexConfWithBaseAlphabet(ngramSize int) *IndexConfig {
+func getIndexConfWithBaseAlphabet(nGramSize int) *IndexConfig {
 	alphabet := NewCompositeAlphabet([]Alphabet{
 		NewEnglishAlphabet(),
 		NewNumberAlphabet(),
@@ -120,7 +130,7 @@ func getIndexConfWithBaseAlphabet(ngramSize int) *IndexConfig {
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	conf, err := NewIndexConfig(ngramSize, alphabet, "$", "$")
+	conf, err := NewIndexConfig(nGramSize, alphabet, "$", "$")
 	if err != nil {
 		panic(err)
 	}
