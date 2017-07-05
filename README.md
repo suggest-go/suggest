@@ -58,4 +58,4 @@ fmt.Println(values)
 ```
 
 ## Demo
-see https://dry-stream-83406.herokuapp.com/ as complete example (https://github.com/alldroll/suggest_demo)
+see https://suggest-demo.herokuapp.com/ as complete example (https://github.com/alldroll/suggest_demo)
