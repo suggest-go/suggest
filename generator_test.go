@@ -30,7 +30,7 @@ func TestSplitIntoNGrams(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		actual := SplitIntoNGrams(c.word, c.k)
+		actual := splitIntoNGrams(c.word, c.k)
 		if !reflect.DeepEqual(actual, c.ngrams) {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",
@@ -58,9 +58,9 @@ func TestPrepareString(t *testing.T) {
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	clean := newCleaner(alphabet.Chars(), "$", "$")
+	clean := NewCleaner(alphabet.Chars(), "$", "$")
 	for _, c := range cases {
-		actual := clean.cleanAndWrap(c.word)
+		actual := clean.Clean(c.word)
 		if actual != c.expected {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",

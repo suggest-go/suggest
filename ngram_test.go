@@ -19,10 +19,7 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	nGramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
-	for i, word := range collection {
-		nGramIndex.AddWord(word, i)
-	}
+	nGramIndex := buildNGramIndex(NewInMemoryDictionary(collection), 3)
 
 	conf, err := NewSearchConfig("Nissan ma", 2, JaccardMetric(), 0.5)
 	if err != nil {
@@ -62,10 +59,7 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	nGramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
-	for i, word := range collection {
-		nGramIndex.AddWord(word, i)
-	}
+	nGramIndex := buildNGramIndex(NewInMemoryDictionary(collection), 3)
 
 	b.StartTimer()
 	conf, err := NewSearchConfig("Nissan mar", 2, JaccardMetric(), 0.5)
@@ -88,13 +82,12 @@ func BenchmarkRealExample(b *testing.B) {
 	}
 
 	scanner := bufio.NewScanner(file)
-	nGramIndex := NewNGramIndex(getIndexConfWithBaseAlphabet(3))
-	i := 0
+	collection := make([]string, 0)
 	for scanner.Scan() {
-		word := scanner.Text()
-		nGramIndex.AddWord(word, i)
-		i++
+		collection = append(collection, scanner.Text())
 	}
+
+	nGramIndex := buildNGramIndex(NewInMemoryDictionary(collection), 3)
 
 	queries := [...]string{
 		"Nissan Mar",
@@ -122,7 +115,7 @@ func BenchmarkRealExample(b *testing.B) {
 	}
 }
 
-func getIndexConfWithBaseAlphabet(nGramSize int) *IndexConfig {
+func buildNGramIndex(dictionary Dictionary, ngramSize int) *NGramIndex {
 	alphabet := NewCompositeAlphabet([]Alphabet{
 		NewEnglishAlphabet(),
 		NewNumberAlphabet(),
@@ -130,10 +123,9 @@ func getIndexConfWithBaseAlphabet(nGramSize int) *IndexConfig {
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	conf, err := NewIndexConfig(nGramSize, alphabet, "$", "$")
-	if err != nil {
-		panic(err)
-	}
-
-	return conf
+	return NewBuilder().
+		SetDictionary(dictionary).
+		SetNGramSize(ngramSize).
+		SetAlphabet(alphabet).
+		Build()
 }
