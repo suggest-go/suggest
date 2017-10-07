@@ -102,4 +102,3 @@ func (b *invertedListBuilderImpl) addWord(word string, key WordKey) {
 
 	b.tokens = append(b.tokens, key)
 }
-

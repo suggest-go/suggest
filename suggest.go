@@ -16,7 +16,7 @@ type ResultItem struct {
 // Service is a service for topK approximate string search in dictionary
 type Service struct {
 	sync.RWMutex
-	indexes      map[string]*NGramIndex
+	indexes      map[string]NGramIndex
 	dictionaries map[string]Dictionary
 }
 
@@ -24,7 +24,7 @@ type Service struct {
 func NewService() *Service {
 	// fixme
 	return &Service{
-		indexes:      make(map[string]*NGramIndex),
+		indexes:      make(map[string]NGramIndex),
 		dictionaries: make(map[string]Dictionary),
 	}
 }

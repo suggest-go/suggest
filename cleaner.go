@@ -5,7 +5,9 @@ import (
 	"strings"
 )
 
+// Cleaner provides api for preparing word for index search
 type Cleaner interface {
+	// Clean returns prepared "cleaned" string
 	Clean(word string) string
 }
 
@@ -14,6 +16,7 @@ type cleanerImpl struct {
 	pad, wrapper string
 }
 
+// NewCleaner returns new Cleaner object
 func NewCleaner(chars []rune, pad, wrapper string) Cleaner {
 	str := string(chars)
 	reg, err := regexp.Compile("[^" + str + "]+")

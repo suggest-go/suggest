@@ -13,23 +13,28 @@ import (
 )
 
 // NGramIndex is structure ... describe me please
-type NGramIndex struct {
-	clean      Cleaner
-	indices    InvertedListsIndices
-	generator  Generator
+type NGramIndex interface {
+	// Suggest returns top-k similar candidates
+	Suggest(config *SearchConfig) []Candidate
+}
+
+type nGramIndexImpl struct {
+	cleaner Cleaner
+	indices InvertedListsIndices
+	generator Generator
 }
 
 // NewNGramIndex returns a new NGramIndex object
-func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedListsIndices) *NGramIndex {
-	return &NGramIndex{
+func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedListsIndices) NGramIndex {
+	return &nGramIndexImpl{
 		cleaner, indices, generator,
 	}
 }
 
 // Suggest returns top-k similar strings
-func (n *NGramIndex) Suggest(config *SearchConfig) []Candidate {
+func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 	result := make([]Candidate, 0, config.topK)
-	preparedQuery := n.clean.Clean(config.query)
+	preparedQuery := n.cleaner.Clean(config.query)
 	if len(preparedQuery) < 3 {
 		return result
 	}
@@ -46,7 +51,7 @@ func (n *NGramIndex) Suggest(config *SearchConfig) []Candidate {
 	return result
 }
 
-func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
+func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 	set := n.generator.Generate(query)
 	sizeA := len(set)
 
@@ -119,7 +124,7 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 }
 
 // TODO describe me!
-func (n *NGramIndex) getCounts(rid [][]int, threshold int) [][]int {
+func (n *nGramIndexImpl) getCounts(rid [][]int, threshold int) [][]int {
 	if threshold == 1 {
 		return scanCount(rid, threshold)
 	}

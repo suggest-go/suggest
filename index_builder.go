@@ -1,12 +1,18 @@
 package suggest
 
+const (
+	defaultPad = "$"
+	defaultWrap = "$"
+	defaultNGramSize = 3
+)
+
 type Builder interface {
 	SetNGramSize(nGramSize int) Builder
 	SetAlphabet(alphabet Alphabet) Builder
 	SetDictionary(dictionary Dictionary) Builder
 	SetPad(pad string) Builder
 	SetWrap(wrap string) Builder
-	Build() *NGramIndex
+	Build() NGramIndex
 }
 
 type builderImpl struct {
@@ -19,11 +25,11 @@ type builderImpl struct {
 
 func NewBuilder() Builder {
 	return &builderImpl{
-		3,
-		NewEnglishAlphabet(),
+		defaultNGramSize,
 		nil,
-		"$",
-		"$",
+		nil,
+		defaultPad,
+		defaultWrap,
 	}
 }
 
@@ -52,7 +58,7 @@ func (b *builderImpl) SetWrap(wrap string) Builder {
 	return b
 }
 
-func (b *builderImpl) Build() *NGramIndex {
+func (b *builderImpl) Build() NGramIndex {
 	cleaner := NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
 	generator := NewGenerator(b.nGramSize, b.alphabet)
 
