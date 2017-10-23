@@ -12,55 +12,30 @@ import (
 	"container/heap"
 )
 
-type invertedListsT map[int][]int
-
 // NGramIndex is structure ... describe me please
-type NGramIndex struct {
-	clean      *cleaner
-	indices    []invertedListsT
-	dictionary []WordKey
-	config     *IndexConfig
+type NGramIndex interface {
+	// Suggest returns top-k similar candidates
+	Suggest(config *SearchConfig) []Candidate
 }
 
-// NewNGramIndex returns a new NGramIndex with given config
-func NewNGramIndex(config *IndexConfig) *NGramIndex {
-	clean := newCleaner(config.alphabet.Chars(), config.pad, config.wrap)
-	return &NGramIndex{
-		clean, make([]invertedListsT, 0), make([]WordKey, 0), config,
-	}
+type nGramIndexImpl struct {
+	cleaner Cleaner
+	indices InvertedListsIndices
+	generator Generator
 }
 
-// AddWord add given word to invertedList
-func (n *NGramIndex) AddWord(word string, key WordKey) {
-	prepared := n.prepareString(word)
-	set := n.getNGramSet(prepared)
-	cardinality := len(set)
-
-	if len(n.indices) <= cardinality {
-		tmp := make([]invertedListsT, cardinality+1, cardinality*2)
-		copy(tmp, n.indices)
-		n.indices = tmp
+// NewNGramIndex returns a new NGramIndex object
+func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedListsIndices) NGramIndex {
+	return &nGramIndexImpl{
+		cleaner, indices, generator,
 	}
-
-	invertedLists := n.indices[cardinality]
-	if invertedLists == nil {
-		invertedLists = make(invertedListsT)
-		n.indices[cardinality] = invertedLists
-	}
-
-	keyToIndex := len(n.dictionary)
-	for _, index := range set {
-		invertedLists[index] = append(invertedLists[index], keyToIndex)
-	}
-
-	n.dictionary = append(n.dictionary, key)
 }
 
 // Suggest returns top-k similar strings
-func (n *NGramIndex) Suggest(config *SearchConfig) []Candidate {
+func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 	result := make([]Candidate, 0, config.topK)
-	preparedQuery := n.prepareString(config.query)
-	if len(preparedQuery) < n.config.ngramSize {
+	preparedQuery := n.cleaner.Clean(config.query)
+	if len(preparedQuery) < 3 {
 		return result
 	}
 
@@ -68,7 +43,7 @@ func (n *NGramIndex) Suggest(config *SearchConfig) []Candidate {
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
 		result = append(
-			[]Candidate{{n.dictionary[r.id], r.distance}},
+			[]Candidate{{n.indices.IndexToWordKey(r.id), r.distance}},
 			result...,
 		)
 	}
@@ -76,8 +51,8 @@ func (n *NGramIndex) Suggest(config *SearchConfig) []Candidate {
 	return result
 }
 
-func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
-	set := n.getNGramSet(query)
+func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
+	set := n.generator.Generate(query)
 	sizeA := len(set)
 
 	metric := config.metric
@@ -87,7 +62,7 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 	h := &heapImpl{}
 	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
 	rid := make([][]int, 0, sizeA)
-	lenIndices := len(n.indices)
+	lenIndices := n.indices.Size()
 
 	if bMax >= lenIndices {
 		bMax = lenIndices - 1
@@ -101,7 +76,7 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 
 		// reset slice
 		rid = rid[:0]
-		invertedLists := n.indices[sizeB]
+		invertedLists := n.indices.Get(sizeB)
 		// maximum allowable ngram miss count
 		allowedSkips := sizeA - threshold + 1
 		for _, index := range set {
@@ -149,49 +124,10 @@ func (n *NGramIndex) search(query string, config *SearchConfig) *heapImpl {
 }
 
 // TODO describe me!
-func (n *NGramIndex) getCounts(rid [][]int, threshold int) [][]int {
+func (n *nGramIndexImpl) getCounts(rid [][]int, threshold int) [][]int {
 	if threshold == 1 {
 		return scanCount(rid, threshold)
 	}
 
 	return mergeSkip(rid, threshold)
-}
-
-// Return unique ngrams
-func (n *NGramIndex) getNGramSet(word string) []int {
-	ngrams := SplitIntoNGrams(word, n.config.ngramSize)
-	set := make(map[int]struct{}, len(ngrams))
-	list := make([]int, 0, len(ngrams))
-	for _, ngram := range ngrams {
-		index := n.ngramToIndex(ngram)
-		_, found := set[index]
-		set[index] = struct{}{}
-		if !found {
-			list = append(list, index)
-		}
-	}
-
-	return list
-}
-
-// Map ngram to int (index)
-func (n *NGramIndex) ngramToIndex(ngram string) int {
-	index := 0
-	alphabet := n.config.alphabet
-	size := alphabet.Size()
-	for _, char := range ngram {
-		i := alphabet.MapChar(char)
-		if index == InvalidChar {
-			panic("Invalid char was detected")
-		}
-
-		index = index*size + i
-	}
-
-	return index
-}
-
-// Prepare string for indexing
-func (n *NGramIndex) prepareString(word string) string {
-	return n.clean.cleanAndWrap(word)
 }

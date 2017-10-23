@@ -5,22 +5,33 @@ import (
 	"strings"
 )
 
-type cleaner struct {
+// Cleaner provides api for preparing word for index search
+type Cleaner interface {
+	// Clean returns prepared "cleaned" string
+	Clean(word string) string
+}
+
+type cleanerImpl struct {
 	reg          *regexp.Regexp
 	pad, wrapper string
 }
 
-func newCleaner(chars []rune, pad, wrapper string) *cleaner {
+// NewCleaner returns new Cleaner object
+func NewCleaner(chars []rune, pad, wrapper string) Cleaner {
 	str := string(chars)
 	reg, err := regexp.Compile("[^" + str + "]+")
 	if err != nil {
 		panic(err)
 	}
 
-	return &cleaner{reg, pad, wrapper}
+	return &cleanerImpl{reg, pad, wrapper}
 }
 
-func (c *cleaner) normalize(word string) string {
+func (c *cleanerImpl) Clean(word string) string {
+	return c.wrap(c.clean(word))
+}
+
+func (c *cleanerImpl) normalize(word string) string {
 	if len(word) < 2 {
 		return word
 	}
@@ -30,15 +41,11 @@ func (c *cleaner) normalize(word string) string {
 	return word
 }
 
-func (c *cleaner) clean(word string) string {
+func (c *cleanerImpl) clean(word string) string {
 	word = c.normalize(word)
 	return c.reg.ReplaceAllString(word, c.pad)
 }
 
-func (c *cleaner) wrap(word string) string {
+func (c *cleanerImpl) wrap(word string) string {
 	return c.wrapper + word + c.wrapper
-}
-
-func (c *cleaner) cleanAndWrap(word string) string {
-	return c.wrap(c.clean(word))
 }

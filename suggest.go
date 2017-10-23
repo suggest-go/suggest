@@ -1,7 +1,7 @@
 package suggest
 
 import (
-	"errors"
+	//"errors"
 	"sort"
 	"sync"
 )
@@ -16,7 +16,7 @@ type ResultItem struct {
 // Service is a service for topK approximate string search in dictionary
 type Service struct {
 	sync.RWMutex
-	indexes      map[string]*NGramIndex
+	indexes      map[string]NGramIndex
 	dictionaries map[string]Dictionary
 }
 
@@ -24,28 +24,23 @@ type Service struct {
 func NewService() *Service {
 	// fixme
 	return &Service{
-		indexes:      make(map[string]*NGramIndex),
+		indexes:      make(map[string]NGramIndex),
 		dictionaries: make(map[string]Dictionary),
 	}
 }
 
 // AddDictionary add/replace new dictionary with given name
 func (s *Service) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
-	ngramIndex := NewNGramIndex(config)
-
-	iter := dictionary.Iter()
-	for iter.IsValid() {
-		key, word := iter.GetPair()
-		if len(word) < config.ngramSize {
-			return errors.New("Invalid word length, less than ngramSize")
-		}
-
-		ngramIndex.AddWord(word, key)
-		iter.Next()
-	}
+	nGramIndex := NewBuilder().
+		SetAlphabet(config.alphabet).
+		SetDictionary(dictionary).
+		SetNGramSize(config.ngramSize).
+		SetWrap(config.wrap).
+		SetPad(config.pad).
+		Build()
 
 	s.Lock()
-	s.indexes[name] = ngramIndex
+	s.indexes[name] = nGramIndex
 	s.dictionaries[name] = dictionary
 	s.Unlock()
 	return nil
@@ -65,16 +60,9 @@ func (s *Service) Suggest(dict string, config *SearchConfig) []ResultItem {
 	candidates := index.Suggest(config)
 	l := len(candidates)
 	result := make([]ResultItem, 0, l)
-	keys := make([]WordKey, 0, l)
-	m := make(map[WordKey]Candidate, l)
 
 	for _, candidate := range candidates {
-		keys = append(keys, candidate.Key)
-		m[candidate.Key] = candidate
-	}
-
-	for key, value := range dictionary.MGet(keys) {
-		candidate := m[key]
+		value, _ := dictionary.Get(candidate.Key)
 		result = append(result, ResultItem{candidate, value})
 	}
 
