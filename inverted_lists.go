@@ -68,8 +68,9 @@ func (b *invertedListBuilderImpl) Build() InvertedListsIndices {
 		key, word := i.GetPair()
 		if len(word) >= b.nGramSize {
 			b.addWord(word, key)
-			i.Next()
 		}
+
+		i.Next()
 	}
 
 	return &invertedListIndicesImpl{
