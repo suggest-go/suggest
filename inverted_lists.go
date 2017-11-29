@@ -63,14 +63,16 @@ type invertedListBuilderImpl struct {
 }
 
 func (b *invertedListBuilderImpl) Build() InvertedListsIndices {
-	i := b.dictionary.Iter()
-	for i.IsValid() {
+	i := b.dictionary.Iterator()
+	for {
 		key, word := i.GetPair()
 		if len(word) >= b.nGramSize {
 			b.addWord(word, key)
 		}
 
-		i.Next()
+		if !i.Next() {
+			break
+		}
 	}
 
 	return &invertedListIndicesImpl{

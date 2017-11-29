@@ -19,8 +19,8 @@ type NGramIndex interface {
 }
 
 type nGramIndexImpl struct {
-	cleaner Cleaner
-	indices InvertedListsIndices
+	cleaner   Cleaner
+	indices   InvertedListsIndices
 	generator Generator
 }
 
@@ -77,6 +77,7 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 		// reset slice
 		rid = rid[:0]
 		invertedLists := n.indices.Get(sizeB)
+
 		// maximum allowable ngram miss count
 		allowedSkips := sizeA - threshold + 1
 		for _, index := range set {

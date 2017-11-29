@@ -8,7 +8,7 @@ import (
 
 // ResultItem represents element of top-k similar strings in dictionary for given query
 type ResultItem struct {
-	Candidate
+	Distance float64
 	// Value is a string value of candidate
 	Value string
 }
@@ -63,7 +63,7 @@ func (s *Service) Suggest(dict string, config *SearchConfig) []ResultItem {
 
 	for _, candidate := range candidates {
 		value, _ := dictionary.Get(candidate.Key)
-		result = append(result, ResultItem{candidate, value})
+		result = append(result, ResultItem{candidate.Distance, value})
 	}
 
 	sort.Slice(result, func(i, j int) bool {

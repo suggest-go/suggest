@@ -53,44 +53,8 @@ func scanCount(rid [][]int, threshold int) [][]int {
 // cpMerge was described in paper
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
 func cpMerge(rid [][]int, threshold int) [][]int {
-	sort.Slice(rid, func(i, j int) bool {
-		return len(rid[i]) < len(rid[j])
-	})
-
-	size := len(rid)
-	result := make([][]int, size+1)
-	mapSize := 0
-	k := size - threshold
-	for i := range rid {
-		if i >= k {
-			break
-		}
-
-		mapSize += len(rid[i])
-	}
-
-	counts := make(map[int]int, mapSize+1)
-	i := 0
-	for ; i < k; i++ {
-		for _, strID := range rid[i] {
-			counts[strID]++
-		}
-	}
-
-	for strID, count := range counts {
-		for j := i; j < size; j++ {
-			idx := binarySearch(rid[j], strID)
-			if idx != -1 && rid[j][idx] == strID {
-				count++
-			}
-		}
-
-		if count >= threshold {
-			result[count] = append(result[count], strID)
-		}
-	}
-
-	return result
+	panic("Implement me")
+	return nil
 }
 
 // divideSkip was described in paper
@@ -108,6 +72,10 @@ func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 	lLong := rid[:l]
 	lShort := rid[l:]
 	result := make([][]int, len(rid)+1)
+
+	if len(lShort) == 0 {
+		return mergeSkip(rid, threshold)
+	}
 
 	for count, list := range mergeSkip(lShort, threshold-l) {
 		for _, r := range list {

@@ -13,18 +13,14 @@ type WordKey interface{}
 type Dictionary interface {
 	// Get returns value associated with a particular key
 	Get(key WordKey) (string, error)
-	// MGet returns map of founded pairs
-	MGet(keys []WordKey) map[WordKey]string
-	// Iter returns an iterator over the elements in this dictionary
-	Iter() DictIter
+	// Iterator returns an iterator over the elements in this dictionary
+	Iterator() DictionaryIterator
 }
 
-// DictIter represents Iterator of Dictionary
-type DictIter interface {
+// DictionaryIterator represents Iterator of Dictionary
+type DictionaryIterator interface {
 	// Next moves iterator to the next item. Returns true on success otherwise false
 	Next() bool
-	// IsValid indicates if the iterator is deferencable
-	IsValid() bool
 	// GetPair returns key-value pair of current item
 	GetPair() (WordKey, string)
 }
@@ -55,23 +51,11 @@ func (d *inMemoryDictionary) Get(key WordKey) (string, error) {
 	return d.holder[k], nil
 }
 
-func (d *inMemoryDictionary) MGet(keys []WordKey) map[WordKey]string {
-	m := make(map[WordKey]string)
-	for _, key := range keys {
-		val, err := d.Get(key)
-		if err == nil {
-			m[key] = val
-		}
-	}
-
-	return m
-}
-
-func (d *inMemoryDictionary) Iter() DictIter {
+func (d *inMemoryDictionary) Iterator() DictionaryIterator {
 	return &inMemoryDictIter{d, 0}
 }
 
-// inMemoryDictIter implements interface DictIter for inMemoryDictionary
+// inMemoryDictIter implements interface DictionaryIterator for inMemoryDictionary
 type inMemoryDictIter struct {
 	dict  *inMemoryDictionary
 	index int
@@ -79,7 +63,7 @@ type inMemoryDictIter struct {
 
 func (i *inMemoryDictIter) Next() bool {
 	success := false
-	if i.index < i.dict.index {
+	if i.index + 1 < i.dict.index {
 		i.index++
 		success = true
 	}
@@ -92,8 +76,8 @@ func (i *inMemoryDictIter) IsValid() bool {
 }
 
 func (i *inMemoryDictIter) GetPair() (WordKey, string) {
-	if !i.IsValid() {
-		panic("Iterator is not deferencable")
+	if i.index >= i.dict.index {
+		return nil, ""
 	}
 
 	val, _ := i.dict.Get(i.index)
@@ -128,21 +112,13 @@ func (d *cdbDictionary) Get(key WordKey) (string, error) {
 }
 
 //
-func (d *cdbDictionary) MGet(keys []WordKey) map[WordKey]string {
-	m := make(map[WordKey]string)
-	for _, key := range keys {
-		val, err := d.Get(key)
-		if err == nil {
-			m[key] = val
-		}
+func (d *cdbDictionary) Iterator() DictionaryIterator {
+	iterator, err := d.reader.Iterator()
+	if err != nil {
+		panic(err)
 	}
 
-	return m
-}
-
-//
-func (d *cdbDictionary) Iter() DictIter {
-	return &cdbDictIter{d.reader.Iterator()}
+	return &cdbDictIter{iterator}
 }
 
 //
@@ -161,17 +137,12 @@ func (i *cdbDictIter) Next() bool {
 }
 
 //
-func (i *cdbDictIter) IsValid() bool {
-	return i.cdbIterator.IsDereferencable()
-}
-
-//
 func (i *cdbDictIter) GetPair() (WordKey, string) {
-	if !i.IsValid() {
-		panic("Iterator is not deferencable")
+	value, key := i.cdbIterator.Value(), i.cdbIterator.Key()
+	if key == nil {
+		return nil, ""
 	}
 
-	value, key := i.cdbIterator.Value(), i.cdbIterator.Key()
-	return value, string(key)
+	return key, string(value)
 }
 

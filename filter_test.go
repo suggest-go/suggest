@@ -31,7 +31,7 @@ func TestScanCount(t *testing.T) {
 
 func TestDivideSkip(t *testing.T) {
 	for _, c := range dataProvider() {
-		actual := divideSkip(c.rid, c.t, 0.085)
+		actual := divideSkip(c.rid, c.t, 0.0085)
 		actualMap := make(map[int][]int)
 		for n, list := range actual {
 			if len(list) == 0 {
