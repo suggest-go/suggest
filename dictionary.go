@@ -2,7 +2,7 @@ package suggest
 
 import (
 	"errors"
-	"github.com/alldroll/go-datastructures/cdb"
+	"github.com/alldroll/cdb"
 	"io"
 )
 
@@ -145,4 +145,3 @@ func (i *cdbDictIter) GetPair() (WordKey, string) {
 
 	return key, string(value)
 }
-
