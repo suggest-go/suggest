@@ -31,7 +31,7 @@ func NewService() *Service {
 
 // AddDictionary add/replace new dictionary with given name
 func (s *Service) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
-	nGramIndex := NewBuilder().
+	nGramIndex := NewRunTimeBuilder().
 		SetAlphabet(config.alphabet).
 		SetDictionary(dictionary).
 		SetNGramSize(config.ngramSize).

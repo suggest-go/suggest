@@ -3,16 +3,16 @@ package suggest
 import (
 	"errors"
 	"github.com/alldroll/cdb"
+	"encoding/binary"
 	"io"
 )
 
 // WordKey represents key in key-value pair for Dictionary
-type WordKey interface{}
 
 // Dictionary is an abstract data type composed of a collection of (key, value) pairs
 type Dictionary interface {
 	// Get returns value associated with a particular key
-	Get(key WordKey) (string, error)
+	Get(key int) (string, error)
 	// Iterator returns an iterator over the elements in this dictionary
 	Iterator() DictionaryIterator
 }
@@ -22,7 +22,7 @@ type DictionaryIterator interface {
 	// Next moves iterator to the next item. Returns true on success otherwise false
 	Next() bool
 	// GetPair returns key-value pair of current item
-	GetPair() (WordKey, string)
+	GetPair() (int, string)
 }
 
 // inMemoryDictionary implements Dictionary with in-memory data access
@@ -42,13 +42,12 @@ func NewInMemoryDictionary(words []string) Dictionary {
 	}
 }
 
-func (d *inMemoryDictionary) Get(key WordKey) (string, error) {
-	k := key.(int)
-	if k < 0 || k >= len(d.holder) {
+func (d *inMemoryDictionary) Get(key int) (string, error) {
+	if key < 0 || key >= len(d.holder) {
 		return "", errors.New("Key is not exists")
 	}
 
-	return d.holder[k], nil
+	return d.holder[key], nil
 }
 
 func (d *inMemoryDictionary) Iterator() DictionaryIterator {
@@ -75,9 +74,9 @@ func (i *inMemoryDictIter) IsValid() bool {
 	return i.index < i.dict.index
 }
 
-func (i *inMemoryDictIter) GetPair() (WordKey, string) {
+func (i *inMemoryDictIter) GetPair() (int, string) {
 	if i.index >= i.dict.index {
-		return nil, ""
+		return 0, ""
 	}
 
 	val, _ := i.dict.Get(i.index)
@@ -102,8 +101,10 @@ func NewCDBDictionary(r io.ReaderAt) Dictionary {
 }
 
 //
-func (d *cdbDictionary) Get(key WordKey) (string, error) {
-	value, err := d.reader.Get(key.([]byte))
+func (d *cdbDictionary) Get(key int) (string, error) {
+	bs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bs, uint32(key))
+	value, err := d.reader.Get(bs)
 	if err != nil {
 		return "", err
 	}
@@ -137,11 +138,11 @@ func (i *cdbDictIter) Next() bool {
 }
 
 //
-func (i *cdbDictIter) GetPair() (WordKey, string) {
+func (i *cdbDictIter) GetPair() (int, string) {
 	value, key := i.cdbIterator.Value(), i.cdbIterator.Key()
 	if key == nil {
-		return nil, ""
+		return 0, ""
 	}
 
-	return key, string(value)
+	return int(binary.LittleEndian.Uint32(key)), string(value)
 }

@@ -6,6 +6,7 @@ const (
 	defaultNGramSize = 3
 )
 
+// Builder
 type Builder interface {
 	SetNGramSize(nGramSize int) Builder
 	SetAlphabet(alphabet Alphabet) Builder
@@ -15,7 +16,7 @@ type Builder interface {
 	Build() NGramIndex
 }
 
-type builderImpl struct {
+type runTimeBuilderImpl struct {
 	nGramSize int
 	alphabet Alphabet
 	dictionary Dictionary
@@ -23,13 +24,79 @@ type builderImpl struct {
 	wrap string
 }
 
-func NewBuilder() Builder {
+func NewRunTimeBuilder() Builder {
+	return &runTimeBuilderImpl{
+		defaultNGramSize,
+		nil,
+		nil,
+		defaultPad,
+		defaultWrap,
+	}
+}
+
+func (b *runTimeBuilderImpl) SetNGramSize(nGramSize int) Builder {
+	b.nGramSize = nGramSize
+	return b
+}
+
+func (b *runTimeBuilderImpl) SetAlphabet(alphabet Alphabet) Builder {
+	b.alphabet = alphabet
+	return b
+}
+
+func (b *runTimeBuilderImpl) SetDictionary(dictionary Dictionary) Builder {
+	b.dictionary = dictionary
+	return b
+}
+
+func (b *runTimeBuilderImpl) SetPad(pad string) Builder {
+	b.pad = pad
+	return b
+}
+
+func (b *runTimeBuilderImpl) SetWrap(wrap string) Builder {
+	b.wrap = wrap
+	return b
+}
+
+func (b *runTimeBuilderImpl) Build() NGramIndex {
+	cleaner := NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
+	generator := NewGenerator(b.nGramSize, b.alphabet)
+	indexer := NewIndexer(
+		b.nGramSize,
+		b.dictionary,
+		generator,
+		cleaner,
+	)
+
+	invertedListsBuilder := NewInMemoryInvertedIndexIndicesBuilder(indexer.Index())
+	invertedIndexIndices := invertedListsBuilder.Build()
+
+	return NewNGramIndex(
+		cleaner,
+		generator,
+		invertedIndexIndices,
+	)
+}
+
+type builderImpl struct {
+	nGramSize int
+	alphabet Alphabet
+	dictionary Dictionary
+	pad string
+	wrap string
+	dbDir string
+}
+
+// NewBuilder works with already indexed data
+func NewBuilder(dbDir string) Builder {
 	return &builderImpl{
 		defaultNGramSize,
 		nil,
 		nil,
 		defaultPad,
 		defaultWrap,
+		dbDir,
 	}
 }
 
@@ -62,18 +129,12 @@ func (b *builderImpl) Build() NGramIndex {
 	cleaner := NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
 	generator := NewGenerator(b.nGramSize, b.alphabet)
 
-	invertedListsBuilder := NewInvertedListBuilder(
-		b.nGramSize,
-		b.dictionary,
-		generator,
-		cleaner,
-	)
-
-	invertedListIndices := invertedListsBuilder.Build()
+	invertedListsBuilder := NewCDBInvertedIndexIndicesBuilder(b.dbDir)
+	invertedIndexIndices := invertedListsBuilder.Build()
 
 	return NewNGramIndex(
 		cleaner,
 		generator,
-		invertedListIndices,
+		invertedIndexIndices,
 	)
 }

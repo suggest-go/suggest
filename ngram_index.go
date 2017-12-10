@@ -20,12 +20,12 @@ type NGramIndex interface {
 
 type nGramIndexImpl struct {
 	cleaner   Cleaner
-	indices   InvertedListsIndices
+	indices   InvertedIndexIndices
 	generator Generator
 }
 
 // NewNGramIndex returns a new NGramIndex object
-func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedListsIndices) NGramIndex {
+func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedIndexIndices) NGramIndex {
 	return &nGramIndexImpl{
 		cleaner, indices, generator,
 	}
@@ -43,7 +43,7 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
 		result = append(
-			[]Candidate{{n.indices.IndexToWordKey(r.id), r.distance}},
+			[]Candidate{{r.id, r.distance}},
 			result...,
 		)
 	}
@@ -51,6 +51,7 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 	return result
 }
 
+// search
 func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 	set := n.generator.Generate(query)
 	sizeA := len(set)
@@ -76,7 +77,10 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 
 		// reset slice
 		rid = rid[:0]
-		invertedLists := n.indices.Get(sizeB)
+		invertedIndex := n.indices.Get(sizeB)
+		if invertedIndex == nil {
+			continue
+		}
 
 		// maximum allowable ngram miss count
 		allowedSkips := sizeA - threshold + 1
@@ -86,9 +90,9 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 				break
 			}
 
-			list := invertedLists[index]
-			if len(list) > 0 {
-				rid = append(rid, list)
+			invertedList := invertedIndex.Get(index)
+			if len(invertedList) > 0 {
+				rid = append(rid, invertedList)
 			} else {
 				allowedSkips--
 			}
@@ -98,7 +102,7 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 			continue
 		}
 
-		counts := n.getCounts(rid, threshold)
+		counts := n.calcOverlap(rid, threshold)
 		// use heap search for finding top k items in a list efficiently
 		// see http://stevehanov.ca/blog/index.php?id=122
 		var r *rank
@@ -110,11 +114,12 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 					if h.Len() == topK {
 						r = heap.Pop(h).(*rank)
 					} else {
-						r = &rank{0, 0}
+						r = &rank{0, 0, 0}
 					}
 
 					r.id = id
 					r.distance = distance
+					r.overlap = inter
 					heap.Push(h, r)
 				}
 			}
@@ -125,7 +130,7 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 }
 
 // TODO describe me!
-func (n *nGramIndexImpl) getCounts(rid [][]int, threshold int) [][]int {
+func (n *nGramIndexImpl) calcOverlap(rid [][]int, threshold int) [][]int {
 	if threshold == 1 {
 		return scanCount(rid, threshold)
 	}

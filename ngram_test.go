@@ -27,12 +27,12 @@ func TestSuggestAuto(t *testing.T) {
 	}
 
 	candidates := nGramIndex.Suggest(conf)
-	actual := make([]WordKey, 0, len(candidates))
+	actual := make([]int, 0, len(candidates))
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
 	}
 
-	expected := []WordKey{
+	expected := []int{
 		2,
 		0,
 	}
@@ -123,7 +123,7 @@ func buildNGramIndex(dictionary Dictionary, ngramSize int) NGramIndex {
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	return NewBuilder().
+	return NewRunTimeBuilder().
 		SetDictionary(dictionary).
 		SetNGramSize(ngramSize).
 		SetAlphabet(alphabet).
