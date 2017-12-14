@@ -69,7 +69,6 @@ func (i *invertedIndexCDBImpl) Get(term int) PostingList {
 	}
 
 	list := make([]int, len(d) / 4)
-
 	for i := range list {
 		list[i] = int(binary.LittleEndian.Uint32(d[4*i:]))
 	}
@@ -119,9 +118,7 @@ func (b *invertedIndexIndicesBuilderInMemoryImpl) Build() InvertedIndexIndices {
 		invertedIndexIndices[i] = NewInMemoryInvertedIndex(table)
 	}
 
-	return &invertedIndexIndicesImpl{
-		invertedIndexIndices,
-	}
+	return NewInvertedIndexIndices(invertedIndexIndices)
 }
 
 // NewCDBInvertedIndexIndicesBuilder
@@ -175,7 +172,5 @@ func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
 		panic(err)
 	}
 
-	return &invertedIndexIndicesImpl{
-		indices,
-	}
+	return NewInvertedIndexIndices(indices)
 }
