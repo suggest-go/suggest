@@ -75,7 +75,7 @@ func BenchmarkSuggest(b *testing.B) {
 func BenchmarkRealExample(b *testing.B) {
 	b.StopTimer()
 
-	file, err := os.Open("cars.dict")
+	file, err := os.Open("testdata/cars.dict")
 	defer file.Close()
 	if err != nil {
 		panic(err)
