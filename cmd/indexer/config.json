@@ -1,0 +1,20 @@
+[
+  {
+    "name": "cars",
+    "nGramSize": 3,
+    "alphabet": ["russian", "english", "numbers", "$"],
+    "source": "../../testdata/cars.dict",
+    "output": "../../testdata",
+    "pad": "$",
+    "wrap": "$"
+  },
+  {
+    "name": "words",
+    "nGramSize": 3,
+    "alphabet": ["english", "numbers", "$"],
+    "source": "/usr/share/dict/words",
+    "output": "../../testdata",
+    "pad": "$",
+    "wrap": "$"
+  }
+]

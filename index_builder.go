@@ -64,12 +64,11 @@ func (b *runTimeBuilderImpl) Build() NGramIndex {
 	generator := NewGenerator(b.nGramSize, b.alphabet)
 	indexer := NewIndexer(
 		b.nGramSize,
-		b.dictionary,
 		generator,
 		cleaner,
 	)
 
-	invertedListsBuilder := NewInMemoryInvertedIndexIndicesBuilder(indexer.Index())
+	invertedListsBuilder := NewInMemoryInvertedIndexIndicesBuilder(indexer.Index(b.dictionary))
 	invertedIndexIndices := invertedListsBuilder.Build()
 
 	return NewNGramIndex(

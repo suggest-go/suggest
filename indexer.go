@@ -3,18 +3,16 @@ package suggest
 type Index []map[int]PostingList
 
 type Indexer interface {
-	Index() Index
+	Index(dictionary Dictionary) Index
 }
 
 func NewIndexer(
 	nGramSize int,
-	dictionary Dictionary,
 	generator Generator,
 	cleaner Cleaner,
 ) Indexer {
 	return &indexerImpl{
 		nGramSize,
-		dictionary,
 		generator,
 		cleaner,
 	}
@@ -22,13 +20,12 @@ func NewIndexer(
 
 type indexerImpl struct {
 	nGramSize int
-	dictionary Dictionary
 	generator Generator
 	cleaner Cleaner
 }
 
-func (ix *indexerImpl) Index() Index {
-	i := ix.dictionary.Iterator()
+func (ix *indexerImpl) Index(dictionary Dictionary) Index {
+	i := dictionary.Iterator()
 	indices := make(Index, 0)
 
 	for {
