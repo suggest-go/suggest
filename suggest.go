@@ -1,7 +1,6 @@
 package suggest
 
 import (
-	//"errors"
 	"sort"
 	"sync"
 )

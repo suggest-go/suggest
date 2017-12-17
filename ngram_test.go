@@ -117,9 +117,9 @@ func BenchmarkRealExample(b *testing.B) {
 
 func buildNGramIndex(dictionary Dictionary, ngramSize int) NGramIndex {
 	alphabet := NewCompositeAlphabet([]Alphabet{
+		NewRussianAlphabet(),
 		NewEnglishAlphabet(),
 		NewNumberAlphabet(),
-		NewRussianAlphabet(),
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 

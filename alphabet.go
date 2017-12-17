@@ -1,5 +1,9 @@
 package suggest
 
+import (
+	"sort"
+)
+
 // InvalidChar represents unmapped value of given char
 const InvalidChar = -1
 
@@ -142,6 +146,11 @@ type compositeAlphabet struct {
 // NewCompositeAlphabet returns new instance of compositeAlphabet
 func NewCompositeAlphabet(alphabets []Alphabet) Alphabet {
 	size := 0
+
+	sort.Slice(alphabets, func(i, j int) bool {
+		return alphabets[i].Size() < alphabets[j].Size()
+	})
+
 	for _, alphabet := range alphabets {
 		size += alphabet.Size()
 	}
@@ -154,6 +163,7 @@ func NewCompositeAlphabet(alphabets []Alphabet) Alphabet {
 	return &compositeAlphabet{alphabets, charHolder{chars}}
 }
 
+// trouble with mapping, we sort alphabet in size order for it, but will be collision when size are equals
 func (a *compositeAlphabet) MapChar(char rune) int {
 	key := InvalidChar
 	shift := 0

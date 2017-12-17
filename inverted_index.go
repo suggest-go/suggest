@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"regexp"
 )
 
 type PostingList []int
@@ -63,6 +63,7 @@ func (i *invertedIndexCDBImpl) Get(term int) PostingList {
 	binary.LittleEndian.PutUint32(b, uint32(term))
 
 	d, err := i.reader.Get(b)
+
 	if err != nil {
 		// TODO handle me
 		panic(err)
@@ -122,13 +123,13 @@ func (b *invertedIndexIndicesBuilderInMemoryImpl) Build() InvertedIndexIndices {
 }
 
 // NewCDBInvertedIndexIndicesBuilder
-func NewCDBInvertedIndexIndicesBuilder(dbDir string) InvertedIndexIndicesBuilder {
-	return &invertedIndexIndicesBuilderCDBImpl{dbDir}
+func NewCDBInvertedIndexIndicesBuilder(pattern string) InvertedIndexIndicesBuilder {
+	return &invertedIndexIndicesBuilderCDBImpl{pattern}
 }
 
 // invertedIndexIndicesBuilderCDBImpl
 type invertedIndexIndicesBuilderCDBImpl struct {
-	dbDir string
+	pattern string
 }
 
 // Build (monkey code, fix me)
@@ -136,26 +137,29 @@ func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
 	cdbHandle := cdb.New()
 	indices := make([]InvertedIndex, 0)
 
-	err := filepath.Walk(b.dbDir, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() || err != nil {
-			return err
+	matched, err := filepath.Glob(b.pattern)
+	if err != nil {
+		panic(err)
+	}
+
+	regExp := regexp.MustCompile(`\d+`)
+
+	for _, fileName := range matched {
+		m := regExp.FindStringSubmatch(fileName)
+
+		if len(m) != 1 {
+			continue
 		}
 
-		baseName := info.Name()
-		indexStr := strings.TrimSuffix(baseName, filepath.Ext(baseName))
-		index, err := strconv.Atoi(indexStr)
+		index, err := strconv.Atoi(m[0])
+		f, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
 		if err != nil {
-			return err
-		}
-
-		f, err := os.OpenFile(path, os.O_RDONLY, 0666)
-		if err != nil {
-			return err
+			panic(err)
 		}
 
 		reader, err := cdbHandle.GetReader(f)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
 		if len(indices) <= index {
@@ -165,11 +169,6 @@ func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
 		}
 
 		indices[index] = NewCdbInvertedIndex(reader)
-		return err
-	})
-
-	if err != nil {
-		panic(err)
 	}
 
 	return NewInvertedIndexIndices(indices)

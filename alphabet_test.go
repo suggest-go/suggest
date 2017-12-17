@@ -30,8 +30,8 @@ func TestSequentialAlphabet(t *testing.T) {
 func TestCompositeAlphabet(t *testing.T) {
 	alphabet := NewCompositeAlphabet(
 		[]Alphabet{
-			NewEnglishAlphabet(),
 			NewRussianAlphabet(),
+			NewEnglishAlphabet(),
 			NewNumberAlphabet(),
 		},
 	)
@@ -40,15 +40,15 @@ func TestCompositeAlphabet(t *testing.T) {
 		char     rune
 		expected int
 	}{
-		{'a', 0},
-		{'b', 1},
-		{'z', 25},
-		{'а', 26 + 0},
-		{'ё', 26 + 5},
-		{'е', 26 + 5},
-		{'ж', 26 + 6},
-		{'я', 26 + 31},
-		{'7', 26 + 32 + 7}, //exclude ё, thats why 32 for russian
+		{'a', 10 + 0},
+		{'b', 10 + 1},
+		{'z', 10 + 25},
+		{'а', 10 + 26 + 0},
+		{'ё', 10 + 26 + 5},
+		{'е', 10 + 26 + 5},
+		{'ж', 10 + 26 + 6},
+		{'я', 10 + 26 + 31},
+		{'7', 7},
 		{'-', InvalidChar},
 	}
 
