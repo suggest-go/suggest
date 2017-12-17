@@ -192,18 +192,23 @@ func main() {
 	totalStart := time.Now()
 
 	for _, config := range configs {
-		log.Printf("Start process '%s' config\n", config.Name)
+		log.Printf("Start process '%s' config", config.Name)
 
 		alphabet := getAlphabet(config.Alphabet)
 		cleaner := suggest.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
 		generator := suggest.NewGenerator(config.NGramSize, alphabet)
+
+		log.Printf("Building dictionary...")
+
+		start := time.Now()
 		dictionary := buildDictionary(config.Name, config.SourcePath, config.OutputPath)
+		log.Printf("Time spent %s", time.Since(start))
 
 		// create index in memory
 		indexer := suggest.NewIndexer(config.NGramSize, generator, cleaner)
 		log.Printf("Creating index...")
 
-		start := time.Now()
+		start = time.Now()
 		index := indexer.Index(dictionary)
 		log.Printf("Time spent %s", time.Since(start))
 
