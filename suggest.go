@@ -21,18 +21,17 @@ type Service struct {
 
 // NewService creates an empty SuggestService
 func NewService() *Service {
-	// fixme
 	return &Service{
 		indexes:      make(map[string]NGramIndex),
 		dictionaries: make(map[string]Dictionary),
 	}
 }
 
-// AddDictionary add/replace new dictionary with given name
-func (s *Service) AddDictionary(name string, dictionary Dictionary, config *IndexConfig) error {
+// AddRunTimeIndex add/replace new dictionary with given name
+func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
 	nGramIndex := NewRunTimeBuilder().
 		SetAlphabet(config.alphabet).
-		SetDictionary(dictionary).
+		SetDictionary(config.dictionary).
 		SetNGramSize(config.ngramSize).
 		SetWrap(config.wrap).
 		SetPad(config.pad).
@@ -40,7 +39,24 @@ func (s *Service) AddDictionary(name string, dictionary Dictionary, config *Inde
 
 	s.Lock()
 	s.indexes[name] = nGramIndex
-	s.dictionaries[name] = dictionary
+	s.dictionaries[name] = config.dictionary
+	s.Unlock()
+	return nil
+}
+
+// AddOnDiscIndex add/replace new dictionary with given name
+func (s *Service) AddOnDiscIndex(name string, dbPattern string, config *IndexConfig) error {
+	nGramIndex := NewBuilder(dbPattern).
+		SetAlphabet(config.alphabet).
+		SetDictionary(config.dictionary).
+		SetNGramSize(config.ngramSize).
+		SetWrap(config.wrap).
+		SetPad(config.pad).
+		Build()
+
+	s.Lock()
+	s.indexes[name] = nGramIndex
+	s.dictionaries[name] = config.dictionary
 	s.Unlock()
 	return nil
 }

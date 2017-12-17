@@ -11,9 +11,9 @@ func TestConcurrency(t *testing.T) {
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	conf, _ := NewIndexConfig(3, alphabet, "$", "$")
 	wordsList := []string{"abc", "test2", "test3", "test4", "teta"}
 	dictionary := NewInMemoryDictionary(wordsList)
+	conf, _ := NewIndexConfig(3, dictionary, alphabet, "$", "$")
 	service := NewService()
 
 	var wg sync.WaitGroup
@@ -21,7 +21,7 @@ func TestConcurrency(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 5; i++ {
-			service.AddDictionary(wordsList[i], dictionary, conf)
+			service.AddRunTimeIndex(wordsList[i], conf)
 		}
 		wg.Done()
 	}()

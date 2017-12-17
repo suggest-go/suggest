@@ -17,10 +17,11 @@ type IndexConfig struct {
 	alphabet  Alphabet
 	wrap      string
 	pad       string
+	dictionary Dictionary
 }
 
 // NewIndexConfig returns new instance of IndexConfig
-func NewIndexConfig(k int, alphabet Alphabet, wrap, pad string) (*IndexConfig, error) {
+func NewIndexConfig(k int, dictionary Dictionary, alphabet Alphabet, wrap, pad string) (*IndexConfig, error) {
 	if k < MinNGramSize || k > MaxNGramSize {
 		return nil, fmt.Errorf("k should be in [%d, %d]", MinNGramSize, MaxNGramSize)
 	}
@@ -34,6 +35,7 @@ func NewIndexConfig(k int, alphabet Alphabet, wrap, pad string) (*IndexConfig, e
 		alphabet,
 		wrap,
 		pad,
+		dictionary,
 	}, nil
 }
 

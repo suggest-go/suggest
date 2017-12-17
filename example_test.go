@@ -14,14 +14,6 @@ func Example() {
 		suggest.NewSimpleAlphabet([]rune{'$'}), // pad wrap
 	})
 
-	// create IndexConfig with ngramSize, alphabet, wrap and pad
-	wrap, pad := "$", "$"
-	ngramSize := 3
-	conf, err := suggest.NewIndexConfig(ngramSize, alphabet, wrap, pad)
-	if err != nil {
-		panic(err)
-	}
-
 	// we create InMemoryDictionary. Here we can use anything we want,
 	// for example SqlDictionary
 	collection := []string{
@@ -34,10 +26,19 @@ func Example() {
 		"Toyota Corolla",
 		"Toyota Corona",
 	}
+
 	dictionary := suggest.NewInMemoryDictionary(collection)
 
+	// create IndexConfig with ngramSize, alphabet, wrap and pad
+	wrap, pad := "$", "$"
+	ngramSize := 3
+	conf, err := suggest.NewIndexConfig(ngramSize, dictionary, alphabet, wrap, pad)
+	if err != nil {
+		panic(err)
+	}
+
 	service := suggest.NewService()
-	service.AddDictionary("cars", dictionary, conf)
+	service.AddRunTimeIndex("cars", conf)
 
 	topK := 5
 	sim := 0.4

@@ -3,10 +3,10 @@ package suggest
 import (
 	"github.com/alldroll/cdb"
 	"encoding/binary"
-	"os"
 	"path/filepath"
 	"strconv"
 	"regexp"
+	"golang.org/x/exp/mmap"
 )
 
 type PostingList []int
@@ -152,7 +152,7 @@ func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
 		}
 
 		index, err := strconv.Atoi(m[0])
-		f, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
+		f, err := mmap.Open(fileName)
 		if err != nil {
 			panic(err)
 		}
