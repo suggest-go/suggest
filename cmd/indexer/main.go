@@ -125,6 +125,7 @@ func buildDictionary(name, sourcePath, outputPath string) suggest.Dictionary {
 func storeIndex(name string, outputPath string, index suggest.Index) {
 	key := make([]byte, 4)
 	cdbHandle := cdb.New()
+	encoder := suggest.BinaryEncoder()
 
 	for length, table := range index {
 		if table == nil {
@@ -150,11 +151,7 @@ func storeIndex(name string, outputPath string, index suggest.Index) {
 				continue
 			}
 
-			value := make([]byte, len(postingList) * 4)
-			for i, x := range postingList {
-				binary.LittleEndian.PutUint32(value[4*i:], uint32(x))
-			}
-
+			value := encoder.Encode(postingList)
 			binary.LittleEndian.PutUint32(key, uint32(docId))
 
 			err = cdbWriter.Put(key, value)

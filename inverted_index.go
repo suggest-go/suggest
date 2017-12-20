@@ -1,12 +1,12 @@
 package suggest
 
 import (
-	"github.com/alldroll/cdb"
 	"encoding/binary"
-	"path/filepath"
-	"strconv"
-	"regexp"
+	"github.com/alldroll/cdb"
 	"golang.org/x/exp/mmap"
+	"path/filepath"
+	"regexp"
+	"strconv"
 )
 
 type PostingList []int
@@ -46,15 +46,15 @@ func (i *invertedIndexInMemoryImpl) Get(term int) PostingList {
 	return i.table[term]
 }
 
-
 // NewCdbInvertedIndex
-func NewCdbInvertedIndex(reader cdb.Reader) InvertedIndex {
-	return &invertedIndexCDBImpl{reader}
+func NewCdbInvertedIndex(reader cdb.Reader, decoder Decoder) InvertedIndex {
+	return &invertedIndexCDBImpl{reader, decoder}
 }
 
 //
 type invertedIndexCDBImpl struct {
-	reader cdb.Reader
+	reader  cdb.Reader
+	decoder Decoder
 }
 
 // Get
@@ -63,17 +63,12 @@ func (i *invertedIndexCDBImpl) Get(term int) PostingList {
 	binary.LittleEndian.PutUint32(b, uint32(term))
 
 	d, err := i.reader.Get(b)
-
 	if err != nil {
 		// TODO handle me
 		panic(err)
 	}
 
-	list := make([]int, len(d) / 4)
-	for i := range list {
-		list[i] = int(binary.LittleEndian.Uint32(d[4*i:]))
-	}
-
+	list := i.decoder.Decode(d)
 	return list
 }
 
@@ -143,6 +138,7 @@ func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
 	}
 
 	regExp := regexp.MustCompile(`\d+`)
+	decoder := BinaryDecoder()
 
 	for _, fileName := range matched {
 		m := regExp.FindStringSubmatch(fileName)
@@ -168,7 +164,7 @@ func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
 			indices = tmp
 		}
 
-		indices[index] = NewCdbInvertedIndex(reader)
+		indices[index] = NewCdbInvertedIndex(reader, decoder)
 	}
 
 	return NewInvertedIndexIndices(indices)
