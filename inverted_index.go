@@ -9,12 +9,14 @@ import (
 	"strconv"
 )
 
-type PostingList []int
+type Term int32
+type Position uint32
+type PostingList []Position
 
 // InvertedIndex
 type InvertedIndex interface {
 	// Get
-	Get(term int) PostingList
+	Get(term Term) PostingList
 }
 
 // InvertedIndexIndices
@@ -32,17 +34,17 @@ type InvertedIndexIndicesBuilder interface {
 }
 
 // NewInMemoryInvertedIndex
-func NewInMemoryInvertedIndex(table map[int]PostingList) InvertedIndex {
+func NewInMemoryInvertedIndex(table map[Term]PostingList) InvertedIndex {
 	return &invertedIndexInMemoryImpl{table}
 }
 
 // invertedIndexInMemoryImpl
 type invertedIndexInMemoryImpl struct {
-	table map[int]PostingList
+	table map[Term]PostingList
 }
 
 // Get
-func (i *invertedIndexInMemoryImpl) Get(term int) PostingList {
+func (i *invertedIndexInMemoryImpl) Get(term Term) PostingList {
 	return i.table[term]
 }
 
@@ -58,7 +60,7 @@ type invertedIndexCDBImpl struct {
 }
 
 // Get
-func (i *invertedIndexCDBImpl) Get(term int) PostingList {
+func (i *invertedIndexCDBImpl) Get(term Term) PostingList {
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, uint32(term))
 

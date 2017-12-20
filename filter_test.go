@@ -2,8 +2,8 @@ package suggest
 
 import (
 	"reflect"
-	"sort"
 	"testing"
+	"sort"
 )
 
 // IMPLEMENT ME
@@ -13,13 +13,16 @@ func TestCPMerge(t *testing.T) {
 func TestScanCount(t *testing.T) {
 	for _, c := range dataProvider() {
 		actual := scanCount(c.rid, c.t)
-		actualMap := make(map[int][]int)
+		actualMap := make(map[int]PostingList)
 		for n, list := range actual {
 			if len(list) == 0 {
 				continue
 			}
 
-			sort.Sort(sort.IntSlice(list))
+			sort.Slice(list, func(i, j int) bool {
+				return list[i] < list[j]
+			})
+
 			actualMap[n] = list
 		}
 
@@ -32,7 +35,7 @@ func TestScanCount(t *testing.T) {
 func TestDivideSkip(t *testing.T) {
 	for _, c := range dataProvider() {
 		actual := divideSkip(c.rid, c.t, 0.0085)
-		actualMap := make(map[int][]int)
+		actualMap := make(map[int]PostingList)
 		for n, list := range actual {
 			if len(list) == 0 {
 				continue
@@ -50,7 +53,7 @@ func TestDivideSkip(t *testing.T) {
 func TestMergeSkip(t *testing.T) {
 	for _, c := range dataProvider() {
 		actual := mergeSkip(c.rid, c.t)
-		actualMap := make(map[int][]int)
+		actualMap := make(map[int]PostingList)
 		for n, list := range actual {
 			if len(list) == 0 {
 				continue
@@ -66,52 +69,52 @@ func TestMergeSkip(t *testing.T) {
 }
 
 type oneCase struct {
-	rid      [][]int
+	rid      []PostingList
 	t        int
-	expected map[int][]int
+	expected map[int]PostingList
 }
 
 func dataProvider() []oneCase {
 	return []oneCase{
 		{
-			[][]int{
+			[]PostingList{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
 				{2},
 			},
 			2,
-			map[int][]int{
+			map[int]PostingList{
 				2: {1, 3},
 				4: {2},
 			},
 		},
 		{
-			[][]int{
+			[]PostingList{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
 				{2},
 			},
 			3,
-			map[int][]int{
+			map[int]PostingList{
 				4: {2},
 			},
 		},
 		{
-			[][]int{
+			[]PostingList{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
 				{2},
 			},
 			4,
-			map[int][]int{
+			map[int]PostingList{
 				4: {2},
 			},
 		},
 		{
-			[][]int{
+			[]PostingList{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -119,12 +122,12 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			4,
-			map[int][]int{
+			map[int]PostingList{
 				4: {50},
 			},
 		},
 		{
-			[][]int{
+			[]PostingList{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -132,12 +135,12 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			3,
-			map[int][]int{
+			map[int]PostingList{
 				4: {50},
 			},
 		},
 		{
-			[][]int{
+			[]PostingList{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -145,7 +148,7 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			2,
-			map[int][]int{
+			map[int]PostingList{
 				2: {10, 60, 100},
 				4: {50},
 			},
@@ -154,9 +157,9 @@ func dataProvider() []oneCase {
 }
 
 func TestBinSearch(t *testing.T) {
-	items := []int{0, 1, 3, 7, 9, 10, 11}
+	items := PostingList{0, 1, 3, 7, 9, 10, 11}
 	cases := []struct {
-		val      int
+		val      Position
 		expected int
 	}{
 		{1, 1},
@@ -173,7 +176,7 @@ func TestBinSearch(t *testing.T) {
 	for _, c := range cases {
 		actual := binarySearch(items, c.val)
 		if actual != -1 {
-			actual = items[actual]
+			actual = int(items[actual])
 		}
 
 		if actual != c.expected {

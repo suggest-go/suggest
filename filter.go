@@ -12,39 +12,40 @@ import (
 )
 
 type record struct {
-	ridID, strID int
+	ridID int
+	pos   Position
 }
 
 func (r *record) Less(other heapItem) bool {
-	return r.strID < other.(*record).strID
+	return r.pos < other.(*record).pos
 }
 
 // scanCount scan the N inverted lists one by one.
 // For each string id on each list, we increment the count
 // corresponding to the string by 1. We report the string ids that
 // appear at least `threshold` times on the lists.
-func scanCount(rid [][]int, threshold int) [][]int {
+func scanCount(rid []PostingList, threshold int) []PostingList {
 	size := len(rid)
-	result := make([][]int, size+1)
+	result := make([]PostingList, size+1)
 
 	mapSize := 0
 	for i := range rid {
 		mapSize += len(rid[i])
 	}
 
-	counts := make(map[int]int, mapSize+1)
+	counts := make(map[Position]int, mapSize+1)
 	for _, curRid := range rid {
-		for _, strID := range curRid {
-			counts[strID]++
+		for _, pos := range curRid {
+			counts[pos]++
 		}
 	}
 
-	for strID, count := range counts {
+	for pos, count := range counts {
 		if count < threshold {
 			continue
 		}
 
-		result[count] = append(result[count], strID)
+		result[count] = append(result[count], pos)
 	}
 
 	return result
@@ -52,7 +53,7 @@ func scanCount(rid [][]int, threshold int) [][]int {
 
 // cpMerge was described in paper
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
-func cpMerge(rid [][]int, threshold int) [][]int {
+func cpMerge(rid []PostingList, threshold int) []PostingList {
 	panic("Implement me")
 	return nil
 }
@@ -61,7 +62,7 @@ func cpMerge(rid [][]int, threshold int) [][]int {
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // We have to choose `good` parameter mu, for improving speed. So, mu depends
 // only on given dictionary, so we can find it
-func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
+func divideSkip(rid []PostingList, threshold int, mu float64) []PostingList {
 	sort.Slice(rid, func(i, j int) bool {
 		return len(rid[i]) > len(rid[j])
 	})
@@ -71,7 +72,7 @@ func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 
 	lLong := rid[:l]
 	lShort := rid[l:]
-	result := make([][]int, len(rid)+1)
+	result := make([]PostingList, len(rid)+1)
 
 	if len(lShort) == 0 {
 		return mergeSkip(rid, threshold)
@@ -100,10 +101,10 @@ func divideSkip(rid [][]int, threshold int, mu float64) [][]int {
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // Formally, main idea is to skip on the lists those record ids that cannot be in
 // the answer to the query, by utilizing the threshold
-func mergeSkip(rid [][]int, threshold int) [][]int {
+func mergeSkip(rid []PostingList, threshold int) []PostingList {
 	h := &heapImpl{}
 	lenRid := len(rid)
-	result := make([][]int, lenRid+1)
+	result := make([]PostingList, lenRid+1)
 
 	for i := 0; i < lenRid; i++ {
 		heap.Push(h, &record{i, rid[i][0]})
@@ -114,20 +115,20 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 		// reset slice
 		poppedItems = poppedItems[:0]
 		t := h.Top()
-		for h.Len() > 0 && h.Top().(*record).strID == t.(*record).strID {
+		for h.Len() > 0 && h.Top().(*record).pos == t.(*record).pos {
 			item := heap.Pop(h)
 			poppedItems = append(poppedItems, item.(*record))
 		}
 
 		n := len(poppedItems)
 		if n >= threshold {
-			result[n] = append(result[n], t.(*record).strID)
+			result[n] = append(result[n], t.(*record).pos)
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
 				if len(cur) > 1 {
 					cur = cur[1:]
 					rid[item.ridID] = cur
-					item.strID = cur[0]
+					item.pos = cur[0]
 					heap.Push(h, item)
 				}
 			}
@@ -150,7 +151,7 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 					continue
 				}
 
-				r := binarySearch(cur, t.(*record).strID)
+				r := binarySearch(cur, t.(*record).pos)
 				if r == -1 {
 					continue
 				}
@@ -158,7 +159,7 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 				if r != -1 {
 					cur = cur[r:]
 					rid[item.ridID] = cur
-					item.strID = cur[0]
+					item.pos = cur[0]
 					heap.Push(h, item)
 				}
 			}
@@ -169,7 +170,7 @@ func mergeSkip(rid [][]int, threshold int) [][]int {
 }
 
 // binarySearch find the smallest record t in given arr such that t >= value
-func binarySearch(arr []int, value int) int {
+func binarySearch(arr PostingList, value Position) int {
 	i := 0
 	j := len(arr)
 	if i == j || arr[j-1] < value {

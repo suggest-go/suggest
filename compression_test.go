@@ -31,7 +31,11 @@ func BenchmarkBytesAlgoDecode(b *testing.B) {
 	encoder := BinaryEncoder()
 	decoder := BinaryDecoder()
 
-	list := rand.Perm(1000)
+	list := make(PostingList, 0, 1000)
+	for i := 1; i <= 1000; i++ {
+		list = append(list, Position(rand.Intn(1000)))
+	}
+
 	bytes := encoder.Encode(list)
 
 	b.ResetTimer()
@@ -45,7 +49,11 @@ func BenchmarkVBDecode(b *testing.B) {
 	encoder := VBEncoder()
 	decoder := VBDecoder()
 
-	list := rand.Perm(1000)
+	list := make(PostingList, 0, 1000)
+	for i := 1; i <= 1000; i++ {
+		list = append(list, Position(rand.Intn(1000)))
+	}
+
 	bytes := encoder.Encode(list)
 
 	b.ResetTimer()

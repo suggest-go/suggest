@@ -9,7 +9,7 @@ func TestSequentialAlphabet(t *testing.T) {
 
 	cases := []struct {
 		char     rune
-		expected int
+		expected int32
 	}{
 		{'а', 0},
 		{'е', 5},
@@ -38,7 +38,7 @@ func TestCompositeAlphabet(t *testing.T) {
 
 	cases := []struct {
 		char     rune
-		expected int
+		expected int32
 	}{
 		{'a', 10 + 0},
 		{'b', 10 + 1},

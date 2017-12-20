@@ -33,10 +33,10 @@ func (b *binaryEnc) Encode(list PostingList) []byte {
 }
 
 func (b *binaryEnc) Decode(bytes []byte) PostingList {
-	list := make([]int, len(bytes)/4)
+	list := make(PostingList, len(bytes)/4)
 
 	for i := range list {
-		list[i] = int(binary.LittleEndian.Uint32(bytes[4*i:]))
+		list[i] = Position(binary.LittleEndian.Uint32(bytes[4*i:]))
 	}
 
 	return list
@@ -71,13 +71,13 @@ func (b *vbEnc) Encode(list PostingList) []byte {
 func (b *vbEnc) Decode(bytes []byte) PostingList {
 	v := uint32(0)
 	s := uint(0)
-	decoded := make([]int, 0, len(bytes)) //bad
+	decoded := make(PostingList, 0, len(bytes)) //bad
 
 	for _, b := range bytes {
 		v |= uint32(b&0x7f) << s
 
 		if b < 0x80 {
-			decoded = append(decoded, int(v))
+			decoded = append(decoded, Position(v))
 			s, v = 0, 0
 		} else {
 			s += 7
@@ -87,7 +87,7 @@ func (b *vbEnc) Decode(bytes []byte) PostingList {
 	return decoded
 }
 
-func estimateByteNum(v int) int {
+func estimateByteNum(v Position) int {
 	num := 0
 
 	if (1 << 7) > v {
@@ -98,8 +98,6 @@ func estimateByteNum(v int) int {
 		num = 3
 	} else if (1 << 28) > v {
 		num = 4
-	} else if (1 << 35) > v {
-		num = 5
 	}
 
 	return num

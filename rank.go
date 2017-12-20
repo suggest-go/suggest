@@ -4,12 +4,12 @@ package suggest
 
 // Candidate is representing candidate of the similarity of the query
 type Candidate struct {
-	Key      int
+	Key      Position
 	Distance float64
 }
 
 type rank struct {
-	id       int
+	id       Position
 	overlap  int
 	distance float64
 }

@@ -62,7 +62,7 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 
 	h := &heapImpl{}
 	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
-	rid := make([][]int, 0, sizeA)
+	rid := make([]PostingList, 0, sizeA)
 	lenIndices := n.indices.Size()
 
 	if bMax >= lenIndices {
@@ -130,7 +130,7 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 }
 
 // TODO describe me!
-func (n *nGramIndexImpl) calcOverlap(rid [][]int, threshold int) [][]int {
+func (n *nGramIndexImpl) calcOverlap(rid []PostingList, threshold int) []PostingList {
 	if threshold == 1 {
 		return scanCount(rid, threshold)
 	}

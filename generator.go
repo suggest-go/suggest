@@ -3,7 +3,7 @@ package suggest
 const maxN = 8
 
 type Generator interface {
-	Generate(word string) []int
+	Generate(word string) []Term
 	NGramSize() int
 }
 
@@ -16,11 +16,11 @@ func NewGenerator(nGramSize int, alphabet Alphabet) Generator {
 	return &generatorImpl{nGramSize, alphabet}
 }
 
-func (g *generatorImpl) Generate(word string) []int {
+func (g *generatorImpl) Generate(word string) []Term {
 	nGrams := splitIntoNGrams(word, g.nGramSize)
 	l := len(nGrams)
-	set := make(map[int]struct{}, l)
-	list := make([]int, 0, l)
+	set := make(map[Term]struct{}, l)
+	list := make([]Term, 0, l)
 	for _, nGram := range nGrams {
 		index := g.nGramToIndex(nGram)
 		_, found := set[index]
@@ -67,8 +67,8 @@ func splitIntoNGrams(word string, k int) []string {
 }
 
 // Map ngram to int (index)
-func (g *generatorImpl) nGramToIndex(nGram string) int {
-	index := 0
+func (g *generatorImpl) nGramToIndex(nGram string) Term {
+	index := int32(0)
 	size := g.alphabet.Size()
 	for _, char := range nGram {
 		i := g.alphabet.MapChar(char)
@@ -76,8 +76,8 @@ func (g *generatorImpl) nGramToIndex(nGram string) int {
 			panic("Invalid char was detected")
 		}
 
-		index = index*size + i
+		index = index*int32(size) + i
 	}
 
-	return int(index)
+	return Term(index)
 }

@@ -1,6 +1,6 @@
 package suggest
 
-type Index []map[int]PostingList
+type Index []map[Term]PostingList
 
 type Indexer interface {
 	Index(dictionary Dictionary) Index
@@ -45,7 +45,7 @@ func (ix *indexerImpl) Index(dictionary Dictionary) Index {
 
 			table := indices[cardinality]
 			if table == nil {
-				table = make(map[int]PostingList)
+				table = make(map[Term]PostingList)
 				indices[cardinality] = table
 			}
 
@@ -61,26 +61,3 @@ func (ix *indexerImpl) Index(dictionary Dictionary) Index {
 
 	return indices
 }
-
-/*
-func (b *invertedIndexIndicesBuilderCDBImpl) store(writer cdb.Writer, table map[int]InvertedList) error {
-	k := make([]byte, 4)
-
-	for key, list := range table {
-		if list == nil {
-			continue
-		}
-
-		value := make([]byte, len(list) * 4)
-		for i, x := range list {
-			binary.LittleEndian.PutUint32(value[4*i:], uint32(x))
-		}
-
-		binary.LittleEndian.PutUint32(k, uint32(key))
-
-		writer.Put(k, value)
-	}
-
-	return writer.Close()
-}
-*/

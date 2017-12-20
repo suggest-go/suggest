@@ -27,12 +27,12 @@ func TestSuggestAuto(t *testing.T) {
 	}
 
 	candidates := nGramIndex.Suggest(conf)
-	actual := make([]int, 0, len(candidates))
+	actual := make(PostingList, 0, len(candidates))
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
 	}
 
-	expected := []int{
+	expected := PostingList{
 		2,
 		0,
 	}

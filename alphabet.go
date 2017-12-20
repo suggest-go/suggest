@@ -9,8 +9,8 @@ const InvalidChar = -1
 
 // Alphabet is abstract for manipulating with set of symbols
 type Alphabet interface {
-	// MapChar map given char to int
-	MapChar(char rune) int
+	// MapChar map given char to int32
+	MapChar(char rune) int32
 	// Size returns the size of alphabet
 	Size() int
 	// Chars returns the current set of symbols
@@ -33,14 +33,14 @@ func (c *charHolder) Chars() []rune {
 
 // simpleAlphabet is alphabet, which use map for mapping char to int
 type simpleAlphabet struct {
-	table map[rune]int
+	table map[rune]int32
 	charHolder
 }
 
 // NewSimpleAlphabet returns new instance of SimpleAlphabet
 func NewSimpleAlphabet(chars []rune) Alphabet {
-	table := make(map[rune]int, len(chars))
-	index := 0
+	table := make(map[rune]int32, len(chars))
+	index := int32(0)
 	for _, char := range chars {
 		table[char] = index
 		index++
@@ -49,7 +49,7 @@ func NewSimpleAlphabet(chars []rune) Alphabet {
 	return &simpleAlphabet{table, charHolder{chars}}
 }
 
-func (a *simpleAlphabet) MapChar(char rune) int {
+func (a *simpleAlphabet) MapChar(char rune) int32 {
 	index, ok := a.table[char]
 	if !ok {
 		index = InvalidChar
@@ -76,12 +76,12 @@ func NewSequentialAlphabet(min, max rune) Alphabet {
 	}
 }
 
-func (a *sequentialAlphabet) MapChar(char rune) int {
+func (a *sequentialAlphabet) MapChar(char rune) int32 {
 	if char < a.min || char > a.max {
 		return InvalidChar
 	}
 
-	return int(char - a.min)
+	return int32(char - a.min)
 }
 
 // russianAlphabet represents russian alphabet а-я
@@ -97,7 +97,7 @@ func NewRussianAlphabet() Alphabet {
 }
 
 // Note, that we map ё as e
-func (a *russianAlphabet) MapChar(char rune) int {
+func (a *russianAlphabet) MapChar(char rune) int32 {
 	if char == 'ё' {
 		return a.parent.MapChar('е')
 	}
@@ -164,13 +164,13 @@ func NewCompositeAlphabet(alphabets []Alphabet) Alphabet {
 }
 
 // trouble with mapping, we sort alphabet in size order for it, but will be collision when size are equals
-func (a *compositeAlphabet) MapChar(char rune) int {
-	key := InvalidChar
+func (a *compositeAlphabet) MapChar(char rune) int32 {
+	key := int32(InvalidChar)
 	shift := 0
 	for _, alphabet := range a.alphabets {
 		key = alphabet.MapChar(char)
 		if key != InvalidChar {
-			key += shift
+			key += int32(shift)
 			break
 		}
 
