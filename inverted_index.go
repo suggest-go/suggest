@@ -140,7 +140,7 @@ func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
 	}
 
 	regExp := regexp.MustCompile(`\d+`)
-	decoder := BinaryDecoder()
+	decoder := VBDecoder()
 
 	for _, fileName := range matched {
 		m := regExp.FindStringSubmatch(fileName)

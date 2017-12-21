@@ -125,7 +125,7 @@ func buildDictionary(name, sourcePath, outputPath string) suggest.Dictionary {
 func storeIndex(name string, outputPath string, index suggest.Index) {
 	key := make([]byte, 4)
 	cdbHandle := cdb.New()
-	encoder := suggest.BinaryEncoder()
+	encoder := suggest.VBEncoder()
 
 	for length, table := range index {
 		if table == nil {
