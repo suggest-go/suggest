@@ -33,6 +33,10 @@ func (b *binaryEnc) Encode(list PostingList) []byte {
 }
 
 func (b *binaryEnc) Decode(bytes []byte) PostingList {
+	if len(bytes) < 4 {
+		return nil
+	}
+
 	list := make(PostingList, len(bytes)/4)
 
 	for i := range list {
@@ -53,7 +57,7 @@ func VBDecoder() Decoder {
 type vbEnc struct{}
 
 func (b *vbEnc) Encode(list PostingList) []byte {
-	sum, l, prev, delta := 0, 0, Position(0), Position(0)
+	sum, l, prev, delta := 0, 4, Position(0), Position(0)
 
 	for _, v := range list {
 		sum += estimateByteNum(v - prev)
@@ -61,7 +65,8 @@ func (b *vbEnc) Encode(list PostingList) []byte {
 	}
 
 	prev = 0
-	encoded := make([]byte, sum)
+	encoded := make([]byte, sum+4)
+	binary.LittleEndian.PutUint32(encoded, uint32(len(list)))
 
 	for _, v := range list {
 		delta = v - prev
@@ -81,19 +86,26 @@ func (b *vbEnc) Encode(list PostingList) []byte {
 }
 
 func (b *vbEnc) Decode(bytes []byte) PostingList {
+	if len(bytes) < 4 {
+		return nil
+	}
+
 	v := uint32(0)
 	s := uint(0)
 	prev := uint32(0)
+	i := 0
 
-	decoded := make(PostingList, 0, len(bytes)) //bad (we should to store posting list size
+	listLen := int(binary.LittleEndian.Uint32(bytes))
+	decoded := make(PostingList, listLen)
 
-	for _, b := range bytes {
+	for _, b := range bytes[4:] {
 		v |= uint32(b&0x7f) << s
 
 		if b < 0x80 {
 			prev = v + prev
-			decoded = append(decoded, Position(prev))
+			decoded[i] = Position(prev)
 			s, v = 0, 0
+			i++
 		} else {
 			s += 7
 		}

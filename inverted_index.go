@@ -70,6 +70,10 @@ func (i *invertedIndexCDBImpl) Get(term Term) PostingList {
 		panic(err)
 	}
 
+	if d == nil {
+		return nil
+	}
+
 	list := i.decoder.Decode(d)
 	return list
 }
