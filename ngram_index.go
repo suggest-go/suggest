@@ -60,7 +60,7 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 	similarity := config.similarity
 	topK := config.topK
 
-	h := &heapImpl{}
+	h := newHeap(topK)
 	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
 	rid := make([]PostingList, 0, sizeA)
 	lenIndices := n.indices.Size()

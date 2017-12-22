@@ -6,6 +6,11 @@ type heapItem interface {
 
 type heapImpl []heapItem
 
+func newHeap(capacity int) *heapImpl {
+	hp := make(heapImpl, 0, capacity)
+	return &hp
+}
+
 //
 func (h heapImpl) Len() int {
 	return len(h)

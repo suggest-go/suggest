@@ -102,15 +102,15 @@ func divideSkip(rid []PostingList, threshold int, mu float64) []PostingList {
 // Formally, main idea is to skip on the lists those record ids that cannot be in
 // the answer to the query, by utilizing the threshold
 func mergeSkip(rid []PostingList, threshold int) []PostingList {
-	h := &heapImpl{}
 	lenRid := len(rid)
+	h := newHeap(lenRid)
 	result := make([]PostingList, lenRid+1)
+	poppedItems := make([]*record, 0, lenRid)
 
 	for i := 0; i < lenRid; i++ {
 		heap.Push(h, &record{i, rid[i][0]})
 	}
 
-	poppedItems := make([]*record, 0, lenRid)
 	for h.Len() > 0 {
 		// reset slice
 		poppedItems = poppedItems[:0]
