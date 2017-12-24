@@ -57,7 +57,7 @@ func VBDecoder() Decoder {
 type vbEnc struct{}
 
 func (b *vbEnc) Encode(list PostingList) []byte {
-	sum, l, prev, delta := 0, 4, Position(0), Position(0)
+	sum, l, prev, delta := 4, 4, Position(0), Position(0)
 
 	for _, v := range list {
 		sum += estimateByteNum(v - prev)
@@ -65,67 +65,133 @@ func (b *vbEnc) Encode(list PostingList) []byte {
 	}
 
 	prev = 0
-	encoded := make([]byte, sum+4)
+	encoded := make([]byte, sum)
 	binary.LittleEndian.PutUint32(encoded, uint32(len(list)))
 
 	for _, v := range list {
 		delta = v - prev
 		prev = v
 
-		for delta >= 0x80 {
-			encoded[l] = byte(delta) | 0x80
+		for ; delta > 0x7F; l++ {
+			encoded[l] = 0x80 | uint8(delta&0x7F)
 			delta >>= 7
-			l++
 		}
 
-		encoded[l] = byte(delta)
+		encoded[l] = uint8(delta)
 		l++
 	}
 
 	return encoded
 }
 
+// inspired by protobuf/master/proto/decode.go
 func (b *vbEnc) Decode(bytes []byte) PostingList {
 	if len(bytes) < 4 {
 		return nil
 	}
 
-	v := uint32(0)
-	s := uint(0)
-	prev := uint32(0)
-	i := 0
+	var (
+		v = uint32(0)
+		prev = uint32(0)
+		s = uint32(0)
+		i = 0
+		j = 4
+	)
 
 	listLen := int(binary.LittleEndian.Uint32(bytes))
 	decoded := make(PostingList, listLen)
 
-	for _, b := range bytes[4:] {
+	if listLen < 10 {
+		b.vbDecodeSlow(bytes[4:], decoded)
+		return decoded
+	}
+
+	for j < len(bytes) {
+		if bytes[j] < 0x80 {
+			v = uint32(bytes[j])
+			j++
+			goto done
+		}
+
+		// we already checked the first byte
+		v = uint32(bytes[j]) - 0x80
+		j++
+
+		s = uint32(bytes[j])
+		j++
+		v += s << 7
+		if s&0x80 == 0 {
+			goto done
+		}
+		v -= 0x80 << 7
+
+		s = uint32(bytes[j])
+		j++
+		v += s << 14
+		if s&0x80 == 0 {
+			goto done
+		}
+		v -= 0x80 << 14
+
+		s = uint32(bytes[j])
+		j++
+		v += s << 21
+		if s&0x80 == 0 {
+			goto done
+		}
+		v -= 0x80 << 21
+
+		s = uint32(bytes[j])
+		j++
+		v += s << 28
+
+		done:
+			prev = v + prev
+			decoded[i] = Position(prev)
+			i++
+	}
+
+	return decoded
+}
+
+func (b *vbEnc) vbDecodeSlow(bytes []byte, buf PostingList) {
+	var (
+		v = uint32(0)
+		prev = uint32(0)
+		s = uint32(0)
+		i = 0
+	)
+
+	for _, b := range bytes {
 		v |= uint32(b&0x7f) << s
 
 		if b < 0x80 {
 			prev = v + prev
-			decoded[i] = Position(prev)
+			buf[i] = Position(prev)
 			s, v = 0, 0
 			i++
 		} else {
 			s += 7
 		}
 	}
-
-	return decoded
 }
 
 func estimateByteNum(v Position) int {
-	num := 5
-
 	if (1 << 7) > v {
-		num = 1
-	} else if (1 << 14) > v {
-		num = 2
-	} else if (1 << 21) > v {
-		num = 3
-	} else if (1 << 28) > v {
-		num = 4
+		return 1
 	}
 
-	return num
+	if (1 << 14) > v {
+		return 2
+	}
+
+	if (1 << 21) > v {
+		return 3
+	}
+
+	if (1 << 28) > v {
+		return 4
+	}
+
+	return 5
 }
