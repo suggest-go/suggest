@@ -5,6 +5,11 @@ import (
 	"os"
 	"bufio"
 	"testing"
+	"os/exec"
+	"bytes"
+	"log"
+	"io"
+	"golang.org/x/exp/mmap"
 )
 
 func TestSuggestAuto(t *testing.T) {
@@ -19,7 +24,7 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	nGramIndex := buildNGramIndex(NewInMemoryDictionary(collection), 3)
+	nGramIndex := buildNGramIndex(collection, 3)
 
 	conf, err := NewSearchConfig("Nissan ma", 2, JaccardMetric(), 0.5)
 	if err != nil {
@@ -59,7 +64,7 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	nGramIndex := buildNGramIndex(NewInMemoryDictionary(collection), 3)
+	nGramIndex := buildNGramIndex(collection, 3)
 
 	b.StartTimer()
 	conf, err := NewSearchConfig("Nissan mar", 2, JaccardMetric(), 0.5)
@@ -72,7 +77,7 @@ func BenchmarkSuggest(b *testing.B) {
 	}
 }
 
-func BenchmarkRealExample(b *testing.B) {
+func BenchmarkRealExampleInMemory(b *testing.B) {
 	b.StopTimer()
 
 	file, err := os.Open("testdata/cars.dict")
@@ -87,7 +92,7 @@ func BenchmarkRealExample(b *testing.B) {
 		collection = append(collection, scanner.Text())
 	}
 
-	nGramIndex := buildNGramIndex(NewInMemoryDictionary(collection), 3)
+	nGramIndex := buildNGramIndex(collection, 3)
 
 	queries := [...]string{
 		"Nissan Mar",
@@ -115,7 +120,59 @@ func BenchmarkRealExample(b *testing.B) {
 	}
 }
 
-func buildNGramIndex(dictionary Dictionary, ngramSize int) NGramIndex {
+func BenchmarkRealExampleCdb(b *testing.B) {
+	b.StopTimer()
+
+	os.RemoveAll("testdata/db")
+
+	err := os.Mkdir("testdata/db", 0777)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cmd := exec.Command("go", "run", "cmd/indexer/main.go", "--config", "testdata/config.json")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := mmap.Open("testdata/db/cars.cdb")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	nGramIndex := buildOnDiscNGramIndex(f, 3)
+
+	queries := [...]string{
+		"Nissan Mar",
+		"Hnda Fi",
+		"Mersdes Benz",
+		"Tayota carolla",
+		"Nssan Skylike",
+		"Nissan Juke",
+		"Dodje iper",
+		"Hummer",
+		"tayota",
+	}
+
+	qLen := len(queries)
+	b.StartTimer()
+
+	conf, err := NewSearchConfig("Nissan mar", 5, CosineMetric(), 0.3)
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		conf.query = queries[i%qLen]
+		nGramIndex.Suggest(conf)
+	}
+}
+
+func buildNGramIndex(collection []string, nGramSize int) NGramIndex {
 	alphabet := NewCompositeAlphabet([]Alphabet{
 		NewRussianAlphabet(),
 		NewEnglishAlphabet(),
@@ -124,8 +181,25 @@ func buildNGramIndex(dictionary Dictionary, ngramSize int) NGramIndex {
 	})
 
 	return NewRunTimeBuilder().
-		SetDictionary(dictionary).
-		SetNGramSize(ngramSize).
+		SetDictionary(NewInMemoryDictionary(collection)).
+		SetNGramSize(nGramSize).
 		SetAlphabet(alphabet).
+		Build()
+}
+
+func buildOnDiscNGramIndex(reader io.ReaderAt, nGramSize int) NGramIndex {
+	alphabet := NewCompositeAlphabet([]Alphabet{
+		NewRussianAlphabet(),
+		NewEnglishAlphabet(),
+		NewNumberAlphabet(),
+		NewSimpleAlphabet([]rune{'$'}),
+	})
+
+	return NewBuilder("testdata/db/cars.*.cdb").
+		SetAlphabet(alphabet).
+		SetDictionary(NewCDBDictionary(reader)).
+		SetNGramSize(nGramSize).
+		SetWrap("$").
+		SetPad("$").
 		Build()
 }

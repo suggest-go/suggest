@@ -3,8 +3,8 @@
     "name": "cars",
     "nGramSize": 3,
     "alphabet": ["russian", "english", "numbers", "$"],
-    "source": "../../testdata/cars.dict",
-    "output": "../../testdata",
+    "source": "testdata/cars.dict",
+    "output": "testdata/db",
     "pad": "$",
     "wrap": "$"
   }
