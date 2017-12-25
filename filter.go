@@ -53,9 +53,88 @@ func scanCount(rid []PostingList, threshold int) []PostingList {
 
 // cpMerge was described in paper
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
+// inspired by https://github.com/chokkan/simstring
 func cpMerge(rid []PostingList, threshold int) []PostingList {
-	panic("Implement me")
-	return nil
+	sort.SliceStable(rid, func(i, j int) bool {
+		return len(rid[i]) < len(rid[j])
+	})
+
+	type candidate struct {
+		pos Position
+		overlap int
+	}
+
+	lenRid := len(rid)
+	minQueries := lenRid - threshold + 1
+	candidates := make([]*candidate, 0, lenRid)
+	tmp := make([]*candidate, 0, lenRid)
+	i, j, k, endCandidate, endRid := 0, 0, 0, 0, 0
+
+	for ; i < minQueries; i++ {
+		j, k = 0, 0
+		tmp = tmp[:0]
+		endCandidate, endRid = len(candidates), len(rid[i])
+
+		for j < endCandidate || k < endRid {
+			if j >= endCandidate || (k < endRid && candidates[j].pos > rid[i][k]) {
+				tmp = append(tmp, &candidate{rid[i][k], 1})
+				k++
+			} else if k >= endRid || (j < endCandidate && candidates[j].pos < rid[i][k]) {
+				tmp = append(tmp, candidates[j])
+				j++
+			} else {
+				candidates[j].overlap++
+				tmp = append(tmp, candidates[j])
+				j++
+				k++
+			}
+		}
+
+		candidates, tmp = tmp, candidates
+	}
+
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	result := make([]PostingList, len(rid)+1)
+
+	for ; i < lenRid; i++ {
+		tmp = tmp[:0]
+		j, k = 0, 0
+
+		for _, c := range candidates {
+			if binarySearch(rid[i], c.pos) != -1 {
+				c.overlap++
+			}
+
+			// Modify algorithm: we should to know exact overlap count, so leave candidate
+			/*
+			if c.overlap >= threshold {
+				result[c.overlap] = append(result[c.overlap], c.pos)
+			}*/
+
+			if c.overlap + (lenRid - i - 1) >= threshold {
+				tmp = append(tmp, c)
+			}
+		}
+
+		candidates, tmp = tmp, candidates
+
+		if len(candidates) == 0 {
+			break;
+		}
+	}
+
+	if len(candidates) > 0 {
+		for _, c := range candidates {
+			if c.overlap >= threshold {
+				result[c.overlap] = append(result[c.overlap], c.pos)
+			}
+		}
+	}
+
+	return result
 }
 
 // divideSkip was described in paper
@@ -63,7 +142,7 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 // We have to choose `good` parameter mu, for improving speed. So, mu depends
 // only on given dictionary, so we can find it
 func divideSkip(rid []PostingList, threshold int, mu float64) []PostingList {
-	sort.Slice(rid, func(i, j int) bool {
+	sort.SliceStable(rid, func(i, j int) bool {
 		return len(rid[i]) > len(rid[j])
 	})
 
@@ -82,7 +161,7 @@ func divideSkip(rid []PostingList, threshold int, mu float64) []PostingList {
 		for _, r := range list {
 			j := count
 			for _, longList := range lLong {
-				idx := binarySearch(longList, r)
+				idx := binarySearchUpperBound(longList, r)
 				if idx != -1 && longList[idx] == r {
 					j++
 				}
@@ -151,7 +230,7 @@ func mergeSkip(rid []PostingList, threshold int) []PostingList {
 					continue
 				}
 
-				r := binarySearch(cur, t.(*record).pos)
+				r := binarySearchUpperBound(cur, t.(*record).pos)
 				if r == -1 {
 					continue
 				}
@@ -167,46 +246,4 @@ func mergeSkip(rid []PostingList, threshold int) []PostingList {
 	}
 
 	return result
-}
-
-// binarySearch find the smallest record t in given arr such that t >= value
-func binarySearch(arr PostingList, value Position) int {
-	i := 0
-	j := len(arr)
-	if i == j || arr[j-1] < value {
-		return -1
-	}
-
-	if arr[i] >= value {
-		return i
-	}
-
-	if arr[j-1] == value {
-		return j - 1
-	}
-
-	for i < j {
-		mid := i + (j-i)>>1
-		if arr[mid] < value {
-			i = mid + 1
-		} else if arr[mid] > value {
-			j = mid - 1
-		} else {
-			return mid
-		}
-	}
-
-	if i > len(arr)-1 {
-		return -1
-	}
-
-	if j < 0 {
-		return 0
-	}
-
-	if arr[i] >= value {
-		return i
-	}
-
-	return j + 1
 }

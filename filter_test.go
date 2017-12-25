@@ -8,6 +8,21 @@ import (
 
 // IMPLEMENT ME
 func TestCPMerge(t *testing.T) {
+	for _, c := range dataProvider() {
+		actual := cpMerge(c.rid, c.t)
+		actualMap := make(map[int]PostingList)
+		for n, list := range actual {
+			if len(list) == 0 {
+				continue
+			}
+
+			actualMap[n] = list
+		}
+
+		if !reflect.DeepEqual(actualMap, c.expected) {
+			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
+		}
+	}
 }
 
 func TestScanCount(t *testing.T) {
@@ -153,34 +168,5 @@ func dataProvider() []oneCase {
 				4: {50},
 			},
 		},
-	}
-}
-
-func TestBinSearch(t *testing.T) {
-	items := PostingList{0, 1, 3, 7, 9, 10, 11}
-	cases := []struct {
-		val      Position
-		expected int
-	}{
-		{1, 1},
-		{13, -1},
-		{2, 3},
-		{5, 7},
-		{10, 10},
-		{9, 9},
-		{8, 9},
-		{7, 7},
-		{6, 7},
-	}
-
-	for _, c := range cases {
-		actual := binarySearch(items, c.val)
-		if actual != -1 {
-			actual = int(items[actual])
-		}
-
-		if actual != c.expected {
-			t.Errorf("Test Fail, expected %d, got %d", c.expected, actual)
-		}
 	}
 }
