@@ -2,8 +2,10 @@ package suggest
 
 /*
  * inspired by
+ *
+ * http://www.chokkan.org/software/simstring/
  * http://www.aaai.org/ocs/index.php/AAAI/AAAI10/paper/viewFile/1939/2234
- * http://nlp.stanford.edu/IR-book/html/htmledition/k-gram-indexes-for-wildcard-queries-1.html
+ * http://nlp.stanford.edu/IR-book/
  * http://bazhenov.me/blog/2012/08/04/autocomplete.html
  * http://www.aclweb.org/anthology/C10-1096
  */
