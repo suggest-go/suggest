@@ -1,8 +1,8 @@
 package suggest
 
 const (
-	defaultPad = "$"
-	defaultWrap = "$"
+	defaultPad       = "$"
+	defaultWrap      = "$"
 	defaultNGramSize = 3
 )
 
@@ -17,11 +17,11 @@ type Builder interface {
 }
 
 type runTimeBuilderImpl struct {
-	nGramSize int
-	alphabet Alphabet
+	nGramSize  int
+	alphabet   Alphabet
 	dictionary Dictionary
-	pad string
-	wrap string
+	pad        string
+	wrap       string
 }
 
 func NewRunTimeBuilder() Builder {
@@ -79,12 +79,12 @@ func (b *runTimeBuilderImpl) Build() NGramIndex {
 }
 
 type builderImpl struct {
-	nGramSize int
-	alphabet Alphabet
+	nGramSize  int
+	alphabet   Alphabet
 	dictionary Dictionary
-	pad string
-	wrap string
-	pattern string
+	pad        string
+	wrap       string
+	pattern    string
 }
 
 // NewBuilder works with already indexed data

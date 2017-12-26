@@ -1,9 +1,9 @@
 package suggest
 
 import (
+	"encoding/binary"
 	"errors"
 	"github.com/alldroll/cdb"
-	"encoding/binary"
 	"io"
 )
 
@@ -60,7 +60,7 @@ type inMemoryDictionaryIterator struct {
 
 func (i *inMemoryDictionaryIterator) Next() bool {
 	success := false
-	if int(i.index + 1) < len(i.dict.holder) {
+	if int(i.index+1) < len(i.dict.holder) {
 		i.index++
 		success = true
 	}

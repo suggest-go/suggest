@@ -17,7 +17,7 @@ type record struct {
 }
 
 type candidate struct {
-	pos Position
+	pos     Position
 	overlap int
 }
 
@@ -31,7 +31,7 @@ func (r *record) Less(other heapItem) bool {
 // appear at least `threshold` times on the lists.
 func scanCount(rid []PostingList, threshold int) []PostingList {
 	size := len(rid)
-	result := make([]PostingList, size + 1)
+	result := make([]PostingList, size+1)
 	candidates := make([]*candidate, 0, size)
 	tmp := make([]*candidate, 0, size)
 	j, k, endCandidate, endRid := 0, 0, 0, 0
@@ -81,7 +81,7 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 	candidates := make([]*candidate, 0, lenRid)
 	tmp := make([]*candidate, 0, lenRid)
 	j, k, endCandidate, endRid := 0, 0, 0, 0
-	result := make([]PostingList, lenRid + 1)
+	result := make([]PostingList, lenRid+1)
 
 	for _, list := range rid[:minQueries] {
 		j, k = 0, 0
@@ -120,11 +120,11 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 
 			// Modify algorithm: we should to know exact overlap count, so leave candidate
 			/*
-			if c.overlap >= threshold {
-				result[c.overlap] = append(result[c.overlap], c.pos)
-			}*/
+				if c.overlap >= threshold {
+					result[c.overlap] = append(result[c.overlap], c.pos)
+				}*/
 
-			if c.overlap + (lenRid - i - 1) >= threshold {
+			if c.overlap+(lenRid-i-1) >= threshold {
 				tmp = append(tmp, c)
 			}
 		}
@@ -132,7 +132,7 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 		candidates, tmp = tmp, candidates
 
 		if len(candidates) == 0 {
-			break;
+			break
 		}
 	}
 

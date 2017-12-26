@@ -21,7 +21,7 @@ func NewIndexer(
 type indexerImpl struct {
 	nGramSize int
 	generator Generator
-	cleaner Cleaner
+	cleaner   Cleaner
 }
 
 func (ix *indexerImpl) Index(dictionary Dictionary) Index {

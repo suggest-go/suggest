@@ -59,4 +59,3 @@ func TestBinarySearch(t *testing.T) {
 		}
 	}
 }
-

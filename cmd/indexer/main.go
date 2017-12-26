@@ -1,27 +1,27 @@
 package main
 
 import (
-	"flag"
-	"os"
-	"log"
-	"github.com/alldroll/suggest"
-	"github.com/alldroll/cdb"
-	"fmt"
 	"bufio"
 	"encoding/binary"
-	"time"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"github.com/alldroll/cdb"
+	"github.com/alldroll/suggest"
 	"io"
 	"io/ioutil"
-	"encoding/json"
+	"log"
+	"os"
+	"time"
 )
 
 type IndexConfig struct {
-	Name string `json:"name"`
-	NGramSize int `json:"nGramSize"`
-	SourcePath string `json:"source"`
-	OutputPath string `json:"output"`
-	Alphabet []string `json:"alphabet"`
-	Pad string `json:"pad"`
+	Name       string   `json:"name"`
+	NGramSize  int      `json:"nGramSize"`
+	SourcePath string   `json:"source"`
+	OutputPath string   `json:"output"`
+	Alphabet   []string `json:"alphabet"`
+	Pad        string   `json:"pad"`
 	//Wrap [2]string `json:"wrap"`
 	Wrap string `json:"wrap"`
 }
@@ -43,14 +43,14 @@ func readConfig(reader io.Reader) ([]IndexConfig, error) {
 }
 
 var (
-	configPath string
+	configPath  string
 	alphabetMap map[string]suggest.Alphabet
 )
 
 func init() {
 	flag.StringVar(&configPath, "config", "config.json", "config path")
 
-	alphabetMap = map[string]suggest.Alphabet {
+	alphabetMap = map[string]suggest.Alphabet{
 		"english": suggest.NewEnglishAlphabet(),
 		"russian": suggest.NewRussianAlphabet(),
 		"numbers": suggest.NewNumberAlphabet(),
@@ -82,7 +82,7 @@ func buildDictionary(name, sourcePath, outputPath string) suggest.Dictionary {
 
 	destinationFile, err := os.OpenFile(
 		fmt.Sprintf("%s/%s.cdb", outputPath, name),
-		os.O_CREATE | os.O_RDWR | os.O_TRUNC,
+		os.O_CREATE|os.O_RDWR|os.O_TRUNC,
 		0644,
 	)
 	if err != nil {
@@ -96,9 +96,9 @@ func buildDictionary(name, sourcePath, outputPath string) suggest.Dictionary {
 	}
 
 	var (
-		docId uint32 = 0
-		key = make([]byte, 4)
-		scanner = bufio.NewScanner(sourceFile)
+		docId   uint32 = 0
+		key            = make([]byte, 4)
+		scanner        = bufio.NewScanner(sourceFile)
 	)
 
 	for scanner.Scan() {
@@ -134,7 +134,7 @@ func storeIndex(name string, outputPath string, index suggest.Index) {
 
 		destinationFile, err := os.OpenFile(
 			fmt.Sprintf("%s/%s.%d.cdb", outputPath, name, length),
-			os.O_CREATE | os.O_WRONLY | os.O_TRUNC,
+			os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
 			0644,
 		)
 		if err != nil {

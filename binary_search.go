@@ -1,7 +1,7 @@
 package suggest
 
 const (
-	exactSearch = 0
+	exactSearch      = 0
 	upperBoundSearch = 1
 )
 

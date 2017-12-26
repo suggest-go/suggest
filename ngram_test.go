@@ -1,15 +1,15 @@
 package suggest
 
 import (
-	"reflect"
-	"os"
 	"bufio"
-	"testing"
-	"os/exec"
 	"bytes"
-	"log"
-	"io"
 	"golang.org/x/exp/mmap"
+	"io"
+	"log"
+	"os"
+	"os/exec"
+	"reflect"
+	"testing"
 )
 
 func TestSuggestAuto(t *testing.T) {

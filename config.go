@@ -13,10 +13,10 @@ const (
 
 // IndexConfig is config for NgramIndex structure
 type IndexConfig struct {
-	ngramSize int
-	alphabet  Alphabet
-	wrap      string
-	pad       string
+	ngramSize  int
+	alphabet   Alphabet
+	wrap       string
+	pad        string
 	dictionary Dictionary
 }
 

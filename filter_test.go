@@ -2,8 +2,8 @@ package suggest
 
 import (
 	"reflect"
-	"testing"
 	"sort"
+	"testing"
 )
 
 func TestCPMerge(t *testing.T) {

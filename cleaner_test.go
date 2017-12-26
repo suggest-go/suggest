@@ -31,4 +31,3 @@ func TestPrepareString(t *testing.T) {
 		}
 	}
 }
-

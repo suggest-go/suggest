@@ -9,7 +9,7 @@ type Generator interface {
 
 type generatorImpl struct {
 	nGramSize int
-	alphabet Alphabet
+	alphabet  Alphabet
 }
 
 func NewGenerator(nGramSize int, alphabet Alphabet) Generator {

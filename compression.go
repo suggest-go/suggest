@@ -91,11 +91,11 @@ func (b *vbEnc) Decode(bytes []byte) PostingList {
 	}
 
 	var (
-		v = uint32(0)
+		v    = uint32(0)
 		prev = uint32(0)
-		s = uint32(0)
-		i = 0
-		j = 4
+		s    = uint32(0)
+		i    = 0
+		j    = 4
 	)
 
 	listLen := int(binary.LittleEndian.Uint32(bytes))
@@ -145,10 +145,10 @@ func (b *vbEnc) Decode(bytes []byte) PostingList {
 		j++
 		v += s << 28
 
-		done:
-			prev = v + prev
-			decoded[i] = Position(prev)
-			i++
+	done:
+		prev = v + prev
+		decoded[i] = Position(prev)
+		i++
 	}
 
 	return decoded
@@ -156,10 +156,10 @@ func (b *vbEnc) Decode(bytes []byte) PostingList {
 
 func (b *vbEnc) vbDecodeSlow(bytes []byte, buf PostingList) {
 	var (
-		v = uint32(0)
+		v    = uint32(0)
 		prev = uint32(0)
-		s = uint32(0)
-		i = 0
+		s    = uint32(0)
+		i    = 0
 	)
 
 	for _, b := range bytes {
