@@ -137,5 +137,5 @@ func (n *nGramIndexImpl) calcOverlap(rid []PostingList, threshold int) []Posting
 		return scanCount(rid, threshold)
 	}
 
-	return mergeSkip(rid, threshold)
+	return cpMerge(rid, threshold)
 }

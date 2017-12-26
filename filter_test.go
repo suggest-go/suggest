@@ -6,7 +6,6 @@ import (
 	"sort"
 )
 
-// IMPLEMENT ME
 func TestCPMerge(t *testing.T) {
 	for _, c := range dataProvider() {
 		actual := cpMerge(c.rid, c.t)

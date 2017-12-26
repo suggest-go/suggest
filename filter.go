@@ -3,7 +3,7 @@ package suggest
 // Algorithms given below solve `threshold`-occurrence problem:
 // For given inverted lists find the set of strings ids, that appears at least
 // `threshold` times.
-// All filters returns [][]int - [intersection][corresponding string ids]
+// All filters returns []PostingList - [intersection][corresponding string ids]
 
 import (
 	"container/heap"
@@ -16,6 +16,11 @@ type record struct {
 	pos   Position
 }
 
+type candidate struct {
+	pos Position
+	overlap int
+}
+
 func (r *record) Less(other heapItem) bool {
 	return r.pos < other.(*record).pos
 }
@@ -26,26 +31,38 @@ func (r *record) Less(other heapItem) bool {
 // appear at least `threshold` times on the lists.
 func scanCount(rid []PostingList, threshold int) []PostingList {
 	size := len(rid)
-	result := make([]PostingList, size+1)
+	result := make([]PostingList, size + 1)
+	candidates := make([]*candidate, 0, size)
+	tmp := make([]*candidate, 0, size)
+	j, k, endCandidate, endRid := 0, 0, 0, 0
 
-	mapSize := 0
-	for i := range rid {
-		mapSize += len(rid[i])
+	for _, list := range rid {
+		j, k = 0, 0
+		tmp = tmp[:0]
+		endCandidate, endRid = len(candidates), len(list)
+
+		for j < endCandidate || k < endRid {
+			if j >= endCandidate || (k < endRid && candidates[j].pos > list[k]) {
+				tmp = append(tmp, &candidate{list[k], 1})
+				k++
+			} else if k >= endRid || (j < endCandidate && candidates[j].pos < list[k]) {
+				tmp = append(tmp, candidates[j])
+				j++
+			} else {
+				candidates[j].overlap++
+				tmp = append(tmp, candidates[j])
+				j++
+				k++
+			}
+		}
+
+		candidates, tmp = tmp, candidates
 	}
 
-	counts := make(map[Position]int, mapSize+1)
-	for _, curRid := range rid {
-		for _, pos := range curRid {
-			counts[pos]++
+	for _, c := range candidates {
+		if c.overlap >= threshold {
+			result[c.overlap] = append(result[c.overlap], c.pos)
 		}
-	}
-
-	for pos, count := range counts {
-		if count < threshold {
-			continue
-		}
-
-		result[count] = append(result[count], pos)
 	}
 
 	return result
@@ -59,27 +76,23 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 		return len(rid[i]) < len(rid[j])
 	})
 
-	type candidate struct {
-		pos Position
-		overlap int
-	}
-
 	lenRid := len(rid)
 	minQueries := lenRid - threshold + 1
 	candidates := make([]*candidate, 0, lenRid)
 	tmp := make([]*candidate, 0, lenRid)
-	i, j, k, endCandidate, endRid := 0, 0, 0, 0, 0
+	j, k, endCandidate, endRid := 0, 0, 0, 0
+	result := make([]PostingList, lenRid + 1)
 
-	for ; i < minQueries; i++ {
+	for _, list := range rid[:minQueries] {
 		j, k = 0, 0
 		tmp = tmp[:0]
-		endCandidate, endRid = len(candidates), len(rid[i])
+		endCandidate, endRid = len(candidates), len(list)
 
 		for j < endCandidate || k < endRid {
-			if j >= endCandidate || (k < endRid && candidates[j].pos > rid[i][k]) {
-				tmp = append(tmp, &candidate{rid[i][k], 1})
+			if j >= endCandidate || (k < endRid && candidates[j].pos > list[k]) {
+				tmp = append(tmp, &candidate{list[k], 1})
 				k++
-			} else if k >= endRid || (j < endCandidate && candidates[j].pos < rid[i][k]) {
+			} else if k >= endRid || (j < endCandidate && candidates[j].pos < list[k]) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {
@@ -94,14 +107,11 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 	}
 
 	if len(candidates) == 0 {
-		return nil
+		return result
 	}
 
-	result := make([]PostingList, len(rid)+1)
-
-	for ; i < lenRid; i++ {
+	for i := minQueries; i < lenRid; i++ {
 		tmp = tmp[:0]
-		j, k = 0, 0
 
 		for _, c := range candidates {
 			if binarySearch(rid[i], c.pos) != -1 {
@@ -126,11 +136,9 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 		}
 	}
 
-	if len(candidates) > 0 {
-		for _, c := range candidates {
-			if c.overlap >= threshold {
-				result[c.overlap] = append(result[c.overlap], c.pos)
-			}
+	for _, c := range candidates {
+		if c.overlap >= threshold {
+			result[c.overlap] = append(result[c.overlap], c.pos)
 		}
 	}
 
