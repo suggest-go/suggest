@@ -120,7 +120,7 @@ func BenchmarkRealExampleInMemory(b *testing.B) {
 	}
 }
 
-func BenchmarkRealExampleCdb(b *testing.B) {
+func BenchmarkRealExampleOnDisc(b *testing.B) {
 	b.StopTimer()
 
 	os.RemoveAll("testdata/db")
@@ -195,7 +195,7 @@ func buildOnDiscNGramIndex(reader io.ReaderAt, nGramSize int) NGramIndex {
 		NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	return NewBuilder("testdata/db/cars.*.cdb").
+	return NewBuilder("testdata/db/cars.hd", "testdata/db/cars.dl").
 		SetAlphabet(alphabet).
 		SetDictionary(NewCDBDictionary(reader)).
 		SetNGramSize(nGramSize).

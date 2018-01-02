@@ -8,12 +8,14 @@ import (
 )
 
 func TestOnDiscWriter_Save(t *testing.T) {
-	header, err := os.Create("testdata/test.hd")
+	header, err := os.Create("testdata/db/test.hd")
+	defer header.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	docList, err := os.Create("testdata/test.dl")
+	docList, err := os.Create("testdata/db/test.dl")
+	defer header.Close()
 	if err != nil {
 		log.Fatal(err)
 	}

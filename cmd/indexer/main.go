@@ -123,49 +123,28 @@ func buildDictionary(name, sourcePath, outputPath string) suggest.Dictionary {
 
 //
 func storeIndex(name string, outputPath string, index suggest.Index) {
-	key := make([]byte, 4)
-	cdbHandle := cdb.New()
-	encoder := suggest.VBEncoder()
+	headerFile, err := os.OpenFile(
+		fmt.Sprintf("%s/%s.hd", outputPath, name),
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0644,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	for length, table := range index {
-		if table == nil {
-			continue
-		}
+	documentListFile, err := os.OpenFile(
+		fmt.Sprintf("%s/%s.dl", outputPath, name),
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0644,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		destinationFile, err := os.OpenFile(
-			fmt.Sprintf("%s/%s.%d.cdb", outputPath, name, length),
-			os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
-			0644,
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		cdbWriter, err := cdbHandle.GetWriter(destinationFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for docId, postingList := range table {
-			if postingList == nil {
-				continue
-			}
-
-			value := encoder.Encode(postingList)
-			binary.LittleEndian.PutUint32(key, uint32(docId))
-
-			err = cdbWriter.Put(key, value)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		err = cdbWriter.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		destinationFile.Close()
+	writer := suggest.NewOnDiscInvertedIndexWriter(suggest.VBEncoder(), headerFile, documentListFile, 0)
+	err = writer.Save(index)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 

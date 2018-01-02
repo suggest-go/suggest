@@ -84,18 +84,20 @@ type builderImpl struct {
 	dictionary Dictionary
 	pad        string
 	wrap       string
-	pattern    string
+	headerPath    string
+	documentListPath    string
 }
 
 // NewBuilder works with already indexed data
-func NewBuilder(pattern string) Builder {
+func NewBuilder(headerPath, documentListPath string) Builder {
 	return &builderImpl{
 		defaultNGramSize,
 		nil,
 		nil,
 		defaultPad,
 		defaultWrap,
-		pattern,
+		headerPath,
+		documentListPath,
 	}
 }
 
@@ -128,7 +130,7 @@ func (b *builderImpl) Build() NGramIndex {
 	cleaner := NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
 	generator := NewGenerator(b.nGramSize, b.alphabet)
 
-	invertedListsBuilder := NewCDBInvertedIndexIndicesBuilder(b.pattern)
+	invertedListsBuilder := NewOnDiscInvertedIndexIndicesBuilder(b.headerPath, b.documentListPath)
 	invertedIndexIndices := invertedListsBuilder.Build()
 
 	return NewNGramIndex(

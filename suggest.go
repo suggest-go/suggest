@@ -45,8 +45,8 @@ func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
 }
 
 // AddOnDiscIndex add/replace new dictionary with given name
-func (s *Service) AddOnDiscIndex(name string, dbPattern string, config *IndexConfig) error {
-	nGramIndex := NewBuilder(dbPattern).
+func (s *Service) AddOnDiscIndex(name string, headerPath string, documentListPath string, config *IndexConfig) error {
+	nGramIndex := NewBuilder(headerPath, documentListPath).
 		SetAlphabet(config.alphabet).
 		SetDictionary(config.dictionary).
 		SetNGramSize(config.ngramSize).

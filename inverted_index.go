@@ -1,12 +1,8 @@
 package suggest
 
 import (
-	"encoding/binary"
-	"github.com/alldroll/cdb"
 	"golang.org/x/exp/mmap"
-	"path/filepath"
-	"regexp"
-	"strconv"
+	"io"
 )
 
 type Term int32
@@ -15,8 +11,10 @@ type PostingList []Position
 
 // InvertedIndex
 type InvertedIndex interface {
-	// Get
+	// Get returns corresponding posting list for given term
 	Get(term Term) PostingList
+	// Has checks is there is given term in inverted index
+	Has(term Term) bool
 }
 
 // InvertedIndexIndices
@@ -38,6 +36,12 @@ func NewInMemoryInvertedIndex(table map[Term]PostingList) InvertedIndex {
 	return &invertedIndexInMemoryImpl{table}
 }
 
+type invertedIndexStructure map[Term]struct{ size uint32; position uint32 }
+
+func NewOnDiscInvertedIndex(reader io.ReaderAt, decoder Decoder, m invertedIndexStructure) InvertedIndex {
+	return &onDiscInvertedIndex{reader, decoder, m}
+}
+
 // invertedIndexInMemoryImpl
 type invertedIndexInMemoryImpl struct {
 	table map[Term]PostingList
@@ -48,34 +52,33 @@ func (i *invertedIndexInMemoryImpl) Get(term Term) PostingList {
 	return i.table[term]
 }
 
-// NewCdbInvertedIndex
-func NewCdbInvertedIndex(reader cdb.Reader, decoder Decoder) InvertedIndex {
-	return &invertedIndexCDBImpl{reader, decoder}
+func (i *invertedIndexInMemoryImpl) Has(term Term) bool {
+	_, ok := i.table[term]
+	return ok
 }
 
-//
-type invertedIndexCDBImpl struct {
-	reader  cdb.Reader
+// onDiscInvertedIndex
+type onDiscInvertedIndex struct {
+	reader io.ReaderAt
 	decoder Decoder
+	m invertedIndexStructure
 }
 
-// Get
-func (i *invertedIndexCDBImpl) Get(term Term) PostingList {
-	b := make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, uint32(term))
-
-	d, err := i.reader.Get(b)
-	if err != nil {
-		// TODO handle me
-		panic(err)
-	}
-
-	if d == nil {
+func (i *onDiscInvertedIndex) Get(term Term) PostingList {
+	s, ok := i.m[term]
+	if !ok {
 		return nil
 	}
 
-	list := i.decoder.Decode(d)
-	return list
+	buf := make([]byte, s.size)
+	i.reader.ReadAt(buf, int64(s.position))
+
+	return i.decoder.Decode(buf)
+}
+
+func (i *onDiscInvertedIndex) Has(term Term) bool {
+	_, ok := i.m[term]
+	return ok
 }
 
 // NewInvertedIndexIndices
@@ -123,55 +126,28 @@ func (b *invertedIndexIndicesBuilderInMemoryImpl) Build() InvertedIndexIndices {
 	return NewInvertedIndexIndices(invertedIndexIndices)
 }
 
-// NewCDBInvertedIndexIndicesBuilder
-func NewCDBInvertedIndexIndicesBuilder(pattern string) InvertedIndexIndicesBuilder {
-	return &invertedIndexIndicesBuilderCDBImpl{pattern}
+// NewOnDiscInvertedIndexIndicesBuilder
+func NewOnDiscInvertedIndexIndicesBuilder(headerPath, documentListPath string) InvertedIndexIndicesBuilder {
+	return &invertedIndexIndicesBuilderOnDiscImpl{headerPath, documentListPath}
 }
 
-// invertedIndexIndicesBuilderCDBImpl
-type invertedIndexIndicesBuilderCDBImpl struct {
-	pattern string
+// invertedIndexIndicesBuilderOnDiscImpl
+type invertedIndexIndicesBuilderOnDiscImpl struct {
+	headerPath, documentListPath string
 }
 
 // Build (monkey code, fix me)
-func (b *invertedIndexIndicesBuilderCDBImpl) Build() InvertedIndexIndices {
-	cdbHandle := cdb.New()
-	indices := make([]InvertedIndex, 0)
-
-	matched, err := filepath.Glob(b.pattern)
+func (b *invertedIndexIndicesBuilderOnDiscImpl) Build() InvertedIndexIndices {
+	header, err := mmap.Open(b.headerPath)
 	if err != nil {
 		panic(err)
 	}
 
-	regExp := regexp.MustCompile(`\d+`)
-	decoder := VBDecoder()
-
-	for _, fileName := range matched {
-		m := regExp.FindStringSubmatch(fileName)
-
-		if len(m) != 1 {
-			continue
-		}
-
-		index, err := strconv.Atoi(m[0])
-		f, err := mmap.Open(fileName)
-		if err != nil {
-			panic(err)
-		}
-
-		reader, err := cdbHandle.GetReader(f)
-		if err != nil {
-			panic(err)
-		}
-
-		if len(indices) <= index {
-			tmp := make([]InvertedIndex, index+1, index*2)
-			copy(tmp, indices)
-			indices = tmp
-		}
-
-		indices[index] = NewCdbInvertedIndex(reader, decoder)
+	docList, err := mmap.Open(b.documentListPath)
+	if err != nil {
+		panic(err)
 	}
 
-	return NewInvertedIndexIndices(indices)
+	reader := NewOnDiscInvertedIndexReader(VBDecoder(), header, docList, 0)
+	return reader.Load()
 }

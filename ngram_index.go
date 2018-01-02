@@ -84,24 +84,28 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 			continue
 		}
 
-		// maximum allowable ngram miss count
+		// maximum allowable nGram miss count
 		allowedSkips := sizeA - threshold + 1
-		for _, index := range set {
+		for _, term := range set {
 			// there is no reason to continue, because of threshold
 			if allowedSkips == 0 {
 				break
 			}
 
-			invertedList := invertedIndex.Get(index)
-			if len(invertedList) > 0 {
-				rid = append(rid, invertedList)
-			} else {
+			if !invertedIndex.Has(term) {
 				allowedSkips--
 			}
 		}
 
-		if len(rid) < threshold {
+		if allowedSkips == 0 {
 			continue
+		}
+
+		for _, term := range set {
+			postingList := invertedIndex.Get(term)
+			if len(postingList) > 0 {
+				rid = append(rid, postingList)
+			}
 		}
 
 		counts := n.calcOverlap(rid, threshold)
