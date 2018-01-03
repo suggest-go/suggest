@@ -5,6 +5,7 @@ const (
 	upperBoundSearch = 1
 )
 
+// binarySearchImpl implements binary search with 2 modes (exactSearch and upperBoundSearch)
 func binarySearchImpl(arr PostingList, value Position, mode int) int {
 	i := 0
 	j := len(arr)
@@ -58,11 +59,12 @@ func binarySearchImpl(arr PostingList, value Position, mode int) int {
 	return -1
 }
 
-// upperBound find the smallest record t in given arr such that t >= value
+// binarySearchUpperBound find index for the smallest record t in given arr such that t >= value
 func binarySearchUpperBound(arr PostingList, value Position) int {
 	return binarySearchImpl(arr, value, upperBoundSearch)
 }
 
+// binarySearch find index for given value, returns -1 if values is not in arr
 func binarySearch(arr PostingList, value Position) int {
 	return binarySearchImpl(arr, value, exactSearch)
 }

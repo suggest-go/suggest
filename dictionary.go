@@ -7,8 +7,6 @@ import (
 	"io"
 )
 
-// WordKey represents key in key-value pair for Dictionary
-
 // Dictionary is an abstract data type composed of a collection of (key, value) pairs
 type Dictionary interface {
 	// Get returns value associated with a particular key
@@ -40,6 +38,7 @@ func NewInMemoryDictionary(words []string) Dictionary {
 	}
 }
 
+// Get returns value associated with a particular key
 func (d *inMemoryDictionary) Get(key Position) (string, error) {
 	if key < 0 || int(key) >= len(d.holder) {
 		return "", errors.New("Key is not exists")
@@ -48,6 +47,7 @@ func (d *inMemoryDictionary) Get(key Position) (string, error) {
 	return d.holder[key], nil
 }
 
+// Iterator returns an iterator over the elements in this dictionary
 func (d *inMemoryDictionary) Iterator() DictionaryIterator {
 	return &inMemoryDictionaryIterator{d, 0}
 }
@@ -58,6 +58,7 @@ type inMemoryDictionaryIterator struct {
 	index Position
 }
 
+// Next moves iterator to the next item. Returns true on success otherwise false
 func (i *inMemoryDictionaryIterator) Next() bool {
 	success := false
 	if int(i.index+1) < len(i.dict.holder) {
@@ -68,6 +69,7 @@ func (i *inMemoryDictionaryIterator) Next() bool {
 	return success
 }
 
+// GetPair returns key-value pair of current item
 func (i *inMemoryDictionaryIterator) GetPair() (Position, string) {
 	if int(i.index) >= len(i.dict.holder) {
 		return 0, ""
@@ -77,11 +79,12 @@ func (i *inMemoryDictionaryIterator) GetPair() (Position, string) {
 	return i.index, val
 }
 
+// cdbDictionary implements Dictionary with cdb as database
 type cdbDictionary struct {
 	reader cdb.Reader
 }
 
-//
+// NewCDBDictionary creates new instance of cdbDictionary
 func NewCDBDictionary(r io.ReaderAt) Dictionary {
 	handle := cdb.New()
 	reader, err := handle.GetReader(r)
@@ -94,7 +97,7 @@ func NewCDBDictionary(r io.ReaderAt) Dictionary {
 	}
 }
 
-//
+// Get returns value associated with a particular key
 func (d *cdbDictionary) Get(key Position) (string, error) {
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, uint32(key))
@@ -106,7 +109,7 @@ func (d *cdbDictionary) Get(key Position) (string, error) {
 	return string(value), nil
 }
 
-//
+// Iterator returns an iterator over the elements in this dictionary
 func (d *cdbDictionary) Iterator() DictionaryIterator {
 	iterator, err := d.reader.Iterator()
 	if err != nil {
@@ -116,12 +119,12 @@ func (d *cdbDictionary) Iterator() DictionaryIterator {
 	return &cdbDictionaryIterator{iterator}
 }
 
-//
+// cdbDictionaryIterator implements interface DictionaryIterator for cdbDictionary
 type cdbDictionaryIterator struct {
 	cdbIterator cdb.Iterator
 }
 
-//
+// Next moves iterator to the next item. Returns true on success otherwise false
 func (i *cdbDictionaryIterator) Next() bool {
 	ok, err := i.cdbIterator.Next()
 	if err != nil {
@@ -131,7 +134,7 @@ func (i *cdbDictionaryIterator) Next() bool {
 	return ok
 }
 
-//
+// GetPair returns key-value pair of current item
 func (i *cdbDictionaryIterator) GetPair() (Position, string) {
 	value, key := i.cdbIterator.Value(), i.cdbIterator.Key()
 	if key == nil {

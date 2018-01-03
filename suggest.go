@@ -12,7 +12,7 @@ type ResultItem struct {
 	Value string
 }
 
-// Service is a service for topK approximate string search in dictionary
+// Service is a service for topK approximate string fuzzySearch in dictionary
 type Service struct {
 	sync.RWMutex
 	indexes      map[string]NGramIndex

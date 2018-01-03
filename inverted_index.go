@@ -149,5 +149,10 @@ func (b *invertedIndexIndicesBuilderOnDiscImpl) Build() InvertedIndexIndices {
 	}
 
 	reader := NewOnDiscInvertedIndexReader(VBDecoder(), header, docList, 0)
-	return reader.Load()
+	indices, err := reader.Load()
+	if err != nil {
+		panic(err)
+	}
+
+	return indices
 }

@@ -26,7 +26,7 @@ func NewIndexConfig(k int, dictionary Dictionary, alphabet Alphabet, wrap, pad s
 		return nil, fmt.Errorf("k should be in [%d, %d]", MinNGramSize, MaxNGramSize)
 	}
 
-	if len(alphabet.Chars()) == 0 {
+	if alphabet.Size() == 0 {
 		return nil, fmt.Errorf("Alphabet should not be empty")
 	}
 

@@ -5,24 +5,95 @@ import (
 	"encoding/binary"
 )
 
+// InvertedIndexIndicesReader represents entity for loading InvertedIndexIndices from storage
 type InvertedIndexIndicesReader interface {
 	// Load loads inverted index indices structure from disk
-	Load() InvertedIndexIndices
+	Load() (InvertedIndexIndices, error)
 }
 
+// InvertedIndexIndicesWriter represents entity for saving Index structure in storage
 type InvertedIndexIndicesWriter interface {
 	// Save tries to save index on disc, return non nil error on failure
 	Save(index Index) error
 }
 
+// NewOnDiscInvertedIndexWriter returns new instance of InvertedIndexIndicesWriter
 func NewOnDiscInvertedIndexWriter(encoder Encoder, header io.WriteSeeker, documentList io.Writer, fromPosition int64) InvertedIndexIndicesWriter {
 	return &onDiscWriter{encoder, header, documentList, fromPosition}
 }
 
+// NewOnDiscInvertedIndexReader returns new instance of InvertedIndexIndicesReader
 func NewOnDiscInvertedIndexReader(decoder Decoder, header io.ReaderAt, documentList io.ReaderAt, fromPosition int64) InvertedIndexIndicesReader {
 	return &onDiscReader{decoder, header, documentList, fromPosition}
 }
 
+// onDiscReader implements InvertedIndexIndicesReader interface
+type onDiscReader struct {
+	decoder      Decoder
+	header       io.ReaderAt
+	documentList io.ReaderAt
+	fromPosition int64
+}
+
+// Load loads inverted index indices structure from disk
+func (r *onDiscReader) Load() (InvertedIndexIndices, error) {
+	buf := make([]byte, 4)
+
+	// first of all we read indices length
+	_, err := r.header.ReadAt(buf, r.fromPosition)
+	if err != nil {
+		return nil, err
+	}
+
+	indicesLength := binary.LittleEndian.Uint32(buf)
+	// create indices struct
+	indices := make([]InvertedIndex, indicesLength)
+	// each indices slot represents map length, map position each uint32
+	buf = make([]byte, indicesLength*8)
+	r.header.ReadAt(buf, r.fromPosition+4)
+
+	for i := uint32(0); i < indicesLength; i++ {
+		k := i * 8
+		position, length := binary.LittleEndian.Uint32(buf[k:k+4]), binary.LittleEndian.Uint32(buf[k+4:k+8])
+
+		// length == 0 marks that there is not inverted index for given length
+		if length == 0 {
+			indices[i] = nil
+			continue
+		}
+
+		var (
+			term, size, offset, j uint32
+			m = make(invertedIndexStructure, length)
+			// each map entry represents key (term) and 2 uint32 (posting list byte size and position in documentList file)
+			// so we have 3 uint32 numbers
+			mapBuf = make([]byte, 12*length)
+		)
+
+		_, err = r.header.ReadAt(mapBuf, int64(position))
+		if err != nil {
+			return nil, err
+		}
+
+		for l := uint32(0); l < length; l++ {
+			j = l * 12
+			term = binary.LittleEndian.Uint32(mapBuf[j:j+4])
+			size = binary.LittleEndian.Uint32(mapBuf[j+4:j+8])
+			offset = binary.LittleEndian.Uint32(mapBuf[j+8:j+12])
+
+			m[Term(term)] = struct {
+				size     uint32
+				position uint32
+			}{size: size, position: offset}
+		}
+
+		indices[i] = NewOnDiscInvertedIndex(r.documentList, r.decoder, m)
+	}
+
+	return NewInvertedIndexIndices(indices), nil
+}
+
+// onDiscWriter implements InvertedIndexIndicesWriter interface
 type onDiscWriter struct {
 	encoder      Encoder
 	header       io.WriteSeeker
@@ -30,6 +101,9 @@ type onDiscWriter struct {
 	fromPosition int64
 }
 
+
+// Save tries to save index on disc, return non nil error on failure
+//
 // *** HEADER ***
 // INDICES_LENGTH - 4 byte
 // [<pos1, length1>, ..., <posN, lengthN>] - 4 * 8 byte
@@ -119,69 +193,4 @@ func writePair(writer io.Writer, a, b uint32) error {
 func writeTrio(writer io.Writer, a, b, c uint32) error {
 	var buf = []uint32{a, b, c}
 	return binary.Write(writer, binary.LittleEndian, buf)
-}
-
-//
-type onDiscReader struct {
-	decoder      Decoder
-	header       io.ReaderAt
-	documentList io.ReaderAt
-	fromPosition int64
-}
-
-func (r *onDiscReader) Load() InvertedIndexIndices {
-	buf := make([]byte, 4)
-
-	// first of all we read indices length
-	_, err := r.header.ReadAt(buf, r.fromPosition)
-	if err != nil {
-		panic(err)
-	}
-
-	indicesLength := binary.LittleEndian.Uint32(buf)
-	// create indices struct
-	indices := make([]InvertedIndex, indicesLength)
-	// each indices slot represents map length, map position each uint32
-	buf = make([]byte, indicesLength*8)
-	r.header.ReadAt(buf, r.fromPosition+4)
-
-	for i := uint32(0); i < indicesLength; i++ {
-		k := i * 8
-		position, length := binary.LittleEndian.Uint32(buf[k:k+4]), binary.LittleEndian.Uint32(buf[k+4:k+8])
-
-		// length == 0 marks that there is not inverted index for given length
-		if length == 0 {
-			indices[i] = nil
-			continue
-		}
-
-		var (
-			term, size, offset, j uint32
-			m                     = make(invertedIndexStructure, length)
-			// each map entry represents key (term) and 2 uint32 (posting list byte size and position in documentList file)
-			// so we have 3 uint32 numbers
-			mapBuf = make([]byte, 12*length)
-		)
-
-		_, err = r.header.ReadAt(mapBuf, int64(position))
-		if err != nil {
-			panic(err)
-		}
-
-		for l := uint32(0); l < length; l++ {
-			j = l * 12
-			term = binary.LittleEndian.Uint32(mapBuf[j:j+4])
-			size = binary.LittleEndian.Uint32(mapBuf[j+4:j+8])
-			offset = binary.LittleEndian.Uint32(mapBuf[j+8:j+12])
-
-			m[Term(term)] = struct {
-				size     uint32
-				position uint32
-			}{size: size, position: offset}
-		}
-
-		indices[i] = NewOnDiscInvertedIndex(r.documentList, r.decoder, m)
-	}
-
-	return NewInvertedIndexIndices(indices)
 }

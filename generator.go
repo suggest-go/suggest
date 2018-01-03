@@ -2,25 +2,30 @@ package suggest
 
 const maxN = 8
 
+// Generator represents entity for creating terms from given word
 type Generator interface {
+	// Generate returns terms array for given word
 	Generate(word string) []Term
-	NGramSize() int
 }
 
+// generatorImpl implements Generator interface
 type generatorImpl struct {
 	nGramSize int
 	alphabet  Alphabet
 }
 
+// NewGenerator returns new instance of Generator
 func NewGenerator(nGramSize int, alphabet Alphabet) Generator {
 	return &generatorImpl{nGramSize, alphabet}
 }
 
+// Generate returns terms array for given word
 func (g *generatorImpl) Generate(word string) []Term {
 	nGrams := splitIntoNGrams(word, g.nGramSize)
 	l := len(nGrams)
 	set := make(map[Term]struct{}, l)
 	list := make([]Term, 0, l)
+
 	for _, nGram := range nGrams {
 		index := g.nGramToIndex(nGram)
 		_, found := set[index]
@@ -31,10 +36,6 @@ func (g *generatorImpl) Generate(word string) []Term {
 	}
 
 	return list
-}
-
-func (g *generatorImpl) NGramSize() int {
-	return g.nGramSize
 }
 
 // SplitIntoNGrams split given word on k-gram list

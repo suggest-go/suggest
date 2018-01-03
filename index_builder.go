@@ -8,14 +8,21 @@ const (
 
 // Builder
 type Builder interface {
+	// SetNGramSize
 	SetNGramSize(nGramSize int) Builder
+	// SetAlphabet
 	SetAlphabet(alphabet Alphabet) Builder
+	// SetDictionary
 	SetDictionary(dictionary Dictionary) Builder
+	// SetPad
 	SetPad(pad string) Builder
+	// SetWrap
 	SetWrap(wrap string) Builder
+	// Build
 	Build() NGramIndex
 }
 
+// runTimeBuilderImpl implements Builder interface
 type runTimeBuilderImpl struct {
 	nGramSize  int
 	alphabet   Alphabet
@@ -24,6 +31,7 @@ type runTimeBuilderImpl struct {
 	wrap       string
 }
 
+// NewRunTimeBuilder returns new instance of runTimeBuilderImpl
 func NewRunTimeBuilder() Builder {
 	return &runTimeBuilderImpl{
 		defaultNGramSize,
@@ -78,6 +86,7 @@ func (b *runTimeBuilderImpl) Build() NGramIndex {
 	)
 }
 
+// builderImpl implements Builder interface
 type builderImpl struct {
 	nGramSize  int
 	alphabet   Alphabet

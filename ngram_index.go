@@ -18,8 +18,11 @@ import (
 type NGramIndex interface {
 	// Suggest returns top-k similar candidates
 	Suggest(config *SearchConfig) []Candidate
+	// AutoComplete returns candidates with query as substring
+	AutoComplete(query string, topK int) []Candidate
 }
 
+// nGramIndexImpl implements NGramIndex
 type nGramIndexImpl struct {
 	cleaner   Cleaner
 	indices   InvertedIndexIndices
@@ -41,7 +44,7 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 		return result
 	}
 
-	candidates := n.search(preparedQuery, config)
+	candidates := n.fuzzySearch(preparedQuery, config)
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
 		result = append(
@@ -53,8 +56,13 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 	return result
 }
 
-// search
-func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
+// AutoComplete returns candidates with query as substring
+func (n *nGramIndexImpl) AutoComplete(query string, topK int) []Candidate {
+	return nil
+}
+
+// fuzzySearch
+func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapImpl {
 	set := n.generator.Generate(query)
 	sizeA := len(set)
 
@@ -135,7 +143,8 @@ func (n *nGramIndexImpl) search(query string, config *SearchConfig) *heapImpl {
 	return h
 }
 
-// TODO describe me!
+// calcOverlap returns array of posting list with values that appears >= threshold times.
+// index here represents overlap count
 func (n *nGramIndexImpl) calcOverlap(rid []PostingList, threshold int) []PostingList {
 	if threshold == 1 {
 		return scanCount(rid, threshold)
