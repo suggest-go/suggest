@@ -1,8 +1,9 @@
 package suggest
 
 import (
-	"io"
+	"bufio"
 	"encoding/binary"
+	"io"
 )
 
 // InvertedIndexIndicesReader represents entity for loading InvertedIndexIndices from storage
@@ -101,7 +102,6 @@ type onDiscWriter struct {
 	fromPosition int64
 }
 
-
 // Save tries to save index on disc, return non nil error on failure
 //
 // *** HEADER ***
@@ -123,8 +123,11 @@ func (w *onDiscWriter) Save(index Index) error {
 		return err
 	}
 
+	headerBuf := bufio.NewWriter(w.header)
+	documentListBuf := bufio.NewWriter(w.documentList)
+
 	// Save indices length in header (4 bytes)
-	err = binary.Write(w.header, binary.LittleEndian, uint32(len(index)))
+	err = binary.Write(headerBuf, binary.LittleEndian, uint32(len(index)))
 	if err != nil {
 		return err
 	}
@@ -137,7 +140,7 @@ func (w *onDiscWriter) Save(index Index) error {
 	for _, table := range index {
 		if table == nil {
 			// if there is no table, store 0 as inverted index offset
-			err = writePair(w.header, 0, 0)
+			err = writePair(headerBuf, 0, 0)
 			if err != nil {
 				return err
 			}
@@ -146,7 +149,7 @@ func (w *onDiscWriter) Save(index Index) error {
 		}
 
 		// otherwise store map structure offset + map size
-		writePair(w.header, uint32(mapOffset), uint32(len(table)))
+		writePair(headerBuf, uint32(mapOffset), uint32(len(table)))
 		// map size * (term + posting list bytes size + mapValueOffset)
 		mapOffset += int64(len(table) * 12)
 	}
@@ -165,19 +168,29 @@ func (w *onDiscWriter) Save(index Index) error {
 			// Encode posting list into value
 			value := w.encoder.Encode(postingList)
 			// Write <term, posting list size, posting list offset)
-			err = writeTrio(w.header, uint32(term), uint32(len(value)), uint32(mapValueOffset))
+			err = writeTrio(headerBuf, uint32(term), uint32(len(value)), uint32(mapValueOffset))
 
 			if err != nil {
 				return err
 			}
 
-			_, err = w.documentList.Write(value)
+			_, err = documentListBuf.Write(value)
 			if err != nil {
 				return err
 			}
 
 			mapValueOffset += int64(len(value))
 		}
+	}
+
+	err = headerBuf.Flush()
+	if err != nil {
+		return err
+	}
+
+	err = documentListBuf.Flush()
+	if err != nil {
+		return err
 	}
 
 	return nil
