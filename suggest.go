@@ -3,6 +3,7 @@ package suggest
 import (
 	"sort"
 	"sync"
+	"golang.org/x/exp/mmap"
 )
 
 // ResultItem represents element of top-k similar strings in dictionary for given query
@@ -32,7 +33,7 @@ func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
 	nGramIndex := NewRunTimeBuilder().
 		SetAlphabet(config.alphabet).
 		SetDictionary(config.dictionary).
-		SetNGramSize(config.ngramSize).
+		SetNGramSize(config.nGramSize).
 		SetWrap(config.wrap).
 		SetPad(config.pad).
 		Build()
@@ -45,20 +46,37 @@ func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
 }
 
 // AddOnDiscIndex add/replace new dictionary with given name
-func (s *Service) AddOnDiscIndex(name string, headerPath string, documentListPath string, config *IndexConfig) error {
-	nGramIndex := NewBuilder(headerPath, documentListPath).
-		SetAlphabet(config.alphabet).
-		SetDictionary(config.dictionary).
-		SetNGramSize(config.ngramSize).
-		SetWrap(config.wrap).
-		SetPad(config.pad).
+func (s *Service) AddOnDiscIndex(description IndexDescription) error {
+	dictionaryFile, err := mmap.Open(description.GetDictionaryFile())
+	if err != nil {
+		return err
+	}
+
+	dictionary := NewCDBDictionary(dictionaryFile)
+
+	nGramIndex := NewBuilder(description.GetHeaderFile(), description.GetDocumentListFile()).
+		SetAlphabet(description.CreateAlphabet()).
+		SetDictionary(dictionary).
+		SetNGramSize(description.NGramSize).
+		SetWrap(description.Wrap).
+		SetPad(description.Pad).
 		Build()
 
 	s.Lock()
-	s.indexes[name] = nGramIndex
-	s.dictionaries[name] = config.dictionary
+	s.indexes[description.Name] = nGramIndex
+	s.dictionaries[description.Name] = dictionary
 	s.Unlock()
 	return nil
+}
+
+func (s *Service) GetDictionaries() []string {
+	names := make([]string, 0, len(s.dictionaries))
+
+	for name, _ := range s.dictionaries {
+		names = append(names, name)
+	}
+
+	return names
 }
 
 // Suggest returns Top-k approximate strings for given query in dict

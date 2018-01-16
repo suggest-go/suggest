@@ -3,85 +3,31 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"github.com/alldroll/cdb"
 	"github.com/alldroll/suggest"
-	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
 )
 
-type IndexConfig struct {
-	Name       string   `json:"name"`
-	NGramSize  int      `json:"nGramSize"`
-	SourcePath string   `json:"source"`
-	OutputPath string   `json:"output"`
-	Alphabet   []string `json:"alphabet"`
-	Pad        string   `json:"pad"`
-	//Wrap [2]string `json:"wrap"`
-	Wrap string `json:"wrap"`
-}
-
-func readConfig(reader io.Reader) ([]IndexConfig, error) {
-	var configs []IndexConfig
-
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(data, &configs)
-	if err != nil {
-		return nil, err
-	}
-
-	return configs, nil
-}
-
 var (
 	configPath  string
-	alphabetMap map[string]suggest.Alphabet
 )
 
 func init() {
 	flag.StringVar(&configPath, "config", "config.json", "config path")
-
-	alphabetMap = map[string]suggest.Alphabet{
-		"english": suggest.NewEnglishAlphabet(),
-		"russian": suggest.NewRussianAlphabet(),
-		"numbers": suggest.NewNumberAlphabet(),
-	}
 }
 
 //
-func getAlphabet(list []string) suggest.Alphabet {
-	alphabets := make([]suggest.Alphabet, 0)
-
-	for _, symbols := range list {
-		if alphabet, ok := alphabetMap[symbols]; ok {
-			alphabets = append(alphabets, alphabet)
-			continue
-		}
-
-		alphabets = append(alphabets, suggest.NewSimpleAlphabet([]rune(symbols)))
-	}
-
-	return suggest.NewCompositeAlphabet(alphabets)
-}
-
-//
-func buildDictionary(name, sourcePath, outputPath string) suggest.Dictionary {
+func buildDictionary(sourcePath string, config suggest.IndexDescription) suggest.Dictionary {
 	sourceFile, err := os.OpenFile(sourcePath, os.O_RDONLY, 0)
 	if err != nil {
 		log.Fatalf("cannot open source file %s", err)
 	}
 
 	destinationFile, err := os.OpenFile(
-		fmt.Sprintf("%s/%s.cdb", outputPath, name),
+		config.GetDictionaryFile(),
 		os.O_CREATE|os.O_RDWR|os.O_TRUNC,
 		0644,
 	)
@@ -122,9 +68,9 @@ func buildDictionary(name, sourcePath, outputPath string) suggest.Dictionary {
 }
 
 //
-func storeIndex(name string, outputPath string, index suggest.Index) {
+func storeIndex(index suggest.Index, config suggest.IndexDescription) {
 	headerFile, err := os.OpenFile(
-		fmt.Sprintf("%s/%s.hd", outputPath, name),
+		config.GetHeaderFile(),
 		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
 		0644,
 	)
@@ -133,7 +79,7 @@ func storeIndex(name string, outputPath string, index suggest.Index) {
 	}
 
 	documentListFile, err := os.OpenFile(
-		fmt.Sprintf("%s/%s.dl", outputPath, name),
+		config.GetDocumentListFile(),
 		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
 		0644,
 	)
@@ -160,7 +106,7 @@ func main() {
 	}
 
 	defer f.Close()
-	configs, err := readConfig(f)
+	configs, err := suggest.ReadConfigs(f)
 	if err != nil {
 		log.Fatalf("invalid config file format %s", err)
 	}
@@ -170,14 +116,14 @@ func main() {
 	for _, config := range configs {
 		log.Printf("Start process '%s' config", config.Name)
 
-		alphabet := getAlphabet(config.Alphabet)
+		alphabet := config.CreateAlphabet()
 		cleaner := suggest.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
 		generator := suggest.NewGenerator(config.NGramSize, alphabet)
 
 		log.Printf("Building dictionary...")
 
 		start := time.Now()
-		dictionary := buildDictionary(config.Name, config.SourcePath, config.OutputPath)
+		dictionary := buildDictionary(config.SourcePath, config)
 		log.Printf("Time spent %s", time.Since(start))
 
 		// create index in memory
@@ -192,7 +138,7 @@ func main() {
 		log.Printf("Storing index...")
 
 		start = time.Now()
-		storeIndex(config.Name, config.OutputPath, index)
+		storeIndex(index, config)
 		log.Printf("Time spent %s", time.Since(start))
 
 		log.Printf("End process\n\n")

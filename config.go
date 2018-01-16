@@ -12,8 +12,9 @@ const (
 )
 
 // IndexConfig is config for NgramIndex structure
+// deprecated
 type IndexConfig struct {
-	ngramSize  int
+	nGramSize  int
 	alphabet   Alphabet
 	wrap       string
 	pad        string
