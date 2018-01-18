@@ -7,49 +7,52 @@ type heapItem interface {
 }
 
 // heapImpl implements heap.Interface
-type heapImpl []heapItem
+type heapImpl struct {
+	heap []heapItem
+}
 
 // newHeap returns new instance of heap.Interface with given capacity
 func newHeap(capacity int) *heapImpl {
-	hp := make(heapImpl, 0, capacity)
-	return &hp
+	return &heapImpl{
+		make([]heapItem, 0, capacity),
+	}
 }
 
 // Len is the number of elements in the collection.
-func (h heapImpl) Len() int {
-	return len(h)
+func (h *heapImpl) Len() int {
+	return len(h.heap)
 }
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-func (h heapImpl) Less(i, j int) bool {
-	return h[i].Less(h[j])
+func (h *heapImpl) Less(i, j int) bool {
+	return h.heap[i].Less(h.heap[j])
 }
 
 // Swap swaps the elements with indexes i and j.
-func (h heapImpl) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
+func (h *heapImpl) Swap(i, j int) {
+	h.heap[i], h.heap[j] = h.heap[j], h.heap[i]
 }
 
 // Push add x as element Len()
 func (h *heapImpl) Push(x interface{}) {
-	*h = append(*h, x.(heapItem))
+	h.heap = append(h.heap, x.(heapItem))
 }
 
 // Pop remove and return element Len() - 1.
 func (h *heapImpl) Pop() interface{} {
-	old := *h
+	old := h.heap
 	n := len(old)
 	x := old[n-1]
-	*h = old[0 : n-1]
+	h.heap = old[:n-1]
 	return x
 }
 
 // Top returns the top element of heap
-func (h heapImpl) Top() interface{} {
-	if len(h) == 0 {
+func (h *heapImpl) Top() heapItem {
+	if len(h.heap) == 0 {
 		panic("Try to get top element on empty heap")
 	}
 
-	return h[0]
+	return h.heap[0]
 }

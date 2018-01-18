@@ -114,15 +114,21 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 		tmp = tmp[:0]
 
 		for _, c := range candidates {
-			if binarySearch(rid[i], c.pos) != -1 {
-				c.overlap++
+			j := binarySearchLowerBound(rid[i], c.pos)
+			if j != -1 {
+				if rid[i][j] == c.pos {
+					c.overlap++
+				}
+
+				rid[i] = rid[i][j:]
 			}
 
 			// Modify algorithm: we should to know exact overlap count, so leave candidate
 			/*
 				if c.overlap >= threshold {
 					result[c.overlap] = append(result[c.overlap], c.pos)
-				}*/
+				}
+			*/
 
 			if c.overlap+(lenRid-i-1) >= threshold {
 				tmp = append(tmp, c)
@@ -169,7 +175,7 @@ func divideSkip(rid []PostingList, threshold int, mu float64) []PostingList {
 		for _, r := range list {
 			j := count
 			for _, longList := range lLong {
-				idx := binarySearchUpperBound(longList, r)
+				idx := binarySearchLowerBound(longList, r)
 				if idx != -1 && longList[idx] == r {
 					j++
 				}
@@ -193,23 +199,30 @@ func mergeSkip(rid []PostingList, threshold int) []PostingList {
 	h := newHeap(lenRid)
 	result := make([]PostingList, lenRid+1)
 	poppedItems := make([]*record, 0, lenRid)
+	tops := make([]record, lenRid)
+	var item *record
 
 	for i := 0; i < lenRid; i++ {
-		heap.Push(h, &record{i, rid[i][0]})
+		item = &tops[i]
+		item.ridID, item.pos = i, rid[i][0]
+		h.Push(item)
 	}
+
+	heap.Init(h)
+	item = nil
 
 	for h.Len() > 0 {
 		// reset slice
 		poppedItems = poppedItems[:0]
-		t := h.Top()
-		for h.Len() > 0 && h.Top().(*record).pos == t.(*record).pos {
-			item := heap.Pop(h)
-			poppedItems = append(poppedItems, item.(*record))
+		t := h.Top().(*record)
+		for h.Len() > 0 && !t.Less(h.Top()) {
+			item = heap.Pop(h).(*record)
+			poppedItems = append(poppedItems, item)
 		}
 
 		n := len(poppedItems)
 		if n >= threshold {
-			result[n] = append(result[n], t.(*record).pos)
+			result[n] = append(result[n], t.pos)
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
 				if len(cur) > 1 {
@@ -220,29 +233,23 @@ func mergeSkip(rid []PostingList, threshold int) []PostingList {
 				}
 			}
 		} else {
-			j := threshold - 1 - n
-			for j > 0 && h.Len() > 0 {
-				item := heap.Pop(h)
-				j--
-				poppedItems = append(poppedItems, item.(*record))
+			for j := threshold - 1 - n; j > 0 && h.Len() > 0; j-- {
+				item = heap.Pop(h).(*record)
+				poppedItems = append(poppedItems, item)
 			}
 
 			if h.Len() == 0 {
 				break
 			}
 
-			t = h.Top()
+			topPos := h.Top().(*record).pos
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
 				if len(cur) == 0 {
 					continue
 				}
 
-				r := binarySearchUpperBound(cur, t.(*record).pos)
-				if r == -1 {
-					continue
-				}
-
+				r := binarySearchLowerBound(cur, topPos)
 				if r != -1 {
 					cur = cur[r:]
 					rid[item.ridID] = cur

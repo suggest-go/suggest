@@ -74,6 +74,7 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
 	rid := make([]PostingList, 0, sizeA)
 	lenIndices := n.indices.Size()
+	var r *rank
 
 	if bMax >= lenIndices {
 		bMax = lenIndices - 1
@@ -119,7 +120,6 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 		counts := n.calcOverlap(rid, threshold)
 		// use heap search for finding top k items in a list efficiently
 		// see http://stevehanov.ca/blog/index.php?id=122
-		var r *rank
 		for inter := len(counts) - 1; inter >= threshold; inter-- {
 			for _, id := range counts[inter] {
 				distance := metric.Distance(inter, sizeA, sizeB)

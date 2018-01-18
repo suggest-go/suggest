@@ -2,8 +2,8 @@ package suggest
 
 import "testing"
 
-func TestSearchUpperBound(t *testing.T) {
-	items := PostingList{0, 1, 3, 7, 9, 10, 11}
+func TestSearchLowerBound(t *testing.T) {
+	items := PostingList{1, 3, 7, 9, 10, 11}
 	cases := []struct {
 		val      Position
 		expected int
@@ -17,10 +17,14 @@ func TestSearchUpperBound(t *testing.T) {
 		{8, 9},
 		{7, 7},
 		{6, 7},
+		{5, 7},
+		{4, 7},
+		{3, 3},
+		{11, 11},
 	}
 
 	for _, c := range cases {
-		actual := binarySearchUpperBound(items, c.val)
+		actual := binarySearchLowerBound(items, c.val)
 		if actual != -1 {
 			actual = int(items[actual])
 		}
@@ -32,7 +36,7 @@ func TestSearchUpperBound(t *testing.T) {
 }
 
 func TestBinarySearch(t *testing.T) {
-	items := PostingList{0, 1, 3, 7, 9, 10, 11}
+	items := PostingList{1, 3, 7, 9, 10, 11}
 	cases := []struct {
 		val      Position
 		expected int
@@ -46,6 +50,7 @@ func TestBinarySearch(t *testing.T) {
 		{8, -1},
 		{7, 7},
 		{6, -1},
+		{0, -1},
 	}
 
 	for _, c := range cases {
