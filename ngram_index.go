@@ -146,9 +146,5 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 // calcOverlap returns array of posting list with values that appears >= threshold times.
 // index here represents overlap count
 func (n *nGramIndexImpl) calcOverlap(rid []PostingList, threshold int) []PostingList {
-	if threshold == 1 {
-		return scanCount(rid, threshold)
-	}
-
 	return cpMerge(rid, threshold)
 }

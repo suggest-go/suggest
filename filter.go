@@ -11,9 +11,27 @@ import (
 	"sort"
 )
 
+type ridT []PostingList
+
+func (p ridT) Len() int {
+	return len(p)
+}
+
+func (p ridT) Less(i, j int) bool {
+	return len(p[i]) < len(p[j])
+}
+
+func (p ridT) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
 type record struct {
 	ridID int
 	pos   Position
+}
+
+func (r *record) Less(other heapItem) bool {
+	return r.pos < other.(*record).pos
 }
 
 type candidate struct {
@@ -21,15 +39,11 @@ type candidate struct {
 	overlap int
 }
 
-func (r *record) Less(other heapItem) bool {
-	return r.pos < other.(*record).pos
-}
-
 // scanCount scan the N inverted lists one by one.
 // For each string id on each list, we increment the count
 // corresponding to the string by 1. We report the string ids that
 // appear at least `threshold` times on the lists.
-func scanCount(rid []PostingList, threshold int) []PostingList {
+func scanCount(rid ridT, threshold int) []PostingList {
 	size := len(rid)
 	result := make([]PostingList, size+1)
 	candidates := make([]*candidate, 0, size)
@@ -71,10 +85,8 @@ func scanCount(rid []PostingList, threshold int) []PostingList {
 // cpMerge was described in paper
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
 // inspired by https://github.com/chokkan/simstring
-func cpMerge(rid []PostingList, threshold int) []PostingList {
-	sort.SliceStable(rid, func(i, j int) bool {
-		return len(rid[i]) < len(rid[j])
-	})
+func cpMerge(rid ridT, threshold int) []PostingList {
+	sort.Sort(rid)
 
 	lenRid := len(rid)
 	minQueries := lenRid - threshold + 1
@@ -155,10 +167,8 @@ func cpMerge(rid []PostingList, threshold int) []PostingList {
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // We have to choose `good` parameter mu, for improving speed. So, mu depends
 // only on given dictionary, so we can find it
-func divideSkip(rid []PostingList, threshold int, mu float64) []PostingList {
-	sort.SliceStable(rid, func(i, j int) bool {
-		return len(rid[i]) > len(rid[j])
-	})
+func divideSkip(rid ridT, threshold int, mu float64) []PostingList {
+	sort.Reverse(rid)
 
 	M := float64(len(rid[0]))
 	l := int(float64(threshold) / (mu*math.Log(M) + 1))
@@ -194,7 +204,7 @@ func divideSkip(rid []PostingList, threshold int, mu float64) []PostingList {
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // Formally, main idea is to skip on the lists those record ids that cannot be in
 // the answer to the query, by utilizing the threshold
-func mergeSkip(rid []PostingList, threshold int) []PostingList {
+func mergeSkip(rid ridT, threshold int) []PostingList {
 	lenRid := len(rid)
 	h := newHeap(lenRid)
 	result := make([]PostingList, lenRid+1)
