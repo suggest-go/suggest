@@ -2,12 +2,10 @@ package suggest
 
 import (
 	"bufio"
-	"bytes"
 	"golang.org/x/exp/mmap"
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"reflect"
 	"testing"
 )
@@ -122,22 +120,6 @@ func BenchmarkRealExampleInMemory(b *testing.B) {
 
 func BenchmarkRealExampleOnDisc(b *testing.B) {
 	b.StopTimer()
-
-	os.RemoveAll("testdata/db")
-
-	err := os.Mkdir("testdata/db", 0777)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cmd := exec.Command("go", "run", "cmd/indexer/main.go", "--config", "testdata/config.json")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	err = cmd.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	f, err := mmap.Open("testdata/db/cars.cdb")
 	if err != nil {
