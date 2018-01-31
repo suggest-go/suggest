@@ -9,13 +9,20 @@ import (
 
 func TestOnDiscWriter_Save(t *testing.T) {
 	header, err := os.Create("testdata/db/test.hd")
-	defer header.Close()
+	defer func() {
+		header.Close()
+		os.Remove(header.Name())
+	}()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	docList, err := os.Create("testdata/db/test.dl")
-	defer header.Close()
+	defer func () {
+		docList.Close()
+		os.Remove(docList.Name())
+	}()
+
 	if err != nil {
 		log.Fatal(err)
 	}
