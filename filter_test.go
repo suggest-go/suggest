@@ -2,88 +2,36 @@ package suggest
 
 import (
 	"reflect"
-	"sort"
 	"testing"
 )
 
-func TestCPMerge(t *testing.T) {
-	for _, c := range dataProvider() {
-		actual := cpMerge(c.rid, c.t)
-		actualMap := make(map[int]PostingList)
-		for n, list := range actual {
-			if len(list) == 0 {
-				continue
-			}
-
-			actualMap[n] = list
-		}
-
-		if !reflect.DeepEqual(actualMap, c.expected) {
-			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
-		}
+func TestMerge(t *testing.T) {
+	mergers := []ListMerger{
+		&ScanCount{},
+		&CPMerge{},
+		&MergeSkip{},
+		&DivideSkip{0.01, &MergeSkip{}},
 	}
-}
 
-func TestScanCount(t *testing.T) {
-	for _, c := range dataProvider() {
-		actual := scanCount(c.rid, c.t)
-		actualMap := make(map[int]PostingList)
-		for n, list := range actual {
-			if len(list) == 0 {
-				continue
+	for _, merger := range mergers {
+		for _, c := range dataProvider() {
+			actual := make(map[int]PostingList, len(c.rid))
+
+			for _, candidate := range merger.Merge(c.rid, c.t) {
+				if candidate.Overlap >= c.t {
+					actual[candidate.Overlap] = append(actual[candidate.Overlap], candidate.Pos)
+				}
 			}
 
-			sort.Slice(list, func(i, j int) bool {
-				return list[i] < list[j]
-			})
-
-			actualMap[n] = list
-		}
-
-		if !reflect.DeepEqual(actualMap, c.expected) {
-			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
-		}
-	}
-}
-
-func TestDivideSkip(t *testing.T) {
-	for _, c := range dataProvider() {
-		actual := divideSkip(c.rid, c.t, 0.0085)
-		actualMap := make(map[int]PostingList)
-		for n, list := range actual {
-			if len(list) == 0 {
-				continue
+			if !reflect.DeepEqual(actual, c.expected) {
+				t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
 			}
-
-			actualMap[n] = list
-		}
-
-		if !reflect.DeepEqual(actualMap, c.expected) {
-			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
-		}
-	}
-}
-
-func TestMergeSkip(t *testing.T) {
-	for _, c := range dataProvider() {
-		actual := mergeSkip(c.rid, c.t)
-		actualMap := make(map[int]PostingList)
-		for n, list := range actual {
-			if len(list) == 0 {
-				continue
-			}
-
-			actualMap[n] = list
-		}
-
-		if !reflect.DeepEqual(actualMap, c.expected) {
-			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
 		}
 	}
 }
 
 type oneCase struct {
-	rid      []PostingList
+	rid      Rid
 	t        int
 	expected map[int]PostingList
 }
@@ -91,7 +39,7 @@ type oneCase struct {
 func dataProvider() []oneCase {
 	return []oneCase{
 		{
-			[]PostingList{
+			Rid{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
@@ -104,7 +52,7 @@ func dataProvider() []oneCase {
 			},
 		},
 		{
-			[]PostingList{
+			Rid{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
@@ -116,7 +64,7 @@ func dataProvider() []oneCase {
 			},
 		},
 		{
-			[]PostingList{
+			Rid{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
@@ -128,7 +76,7 @@ func dataProvider() []oneCase {
 			},
 		},
 		{
-			[]PostingList{
+			Rid{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -141,7 +89,7 @@ func dataProvider() []oneCase {
 			},
 		},
 		{
-			[]PostingList{
+			Rid{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -154,7 +102,7 @@ func dataProvider() []oneCase {
 			},
 		},
 		{
-			[]PostingList{
+			Rid{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},

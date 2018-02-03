@@ -83,6 +83,7 @@ func (b *runTimeBuilderImpl) Build() NGramIndex {
 		cleaner,
 		generator,
 		invertedIndexIndices,
+		&CPMerge{},
 	)
 }
 
@@ -146,5 +147,6 @@ func (b *builderImpl) Build() NGramIndex {
 		cleaner,
 		generator,
 		invertedIndexIndices,
+		&CPMerge{},
 	)
 }
