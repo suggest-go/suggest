@@ -33,7 +33,10 @@ type nGramIndexImpl struct {
 // NewNGramIndex returns a new NGramIndex object
 func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedIndexIndices, merger ListMerger, ) NGramIndex {
 	return &nGramIndexImpl{
-		cleaner, indices, generator, merger,
+		cleaner: cleaner,
+		indices: indices,
+		generator: generator,
+		merger: merger,
 	}
 }
 
@@ -41,7 +44,7 @@ func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedIndexIn
 func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 	result := make([]Candidate, 0, config.topK)
 	preparedQuery := n.cleaner.Clean(config.query)
-	if len(preparedQuery) < 3 {
+	if len(preparedQuery) < 3 { // TODO дичь
 		return result
 	}
 
@@ -49,7 +52,7 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
 	for candidates.Len() > 0 {
 		r := heap.Pop(candidates).(*rank)
 		result = append(
-			[]Candidate{{r.id, r.distance}},
+			[]Candidate{{r.pos, r.distance}},
 			result...,
 		)
 	}
@@ -122,22 +125,20 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 		// use heap search for finding top k items in a list efficiently
 		// see http://stevehanov.ca/blog/index.php?id=122
 		for _, c := range candidates {
-			if c.Overlap < threshold {
-				continue
-			}
-
 			distance := metric.Distance(c.Overlap, sizeA, sizeB)
 
 			if h.Len() < topK || h.Top().(*rank).distance > distance {
 				if h.Len() == topK {
 					r = heap.Pop(h).(*rank)
 				} else {
-					r = &rank{0, 0, 0}
+					r = &rank{
+						pos: 0,
+						distance: 0.0,
+					}
 				}
 
-				r.id = c.Pos
+				r.pos = c.Pos
 				r.distance = distance
-				r.overlap = c.Overlap
 				heap.Push(h, r)
 			}
 		}

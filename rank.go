@@ -10,8 +10,7 @@ type Candidate struct {
 
 // rank implements heapItem. simple rank based on distance compare
 type rank struct {
-	id       Position
-	overlap  int
+	pos       Position
 	distance float64
 }
 

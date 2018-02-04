@@ -20,12 +20,22 @@ type InvertedIndexIndicesWriter interface {
 
 // NewOnDiscInvertedIndexWriter returns new instance of InvertedIndexIndicesWriter
 func NewOnDiscInvertedIndexWriter(encoder Encoder, header io.WriteSeeker, documentList io.Writer, fromPosition int64) InvertedIndexIndicesWriter {
-	return &onDiscWriter{encoder, header, documentList, fromPosition}
+	return &onDiscWriter{
+		encoder: encoder,
+		header: header,
+		documentList: documentList,
+		fromPosition: fromPosition,
+	}
 }
 
 // NewOnDiscInvertedIndexReader returns new instance of InvertedIndexIndicesReader
 func NewOnDiscInvertedIndexReader(decoder Decoder, header io.ReaderAt, documentList io.ReaderAt, fromPosition int64) InvertedIndexIndicesReader {
-	return &onDiscReader{decoder, header, documentList, fromPosition}
+	return &onDiscReader{
+		decoder: decoder,
+		header: header,
+		documentList: documentList,
+		fromPosition: fromPosition,
+	}
 }
 
 // onDiscReader implements InvertedIndexIndicesReader interface

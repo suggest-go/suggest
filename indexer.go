@@ -12,9 +12,9 @@ func NewIndexer(
 	cleaner Cleaner,
 ) Indexer {
 	return &indexerImpl{
-		nGramSize,
-		generator,
-		cleaner,
+		nGramSize: nGramSize,
+		generator: generator,
+		cleaner: cleaner,
 	}
 }
 

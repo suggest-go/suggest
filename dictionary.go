@@ -34,7 +34,7 @@ func NewInMemoryDictionary(words []string) Dictionary {
 	copy(holder, words)
 
 	return &inMemoryDictionary{
-		holder,
+		holder: holder,
 	}
 }
 
@@ -49,7 +49,10 @@ func (d *inMemoryDictionary) Get(key Position) (string, error) {
 
 // Iterator returns an iterator over the elements in this dictionary
 func (d *inMemoryDictionary) Iterator() DictionaryIterator {
-	return &inMemoryDictionaryIterator{d, 0}
+	return &inMemoryDictionaryIterator{
+		dict: d,
+		index: 0,
+	}
 }
 
 // inMemoryDictionaryIterator implements interface DictionaryIterator for inMemoryDictionary
@@ -93,7 +96,7 @@ func NewCDBDictionary(r io.ReaderAt) Dictionary {
 	}
 
 	return &cdbDictionary{
-		reader,
+		reader: reader,
 	}
 }
 
@@ -116,7 +119,7 @@ func (d *cdbDictionary) Iterator() DictionaryIterator {
 		panic(err)
 	}
 
-	return &cdbDictionaryIterator{iterator}
+	return &cdbDictionaryIterator{ cdbIterator: iterator}
 }
 
 // cdbDictionaryIterator implements interface DictionaryIterator for cdbDictionary

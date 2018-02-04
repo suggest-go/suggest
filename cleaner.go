@@ -25,7 +25,11 @@ func NewCleaner(chars []rune, pad, wrapper string) Cleaner {
 		panic(err)
 	}
 
-	return &cleanerImpl{reg, pad, wrapper}
+	return &cleanerImpl{
+		reg: reg,
+		pad: pad,
+		wrapper: wrapper,
+	}
 }
 
 // Clean returns prepared "cleaned" string

@@ -32,11 +32,11 @@ func NewIndexConfig(k int, dictionary Dictionary, alphabet Alphabet, wrap, pad s
 	}
 
 	return &IndexConfig{
-		k,
-		alphabet,
-		wrap,
-		pad,
-		dictionary,
+		nGramSize: k,
+		alphabet: alphabet,
+		wrap: wrap,
+		pad: pad,
+		dictionary: dictionary,
 	}, nil
 }
 
@@ -59,9 +59,9 @@ func NewSearchConfig(query string, topK int, metric Metric, similarity float64) 
 	}
 
 	return &SearchConfig{
-		query,
-		topK,
-		metric,
-		similarity,
+		query: query,
+		topK: topK,
+		metric: metric,
+		similarity: similarity,
 	}, nil
 }

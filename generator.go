@@ -16,7 +16,10 @@ type generatorImpl struct {
 
 // NewGenerator returns new instance of Generator
 func NewGenerator(nGramSize int, alphabet Alphabet) Generator {
-	return &generatorImpl{nGramSize, alphabet}
+	return &generatorImpl{
+		nGramSize: nGramSize,
+		alphabet: alphabet,
+	}
 }
 
 // Generate returns terms array for given word

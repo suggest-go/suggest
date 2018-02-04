@@ -46,7 +46,10 @@ func NewSimpleAlphabet(chars []rune) Alphabet {
 		index++
 	}
 
-	return &simpleAlphabet{table, charHolder{chars}}
+	return &simpleAlphabet{
+		table:table,
+		charHolder: charHolder{chars},
+	}
 }
 
 func (a *simpleAlphabet) MapChar(char rune) int32 {
@@ -72,7 +75,9 @@ func NewSequentialAlphabet(min, max rune) Alphabet {
 	}
 
 	return &sequentialAlphabet{
-		min, max, charHolder{chars},
+		min: min,
+		max: max,
+		charHolder: charHolder{chars},
 	}
 }
 
@@ -160,7 +165,10 @@ func NewCompositeAlphabet(alphabets []Alphabet) Alphabet {
 		chars = append(chars, alphabet.Chars()...)
 	}
 
-	return &compositeAlphabet{alphabets, charHolder{chars}}
+	return &compositeAlphabet{
+		alphabets: alphabets,
+		charHolder: charHolder{chars},
+	}
 }
 
 // trouble with mapping, we sort alphabet in size order for it, but will be collision when size are equals

@@ -39,7 +39,11 @@ func NewInMemoryInvertedIndex(table map[Term]PostingList) InvertedIndex {
 type invertedIndexStructure map[Term]struct{ size uint32; position uint32 }
 
 func NewOnDiscInvertedIndex(reader io.ReaderAt, decoder Decoder, m invertedIndexStructure) InvertedIndex {
-	return &onDiscInvertedIndex{reader, decoder, m}
+	return &onDiscInvertedIndex{
+		reader: reader,
+		decoder: decoder,
+		m: m,
+	}
 }
 
 // invertedIndexInMemoryImpl
@@ -107,7 +111,9 @@ func (i *invertedIndexIndicesImpl) Size() int {
 
 // NewInMemoryInvertedIndexIndicesBuilder
 func NewInMemoryInvertedIndexIndicesBuilder(indices Index) InvertedIndexIndicesBuilder {
-	return &invertedIndexIndicesBuilderInMemoryImpl{indices}
+	return &invertedIndexIndicesBuilderInMemoryImpl{
+		indices: indices,
+	}
 }
 
 // invertedIndexIndicesBuilderInMemoryImpl
@@ -128,7 +134,10 @@ func (b *invertedIndexIndicesBuilderInMemoryImpl) Build() InvertedIndexIndices {
 
 // NewOnDiscInvertedIndexIndicesBuilder
 func NewOnDiscInvertedIndexIndicesBuilder(headerPath, documentListPath string) InvertedIndexIndicesBuilder {
-	return &invertedIndexIndicesBuilderOnDiscImpl{headerPath, documentListPath}
+	return &invertedIndexIndicesBuilderOnDiscImpl{
+		headerPath: headerPath,
+		documentListPath: documentListPath,
+	}
 }
 
 // invertedIndexIndicesBuilderOnDiscImpl

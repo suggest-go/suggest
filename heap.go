@@ -14,7 +14,7 @@ type heapImpl struct {
 // newHeap returns new instance of heap.Interface with given capacity
 func newHeap(capacity int) *heapImpl {
 	return &heapImpl{
-		make([]heapItem, 0, capacity),
+		heap: make([]heapItem, 0, capacity),
 	}
 }
 
