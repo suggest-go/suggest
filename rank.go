@@ -3,14 +3,14 @@ package suggest
 // Candidate is representing candidate of the similarity of the query
 type Candidate struct {
 	// Key is position (docId) in posting list
-	Key      Position
+	Key Position
 	// Distance is float64 number from [0, 1]
 	Distance float64
 }
 
 // rank implements heapItem. simple rank based on distance compare
 type rank struct {
-	pos       Position
+	pos      Position
 	distance float64
 }
 

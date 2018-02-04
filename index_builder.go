@@ -34,11 +34,11 @@ type runTimeBuilderImpl struct {
 // NewRunTimeBuilder returns new instance of runTimeBuilderImpl
 func NewRunTimeBuilder() Builder {
 	return &runTimeBuilderImpl{
-		nGramSize: defaultNGramSize,
-		alphabet: nil,
+		nGramSize:  defaultNGramSize,
+		alphabet:   nil,
 		dictionary: nil,
-		pad: defaultPad,
-		wrap: defaultWrap,
+		pad:        defaultPad,
+		wrap:       defaultWrap,
 	}
 }
 
@@ -89,24 +89,24 @@ func (b *runTimeBuilderImpl) Build() NGramIndex {
 
 // builderImpl implements Builder interface
 type builderImpl struct {
-	nGramSize  int
-	alphabet   Alphabet
-	dictionary Dictionary
-	pad        string
-	wrap       string
-	headerPath    string
-	documentListPath    string
+	nGramSize        int
+	alphabet         Alphabet
+	dictionary       Dictionary
+	pad              string
+	wrap             string
+	headerPath       string
+	documentListPath string
 }
 
 // NewBuilder works with already indexed data
 func NewBuilder(headerPath, documentListPath string) Builder {
 	return &builderImpl{
-		nGramSize: defaultNGramSize,
-		alphabet: nil,
-		dictionary: nil,
-		pad: defaultPad,
-		wrap: defaultWrap,
-		headerPath: headerPath,
+		nGramSize:        defaultNGramSize,
+		alphabet:         nil,
+		dictionary:       nil,
+		pad:              defaultPad,
+		wrap:             defaultWrap,
+		headerPath:       headerPath,
 		documentListPath: documentListPath,
 	}
 }

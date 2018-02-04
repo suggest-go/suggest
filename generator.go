@@ -18,7 +18,7 @@ type generatorImpl struct {
 func NewGenerator(nGramSize int, alphabet Alphabet) Generator {
 	return &generatorImpl{
 		nGramSize: nGramSize,
-		alphabet: alphabet,
+		alphabet:  alphabet,
 	}
 }
 

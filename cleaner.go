@@ -26,8 +26,8 @@ func NewCleaner(chars []rune, pad, wrapper string) Cleaner {
 	}
 
 	return &cleanerImpl{
-		reg: reg,
-		pad: pad,
+		reg:     reg,
+		pad:     pad,
 		wrapper: wrapper,
 	}
 }

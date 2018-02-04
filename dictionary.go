@@ -50,7 +50,7 @@ func (d *inMemoryDictionary) Get(key Position) (string, error) {
 // Iterator returns an iterator over the elements in this dictionary
 func (d *inMemoryDictionary) Iterator() DictionaryIterator {
 	return &inMemoryDictionaryIterator{
-		dict: d,
+		dict:  d,
 		index: 0,
 	}
 }
@@ -119,7 +119,7 @@ func (d *cdbDictionary) Iterator() DictionaryIterator {
 		panic(err)
 	}
 
-	return &cdbDictionaryIterator{ cdbIterator: iterator}
+	return &cdbDictionaryIterator{cdbIterator: iterator}
 }
 
 // cdbDictionaryIterator implements interface DictionaryIterator for cdbDictionary

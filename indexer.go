@@ -14,7 +14,7 @@ func NewIndexer(
 	return &indexerImpl{
 		nGramSize: nGramSize,
 		generator: generator,
-		cleaner: cleaner,
+		cleaner:   cleaner,
 	}
 }
 

@@ -1,10 +1,10 @@
 package suggest
 
 import (
-	"io"
-	"io/ioutil"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 )
 
 var (
@@ -23,7 +23,7 @@ type IndexDescription struct {
 	OutputPath string   `json:"output"`
 	Alphabet   []string `json:"alphabet"`
 	Pad        string   `json:"pad"`
-	Wrap 	   string   `json:"wrap"`
+	Wrap       string   `json:"wrap"`
 }
 
 func ReadConfigs(reader io.Reader) ([]IndexDescription, error) {

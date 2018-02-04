@@ -47,7 +47,7 @@ func NewSimpleAlphabet(chars []rune) Alphabet {
 	}
 
 	return &simpleAlphabet{
-		table:table,
+		table:      table,
 		charHolder: charHolder{chars},
 	}
 }
@@ -75,8 +75,8 @@ func NewSequentialAlphabet(min, max rune) Alphabet {
 	}
 
 	return &sequentialAlphabet{
-		min: min,
-		max: max,
+		min:        min,
+		max:        max,
 		charHolder: charHolder{chars},
 	}
 }
@@ -166,7 +166,7 @@ func NewCompositeAlphabet(alphabets []Alphabet) Alphabet {
 	}
 
 	return &compositeAlphabet{
-		alphabets: alphabets,
+		alphabets:  alphabets,
 		charHolder: charHolder{chars},
 	}
 }

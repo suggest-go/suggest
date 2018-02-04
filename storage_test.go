@@ -1,10 +1,10 @@
 package suggest
 
 import (
-	"testing"
-	"os"
-	"log"
 	"bufio"
+	"log"
+	"os"
+	"testing"
 )
 
 func TestOnDiscWriter_Save(t *testing.T) {
@@ -18,7 +18,7 @@ func TestOnDiscWriter_Save(t *testing.T) {
 	}
 
 	docList, err := os.Create("testdata/db/test.dl")
-	defer func () {
+	defer func() {
 		docList.Close()
 		os.Remove(docList.Name())
 	}()

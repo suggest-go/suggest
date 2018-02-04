@@ -35,7 +35,7 @@ type MergeCandidate struct {
 
 type record struct {
 	ridID int
-	pos Position
+	pos   Position
 }
 
 func (r *record) Less(other heapItem) bool { return r.pos < other.(*record).pos }
@@ -44,7 +44,7 @@ func (r *record) Less(other heapItem) bool { return r.pos < other.(*record).pos 
 // For each string id on each list, we increment the count
 // corresponding to the string by 1. We report the string ids that
 // appear at least `threshold` times on the lists.
-type ScanCount struct {}
+type ScanCount struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (lm *ScanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
@@ -91,7 +91,7 @@ func (lm *ScanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
 // CPMerge was described in paper
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
 // inspired by https://github.com/chokkan/simstring
-type CPMerge struct {}
+type CPMerge struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (cp *CPMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
@@ -143,7 +143,7 @@ func (cp *CPMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 				rid[i] = rid[i][j:]
 			}
 
-			if c.Overlap + (lenRid - i - 1) >= threshold {
+			if c.Overlap+(lenRid-i-1) >= threshold {
 				tmp = append(tmp, c)
 			}
 		}
@@ -167,19 +167,21 @@ func (cp *CPMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 	return candidates
 }
 
-
 // DivideSkip was described in paper
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // We have to choose `good` parameter mu, for improving speed. So, mu depends
 // only on given dictionary, so we can find it
-type DivideSkip struct { mu float64; merger ListMerger }
+type DivideSkip struct {
+	mu     float64
+	merger ListMerger
+}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (ds *DivideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 	sort.Reverse(rid)
 
 	M := float64(len(rid[0]))
-	l := int(float64(threshold) / (ds.mu * math.Log(M) + 1))
+	l := int(float64(threshold) / (ds.mu*math.Log(M) + 1))
 
 	lLong := rid[:l]
 	lShort := rid[l:]
@@ -189,9 +191,9 @@ func (ds *DivideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 	}
 
 	var (
-		r Position
-		candidates = ds.merger.Merge(lShort, threshold - l)
-		result = make([]*MergeCandidate, 0, len(candidates))
+		r          Position
+		candidates = ds.merger.Merge(lShort, threshold-l)
+		result     = make([]*MergeCandidate, 0, len(candidates))
 	)
 
 	for _, c := range candidates {
@@ -216,7 +218,7 @@ func (ds *DivideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // Formally, main idea is to skip on the lists those record ids that cannot be in
 // the answer to the query, by utilizing the threshold
-type MergeSkip struct {}
+type MergeSkip struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
@@ -248,7 +250,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		n := len(poppedItems)
 		if n >= threshold {
 			result = append(result, &MergeCandidate{
-				Pos: t.pos,
+				Pos:     t.pos,
 				Overlap: n,
 			})
 

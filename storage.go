@@ -21,8 +21,8 @@ type InvertedIndexIndicesWriter interface {
 // NewOnDiscInvertedIndexWriter returns new instance of InvertedIndexIndicesWriter
 func NewOnDiscInvertedIndexWriter(encoder Encoder, header io.WriteSeeker, documentList io.Writer, fromPosition int64) InvertedIndexIndicesWriter {
 	return &onDiscWriter{
-		encoder: encoder,
-		header: header,
+		encoder:      encoder,
+		header:       header,
 		documentList: documentList,
 		fromPosition: fromPosition,
 	}
@@ -31,8 +31,8 @@ func NewOnDiscInvertedIndexWriter(encoder Encoder, header io.WriteSeeker, docume
 // NewOnDiscInvertedIndexReader returns new instance of InvertedIndexIndicesReader
 func NewOnDiscInvertedIndexReader(decoder Decoder, header io.ReaderAt, documentList io.ReaderAt, fromPosition int64) InvertedIndexIndicesReader {
 	return &onDiscReader{
-		decoder: decoder,
-		header: header,
+		decoder:      decoder,
+		header:       header,
 		documentList: documentList,
 		fromPosition: fromPosition,
 	}
@@ -75,7 +75,7 @@ func (r *onDiscReader) Load() (InvertedIndexIndices, error) {
 
 		var (
 			term, size, offset, j uint32
-			m = make(invertedIndexStructure, length)
+			m                     = make(invertedIndexStructure, length)
 			// each map entry represents key (term) and 2 uint32 (posting list byte size and position in documentList file)
 			// so we have 3 uint32 numbers
 			mapBuf = make([]byte, 12*length)
@@ -88,9 +88,9 @@ func (r *onDiscReader) Load() (InvertedIndexIndices, error) {
 
 		for l := uint32(0); l < length; l++ {
 			j = l * 12
-			term = binary.LittleEndian.Uint32(mapBuf[j:j+4])
-			size = binary.LittleEndian.Uint32(mapBuf[j+4:j+8])
-			offset = binary.LittleEndian.Uint32(mapBuf[j+8:j+12])
+			term = binary.LittleEndian.Uint32(mapBuf[j : j+4])
+			size = binary.LittleEndian.Uint32(mapBuf[j+4 : j+8])
+			offset = binary.LittleEndian.Uint32(mapBuf[j+8 : j+12])
 
 			m[Term(term)] = struct {
 				size     uint32

@@ -1,9 +1,9 @@
 package suggest
 
 import (
-	"sort"
-	"sync"
 	"golang.org/x/exp/mmap"
+	"runtime"
+	"sync"
 )
 
 // ResultItem represents element of top-k similar strings in dictionary for given query
@@ -53,6 +53,9 @@ func (s *Service) AddOnDiscIndex(description IndexDescription) error {
 	}
 
 	dictionary := NewCDBDictionary(dictionaryFile)
+	runtime.SetFinalizer(dictionary, func(d *cdbDictionary) {
+		dictionaryFile.Close()
+	})
 
 	nGramIndex := NewBuilder(description.GetHeaderFile(), description.GetDocumentListFile()).
 		SetAlphabet(description.CreateAlphabet()).
@@ -95,13 +98,13 @@ func (s *Service) Suggest(dict string, config *SearchConfig) []ResultItem {
 	result := make([]ResultItem, 0, l)
 
 	for _, candidate := range candidates {
-		value, _ := dictionary.Get(candidate.Key)
-		result = append(result, ResultItem{candidate.Distance, value})
+		value, err := dictionary.Get(candidate.Key)
+		if err != nil {
+			// TODO should report error
+		} else {
+			result = append(result, ResultItem{candidate.Distance, value})
+		}
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Distance < result[j].Distance
-	})
 
 	return result
 }

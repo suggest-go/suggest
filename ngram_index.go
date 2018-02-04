@@ -27,16 +27,16 @@ type nGramIndexImpl struct {
 	cleaner   Cleaner
 	indices   InvertedIndexIndices
 	generator Generator
-	merger ListMerger
+	merger    ListMerger
 }
 
 // NewNGramIndex returns a new NGramIndex object
-func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedIndexIndices, merger ListMerger, ) NGramIndex {
+func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedIndexIndices, merger ListMerger) NGramIndex {
 	return &nGramIndexImpl{
-		cleaner: cleaner,
-		indices: indices,
+		cleaner:   cleaner,
+		indices:   indices,
 		generator: generator,
-		merger: merger,
+		merger:    merger,
 	}
 }
 
@@ -132,7 +132,7 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 					r = heap.Pop(h).(*rank)
 				} else {
 					r = &rank{
-						pos: 0,
+						pos:      0,
 						distance: 0.0,
 					}
 				}

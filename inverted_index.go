@@ -3,6 +3,7 @@ package suggest
 import (
 	"golang.org/x/exp/mmap"
 	"io"
+	"runtime"
 )
 
 type Term int32
@@ -36,13 +37,16 @@ func NewInMemoryInvertedIndex(table map[Term]PostingList) InvertedIndex {
 	return &invertedIndexInMemoryImpl{table}
 }
 
-type invertedIndexStructure map[Term]struct{ size uint32; position uint32 }
+type invertedIndexStructure map[Term]struct {
+	size     uint32
+	position uint32
+}
 
 func NewOnDiscInvertedIndex(reader io.ReaderAt, decoder Decoder, m invertedIndexStructure) InvertedIndex {
 	return &onDiscInvertedIndex{
-		reader: reader,
+		reader:  reader,
 		decoder: decoder,
-		m: m,
+		m:       m,
 	}
 }
 
@@ -63,9 +67,9 @@ func (i *invertedIndexInMemoryImpl) Has(term Term) bool {
 
 // onDiscInvertedIndex
 type onDiscInvertedIndex struct {
-	reader io.ReaderAt
+	reader  io.ReaderAt
 	decoder Decoder
-	m invertedIndexStructure
+	m       invertedIndexStructure
 }
 
 func (i *onDiscInvertedIndex) Get(term Term) PostingList {
@@ -135,7 +139,7 @@ func (b *invertedIndexIndicesBuilderInMemoryImpl) Build() InvertedIndexIndices {
 // NewOnDiscInvertedIndexIndicesBuilder
 func NewOnDiscInvertedIndexIndicesBuilder(headerPath, documentListPath string) InvertedIndexIndicesBuilder {
 	return &invertedIndexIndicesBuilderOnDiscImpl{
-		headerPath: headerPath,
+		headerPath:       headerPath,
 		documentListPath: documentListPath,
 	}
 }
@@ -154,14 +158,22 @@ func (b *invertedIndexIndicesBuilderOnDiscImpl) Build() InvertedIndexIndices {
 
 	docList, err := mmap.Open(b.documentListPath)
 	if err != nil {
+		header.Close()
 		panic(err)
 	}
 
 	reader := NewOnDiscInvertedIndexReader(VBDecoder(), header, docList, 0)
 	indices, err := reader.Load()
 	if err != nil {
+		header.Close()
+		docList.Close()
 		panic(err)
 	}
+
+	runtime.SetFinalizer(indices, func(impl *invertedIndexIndicesImpl) {
+		header.Close()
+		docList.Close()
+	})
 
 	return indices
 }
