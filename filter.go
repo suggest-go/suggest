@@ -33,13 +33,6 @@ type MergeCandidate struct {
 	Overlap int
 }
 
-type record struct {
-	ridID int
-	pos   Position
-}
-
-func (r *record) Less(other heapItem) bool { return r.pos < other.(*record).pos }
-
 // scanCount scan the N inverted lists one by one.
 // For each string id on each list, we increment the count
 // corresponding to the string by 1. We report the string ids that
@@ -214,6 +207,38 @@ func (ds *DivideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 	return result
 }
 
+type record struct {
+	ridID int
+	pos   Position
+}
+
+type recordHeap []*record
+
+// Len is the number of elements in the collection.
+func (h recordHeap) Len() int { return len(h) }
+
+// Less reports whether the element with
+// index i should sort before the element with index j.
+func (h recordHeap) Less(i, j int) bool { return h[i].pos < h[j].pos }
+
+// Swap swaps the elements with indexes i and j.
+func (h recordHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+
+// Push add x as element Len()
+func (h *recordHeap) Push(x interface{}) { *h = append(*h, x.(*record)) }
+
+// Pop remove and return element Len() - 1.
+func (h *recordHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[:n-1]
+	return x
+}
+
+// top returns the top element of heap
+func (h recordHeap) top() *record { return h[0] }
+
 // MergeSkip was described in paper
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // Formally, main idea is to skip on the lists those record ids that cannot be in
@@ -223,7 +248,7 @@ type MergeSkip struct{}
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 	lenRid := len(rid)
-	h := newHeap(lenRid)
+	h := make(recordHeap, 0, lenRid)
 	poppedItems := make([]*record, 0, lenRid)
 	tops := make([]record, lenRid)
 	result := make([]*MergeCandidate, 0, lenRid)
@@ -235,15 +260,15 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		h.Push(item)
 	}
 
-	heap.Init(h)
+	heap.Init(&h)
 	item = nil
 
 	for h.Len() > 0 {
 		// reset slice
 		poppedItems = poppedItems[:0]
-		t := h.Top().(*record)
-		for h.Len() > 0 && !t.Less(h.Top()) {
-			item = heap.Pop(h).(*record)
+		t := h.top()
+		for h.Len() > 0 && t.pos >= h.top().pos {
+			item = heap.Pop(&h).(*record)
 			poppedItems = append(poppedItems, item)
 		}
 
@@ -260,12 +285,12 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 					cur = cur[1:]
 					rid[item.ridID] = cur
 					item.pos = cur[0]
-					heap.Push(h, item)
+					heap.Push(&h, item)
 				}
 			}
 		} else {
 			for j := threshold - 1 - n; j > 0 && h.Len() > 0; j-- {
-				item = heap.Pop(h).(*record)
+				item = heap.Pop(&h).(*record)
 				poppedItems = append(poppedItems, item)
 			}
 
@@ -273,7 +298,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 				break
 			}
 
-			topPos := h.Top().(*record).pos
+			topPos := h.top().pos
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
 				if len(cur) == 0 {
@@ -285,7 +310,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 					cur = cur[r:]
 					rid[item.ridID] = cur
 					item.pos = cur[0]
-					heap.Push(h, item)
+					heap.Push(&h, item)
 				}
 			}
 		}

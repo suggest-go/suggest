@@ -10,14 +10,10 @@ package suggest
  * http://www.aclweb.org/anthology/C10-1096
  */
 
-import (
-	"container/heap"
-)
-
 // NGramIndex is structure ... describe me please
 type NGramIndex interface {
 	// Suggest returns top-k similar candidates
-	Suggest(config *SearchConfig) []Candidate
+	Suggest(config *SearchConfig) []FuzzyCandidate
 	// AutoComplete returns candidates with query as substring
 	AutoComplete(query string, topK int) []Candidate
 }
@@ -41,23 +37,14 @@ func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedIndexIn
 }
 
 // Suggest returns top-k similar strings
-func (n *nGramIndexImpl) Suggest(config *SearchConfig) []Candidate {
-	result := make([]Candidate, 0, config.topK)
+func (n *nGramIndexImpl) Suggest(config *SearchConfig) []FuzzyCandidate {
+	result := make([]FuzzyCandidate, 0, config.topK)
 	preparedQuery := n.cleaner.Clean(config.query)
 	if len(preparedQuery) < 3 { // TODO дичь
 		return result
 	}
 
-	candidates := n.fuzzySearch(preparedQuery, config)
-	for candidates.Len() > 0 {
-		r := heap.Pop(candidates).(*rank)
-		result = append(
-			[]Candidate{{r.pos, r.distance}},
-			result...,
-		)
-	}
-
-	return result
+	return n.fuzzySearch(preparedQuery, config)
 }
 
 // AutoComplete returns candidates with query as substring
@@ -66,22 +53,26 @@ func (n *nGramIndexImpl) AutoComplete(query string, topK int) []Candidate {
 }
 
 // fuzzySearch
-func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapImpl {
+func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []FuzzyCandidate {
 	set := n.generator.Generate(query)
+	rid := make([]PostingList, 0, len(set))
 	sizeA := len(set)
 
 	metric := config.metric
 	similarity := config.similarity
 	topK := config.topK
 
-	h := newHeap(topK)
 	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
-	rid := make([]PostingList, 0, sizeA)
 	lenIndices := n.indices.Size()
-	var r *rank
+	collector := NewTopKCollector(topK)
 
 	if bMax >= lenIndices {
 		bMax = lenIndices - 1
+	}
+
+	type pp struct {
+		candidates   []*MergeCandidate
+		sizeA, sizeB int
 	}
 
 	for sizeB := bMax; sizeB >= bMin; sizeB-- {
@@ -90,8 +81,6 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 			continue
 		}
 
-		// reset slice
-		rid = rid[:0]
 		invertedIndex := n.indices.Get(sizeB)
 		if invertedIndex == nil {
 			continue
@@ -114,6 +103,11 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 			continue
 		}
 
+		rid = rid[:0]
+
+		// maybe run it concurrent?
+		// go func() { buildRid, mergeCandidates, ch <- {candidates, sizeA, sizeB}
+		// in main goroutine just collect it
 		for _, term := range set {
 			postingList := invertedIndex.Get(term)
 			if len(postingList) > 0 {
@@ -122,27 +116,12 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) *heapIm
 		}
 
 		candidates := n.merger.Merge(rid, threshold)
-		// use heap search for finding top k items in a list efficiently
-		// see http://stevehanov.ca/blog/index.php?id=122
+
 		for _, c := range candidates {
 			distance := metric.Distance(c.Overlap, sizeA, sizeB)
-
-			if h.Len() < topK || h.Top().(*rank).distance > distance {
-				if h.Len() == topK {
-					r = heap.Pop(h).(*rank)
-				} else {
-					r = &rank{
-						pos:      0,
-						distance: 0.0,
-					}
-				}
-
-				r.pos = c.Pos
-				r.distance = distance
-				heap.Push(h, r)
-			}
+			collector.Add(c.Pos, distance)
 		}
 	}
 
-	return h
+	return collector.GetCandidates()
 }
