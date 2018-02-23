@@ -1,6 +1,9 @@
-package suggest
+package index
 
-import "testing"
+import (
+	"github.com/alldroll/suggest/alphabet"
+	"testing"
+)
 
 func TestPrepareString(t *testing.T) {
 	cases := []struct {
@@ -12,11 +15,11 @@ func TestPrepareString(t *testing.T) {
 		{"-+=tesla", "$*tesla$"},
 	}
 
-	alphabet := NewCompositeAlphabet([]Alphabet{
-		NewEnglishAlphabet(),
-		NewNumberAlphabet(),
-		NewRussianAlphabet(),
-		NewSimpleAlphabet([]rune{'$', '*'}),
+	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
+		alphabet.NewEnglishAlphabet(),
+		alphabet.NewNumberAlphabet(),
+		alphabet.NewRussianAlphabet(),
+		alphabet.NewSimpleAlphabet([]rune{'$', '*'}),
 	})
 
 	clean := NewCleaner(alphabet.Chars(), "*", "$")

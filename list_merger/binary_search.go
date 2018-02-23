@@ -1,11 +1,11 @@
-package suggest
+package list_merger
 
 // binarySearchLowerBound find index for the smallest record t in given arr such that t >= value
-func binarySearchLowerBound(arr PostingList, value Position) int {
+func binarySearchLowerBound(arr RidItem, value uint32) int {
 	i := 0
 	j := len(arr)
 	mid := 0
-	midVal := Position(0)
+	midVal := uint32(0)
 
 	if i == j || arr[j-1] < value {
 		return -1
@@ -34,11 +34,11 @@ func binarySearchLowerBound(arr PostingList, value Position) int {
 }
 
 // binarySearch find index for given value, returns -1 if values is not in arr
-func binarySearch(arr PostingList, value Position) int {
+func binarySearch(arr RidItem, value uint32) int {
 	i := 0
 	j := len(arr)
 	mid := 0
-	midVal := Position(0)
+	midVal := uint32(0)
 
 	if i == j || arr[j-1] < value {
 		return -1

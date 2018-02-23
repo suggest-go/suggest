@@ -2,6 +2,9 @@ package suggest
 
 import (
 	"fmt"
+	"github.com/alldroll/suggest/alphabet"
+	"github.com/alldroll/suggest/dictionary"
+	"github.com/alldroll/suggest/metric"
 )
 
 const (
@@ -15,14 +18,14 @@ const (
 // deprecated
 type IndexConfig struct {
 	nGramSize  int
-	alphabet   Alphabet
+	alphabet   alphabet.Alphabet
 	wrap       string
 	pad        string
-	dictionary Dictionary
+	dictionary dictionary.Dictionary
 }
 
 // NewIndexConfig returns new instance of IndexConfig
-func NewIndexConfig(k int, dictionary Dictionary, alphabet Alphabet, wrap, pad string) (*IndexConfig, error) {
+func NewIndexConfig(k int, dictionary dictionary.Dictionary, alphabet alphabet.Alphabet, wrap, pad string) (*IndexConfig, error) {
 	if k < MinNGramSize || k > MaxNGramSize {
 		return nil, fmt.Errorf("k should be in [%d, %d]", MinNGramSize, MaxNGramSize)
 	}
@@ -44,12 +47,12 @@ func NewIndexConfig(k int, dictionary Dictionary, alphabet Alphabet, wrap, pad s
 type SearchConfig struct {
 	query      string
 	topK       int
-	metric     Metric
+	metric     metric.Metric
 	similarity float64
 }
 
 // NewSearchConfig returns new instance of SearchConfig
-func NewSearchConfig(query string, topK int, metric Metric, similarity float64) (*SearchConfig, error) {
+func NewSearchConfig(query string, topK int, metric metric.Metric, similarity float64) (*SearchConfig, error) {
 	if topK < 0 {
 		return nil, fmt.Errorf("topK is invalid") //TODO fixme
 	}

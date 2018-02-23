@@ -1,4 +1,4 @@
-package suggest
+package compression
 
 import (
 	"math/rand"
@@ -17,10 +17,10 @@ func TestEncodeDecode(t *testing.T) {
 	}
 
 	cases := []struct {
-		p PostingList
+		p []uint32
 	}{
-		{PostingList{824, 829, 215406}},
-		{PostingList{1, 9, 13, 180, 999, 12345}},
+		{[]uint32{824, 829, 215406}},
+		{[]uint32{1, 9, 13, 180, 999, 12345}},
 	}
 
 	for _, ins := range instances {
@@ -47,10 +47,10 @@ func BenchmarkVBDecode(b *testing.B) {
 }
 
 func benchmarkDecode(encoder Encoder, decoder Decoder, b *testing.B) {
-	list := make(PostingList, 0, 1000)
+	list := make([]uint32, 0, 1000)
 
 	for i := 1; i <= 1000; i++ {
-		list = append(list, Position(rand.Intn(10000)))
+		list = append(list, uint32(rand.Intn(10000)))
 	}
 
 	sort.Slice(list, func(i, j int) bool {

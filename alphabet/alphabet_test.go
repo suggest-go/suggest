@@ -1,4 +1,4 @@
-package suggest
+package alphabet
 
 import (
 	"testing"

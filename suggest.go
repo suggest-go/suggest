@@ -1,6 +1,7 @@
 package suggest
 
 import (
+	"github.com/alldroll/suggest/dictionary"
 	"golang.org/x/exp/mmap"
 	"runtime"
 	"sync"
@@ -17,14 +18,14 @@ type ResultItem struct {
 type Service struct {
 	sync.RWMutex
 	indexes      map[string]NGramIndex
-	dictionaries map[string]Dictionary
+	dictionaries map[string]dictionary.Dictionary
 }
 
 // NewService creates an empty SuggestService
 func NewService() *Service {
 	return &Service{
 		indexes:      make(map[string]NGramIndex),
-		dictionaries: make(map[string]Dictionary),
+		dictionaries: make(map[string]dictionary.Dictionary),
 	}
 }
 
@@ -52,8 +53,8 @@ func (s *Service) AddOnDiscIndex(description IndexDescription) error {
 		return err
 	}
 
-	dictionary := NewCDBDictionary(dictionaryFile)
-	runtime.SetFinalizer(dictionary, func(d *cdbDictionary) {
+	dictionary := dictionary.NewCDBDictionary(dictionaryFile)
+	runtime.SetFinalizer(dictionary, func(d interface{}) {
 		dictionaryFile.Close()
 	})
 

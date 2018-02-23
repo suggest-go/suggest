@@ -1,59 +1,6 @@
-package suggest
+package compression
 
-import (
-	"encoding/binary"
-)
-
-// Encoder represents entity for encoding given posting list to byte array
-type Encoder interface {
-	// Encode encodes given positing list in byte array
-	Encode(list PostingList) []byte
-}
-
-// Decoder represents entity for decoding given byte array to posting list
-type Decoder interface {
-	// Decode decodes given byte array to posting list
-	Decode(bytes []byte) PostingList
-}
-
-// BinaryEncoder returns new instance of binaryEnc which encodes each Position in 4 bytes
-func BinaryEncoder() Encoder {
-	return &binaryEnc{}
-}
-
-// BinaryDecoder returns new instance of binaryEnc
-func BinaryDecoder() Decoder {
-	return &binaryEnc{}
-}
-
-// binaryEnc encode each position in 4 bytes, decode 4 byte to 1 position
-type binaryEnc struct{}
-
-// Encode encodes given positing list in byte array
-func (b *binaryEnc) Encode(list PostingList) []byte {
-	bytes := make([]byte, len(list)*4)
-
-	for i, x := range list {
-		binary.LittleEndian.PutUint32(bytes[4*i:], uint32(x))
-	}
-
-	return bytes
-}
-
-// Decode decodes given byte array to posting list
-func (b *binaryEnc) Decode(bytes []byte) PostingList {
-	if len(bytes) < 4 {
-		return nil
-	}
-
-	list := make(PostingList, len(bytes)/4)
-
-	for i := range list {
-		list[i] = Position(binary.LittleEndian.Uint32(bytes[4*i:]))
-	}
-
-	return list
-}
+import "encoding/binary"
 
 // VBEncoder returns new instance of vbEnc that encodes posting list using
 // delta encoding
@@ -70,8 +17,8 @@ func VBDecoder() Decoder {
 // vbEnc implements VBEncoder and VBDecoder
 type vbEnc struct{}
 
-func (b *vbEnc) Encode(list PostingList) []byte {
-	sum, l, prev, delta := 4, 4, Position(0), Position(0)
+func (b *vbEnc) Encode(list []uint32) []byte {
+	sum, l, prev, delta := 4, 4, uint32(0), uint32(0)
 
 	for _, v := range list {
 		sum += estimateByteNum(v - prev)
@@ -100,7 +47,7 @@ func (b *vbEnc) Encode(list PostingList) []byte {
 
 // inspired by protobuf/master/proto/decode.go
 // Decode decodes given byte array to posting list
-func (b *vbEnc) Decode(bytes []byte) PostingList {
+func (b *vbEnc) Decode(bytes []byte) []uint32 {
 	if len(bytes) < 4 {
 		return nil
 	}
@@ -114,7 +61,7 @@ func (b *vbEnc) Decode(bytes []byte) PostingList {
 	)
 
 	listLen := int(binary.LittleEndian.Uint32(bytes))
-	decoded := make(PostingList, listLen)
+	decoded := make([]uint32, listLen)
 
 	if listLen < 10 {
 		b.vbDecodeSlow(bytes[4:], decoded)
@@ -162,7 +109,7 @@ func (b *vbEnc) Decode(bytes []byte) PostingList {
 
 	done:
 		prev = v + prev
-		decoded[i] = Position(prev)
+		decoded[i] = prev
 		i++
 	}
 
@@ -170,7 +117,7 @@ func (b *vbEnc) Decode(bytes []byte) PostingList {
 }
 
 // vbDecodeSlow decodes given byte array to posting list
-func (b *vbEnc) vbDecodeSlow(bytes []byte, buf PostingList) {
+func (b *vbEnc) vbDecodeSlow(bytes []byte, buf []uint32) {
 	var (
 		v    = uint32(0)
 		prev = uint32(0)
@@ -183,7 +130,7 @@ func (b *vbEnc) vbDecodeSlow(bytes []byte, buf PostingList) {
 
 		if b < 0x80 {
 			prev = v + prev
-			buf[i] = Position(prev)
+			buf[i] = prev
 			s, v = 0, 0
 			i++
 		} else {
@@ -192,8 +139,8 @@ func (b *vbEnc) vbDecodeSlow(bytes []byte, buf PostingList) {
 	}
 }
 
-// estimateByteNum returns bytes num required for encoding given uint32 (Position)
-func estimateByteNum(v Position) int {
+// estimateByteNum returns bytes num required for encoding given uint32
+func estimateByteNum(v uint32) int {
 	if (1 << 7) > v {
 		return 1
 	}

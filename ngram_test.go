@@ -2,6 +2,10 @@ package suggest
 
 import (
 	"bufio"
+	"github.com/alldroll/suggest/alphabet"
+	"github.com/alldroll/suggest/dictionary"
+	"github.com/alldroll/suggest/index"
+	"github.com/alldroll/suggest/metric"
 	"golang.org/x/exp/mmap"
 	"io"
 	"log"
@@ -24,18 +28,18 @@ func TestSuggestAuto(t *testing.T) {
 
 	nGramIndex := buildNGramIndex(collection, 3)
 
-	conf, err := NewSearchConfig("Nissan ma", 2, JaccardMetric(), 0.5)
+	conf, err := NewSearchConfig("Nissan ma", 2, metric.JaccardMetric(), 0.5)
 	if err != nil {
 		panic(err)
 	}
 
 	candidates := nGramIndex.Suggest(conf)
-	actual := make(PostingList, 0, len(candidates))
+	actual := make(index.PostingList, 0, len(candidates))
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
 	}
 
-	expected := PostingList{
+	expected := index.PostingList{
 		2,
 		0,
 	}
@@ -65,7 +69,7 @@ func BenchmarkSuggest(b *testing.B) {
 	nGramIndex := buildNGramIndex(collection, 3)
 
 	b.StartTimer()
-	conf, err := NewSearchConfig("Nissan mar", 2, JaccardMetric(), 0.5)
+	conf, err := NewSearchConfig("Nissan mar", 2, metric.JaccardMetric(), 0.5)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +111,7 @@ func BenchmarkRealExampleInMemory(b *testing.B) {
 	qLen := len(queries)
 	b.StartTimer()
 
-	conf, err := NewSearchConfig("Nissan mar", 5, CosineMetric(), 0.3)
+	conf, err := NewSearchConfig("Nissan mar", 5, metric.CosineMetric(), 0.3)
 	if err != nil {
 		panic(err)
 	}
@@ -143,7 +147,7 @@ func BenchmarkRealExampleOnDisc(b *testing.B) {
 	qLen := len(queries)
 	b.StartTimer()
 
-	conf, err := NewSearchConfig("Nissan mar", 5, CosineMetric(), 0.3)
+	conf, err := NewSearchConfig("Nissan mar", 5, metric.CosineMetric(), 0.3)
 	if err != nil {
 		panic(err)
 	}
@@ -155,31 +159,31 @@ func BenchmarkRealExampleOnDisc(b *testing.B) {
 }
 
 func buildNGramIndex(collection []string, nGramSize int) NGramIndex {
-	alphabet := NewCompositeAlphabet([]Alphabet{
-		NewRussianAlphabet(),
-		NewEnglishAlphabet(),
-		NewNumberAlphabet(),
-		NewSimpleAlphabet([]rune{'$'}),
+	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
+		alphabet.NewRussianAlphabet(),
+		alphabet.NewEnglishAlphabet(),
+		alphabet.NewNumberAlphabet(),
+		alphabet.NewSimpleAlphabet([]rune{'$'}),
 	})
 
 	return NewRunTimeBuilder().
-		SetDictionary(NewInMemoryDictionary(collection)).
+		SetDictionary(dictionary.NewInMemoryDictionary(collection)).
 		SetNGramSize(nGramSize).
 		SetAlphabet(alphabet).
 		Build()
 }
 
 func buildOnDiscNGramIndex(reader io.ReaderAt, nGramSize int) NGramIndex {
-	alphabet := NewCompositeAlphabet([]Alphabet{
-		NewRussianAlphabet(),
-		NewEnglishAlphabet(),
-		NewNumberAlphabet(),
-		NewSimpleAlphabet([]rune{'$'}),
+	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
+		alphabet.NewRussianAlphabet(),
+		alphabet.NewEnglishAlphabet(),
+		alphabet.NewNumberAlphabet(),
+		alphabet.NewSimpleAlphabet([]rune{'$'}),
 	})
 
 	return NewBuilder("testdata/db/cars.hd", "testdata/db/cars.dl").
 		SetAlphabet(alphabet).
-		SetDictionary(NewCDBDictionary(reader)).
+		SetDictionary(dictionary.NewCDBDictionary(reader)).
 		SetNGramSize(nGramSize).
 		SetWrap("$").
 		SetPad("$").

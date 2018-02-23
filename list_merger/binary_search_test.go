@@ -1,11 +1,11 @@
-package suggest
+package list_merger
 
 import "testing"
 
 func TestSearchLowerBound(t *testing.T) {
-	items := PostingList{1, 3, 7, 9, 10, 11}
+	items := []uint32{1, 3, 7, 9, 10, 11}
 	cases := []struct {
-		val      Position
+		val      uint32
 		expected int
 	}{
 		{1, 1},
@@ -36,9 +36,9 @@ func TestSearchLowerBound(t *testing.T) {
 }
 
 func TestBinarySearch(t *testing.T) {
-	items := PostingList{1, 3, 7, 9, 10, 11}
+	items := []uint32{1, 3, 7, 9, 10, 11}
 	cases := []struct {
-		val      Position
+		val      uint32
 		expected int
 	}{
 		{1, 1},

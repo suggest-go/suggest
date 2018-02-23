@@ -1,10 +1,13 @@
 package suggest
 
-import "container/heap"
+import (
+	"container/heap"
+	"github.com/alldroll/suggest/index"
+)
 
 type Candidate struct {
 	// Key is position (docId) in posting list
-	Key Position
+	Key index.Position
 }
 
 // Candidate is representing candidate of the similarity of the query
@@ -15,7 +18,7 @@ type FuzzyCandidate struct {
 }
 
 type topKFuzzySearchItem struct {
-	position Position
+	position index.Position
 	distance float64
 }
 
@@ -62,7 +65,7 @@ func NewTopKCollector(topK int) *TopKCollector {
 // use heap search for finding top k items in a list efficiently
 // see http://stevehanov.ca/blog/index.php?id=122
 // Add adds item with given position and distance to collection if item belongs to `top k items`
-func (c *TopKCollector) Add(position Position, distance float64) {
+func (c *TopKCollector) Add(position index.Position, distance float64) {
 	if c.h.Len() >= c.topK && c.h.top().distance <= distance {
 		return
 	}

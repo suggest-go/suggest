@@ -3,15 +3,16 @@ package suggest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alldroll/suggest/alphabet"
 	"io"
 	"io/ioutil"
 )
 
 var (
-	alphabetMap = map[string]Alphabet{
-		"english": NewEnglishAlphabet(),
-		"russian": NewRussianAlphabet(),
-		"numbers": NewNumberAlphabet(),
+	alphabetMap = map[string]alphabet.Alphabet{
+		"english": alphabet.NewEnglishAlphabet(),
+		"russian": alphabet.NewRussianAlphabet(),
+		"numbers": alphabet.NewNumberAlphabet(),
 	}
 )
 
@@ -42,8 +43,8 @@ func ReadConfigs(reader io.Reader) ([]IndexDescription, error) {
 	return configs, nil
 }
 
-func (d *IndexDescription) CreateAlphabet() Alphabet {
-	alphabets := make([]Alphabet, 0)
+func (d *IndexDescription) CreateAlphabet() alphabet.Alphabet {
+	alphabets := make([]alphabet.Alphabet, 0)
 
 	for _, symbols := range d.Alphabet {
 		if alphabet, ok := alphabetMap[symbols]; ok {
@@ -51,10 +52,10 @@ func (d *IndexDescription) CreateAlphabet() Alphabet {
 			continue
 		}
 
-		alphabets = append(alphabets, NewSimpleAlphabet([]rune(symbols)))
+		alphabets = append(alphabets, alphabet.NewSimpleAlphabet([]rune(symbols)))
 	}
 
-	return NewCompositeAlphabet(alphabets)
+	return alphabet.NewCompositeAlphabet(alphabets)
 }
 
 func (d *IndexDescription) GetDictionaryFile() string {

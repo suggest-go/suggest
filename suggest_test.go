@@ -1,6 +1,9 @@
 package suggest
 
 import (
+	"github.com/alldroll/suggest/alphabet"
+	"github.com/alldroll/suggest/dictionary"
+	"github.com/alldroll/suggest/metric"
 	"os"
 	"reflect"
 	"sync"
@@ -8,13 +11,13 @@ import (
 )
 
 func TestConcurrency(t *testing.T) {
-	alphabet := NewCompositeAlphabet([]Alphabet{
-		NewEnglishAlphabet(),
-		NewSimpleAlphabet([]rune{'$'}),
+	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
+		alphabet.NewEnglishAlphabet(),
+		alphabet.NewSimpleAlphabet([]rune{'$'}),
 	})
 
 	wordsList := []string{"abc", "test2", "test3", "test4", "teta"}
-	dictionary := NewInMemoryDictionary(wordsList)
+	dictionary := dictionary.NewInMemoryDictionary(wordsList)
 	conf, _ := NewIndexConfig(3, dictionary, alphabet, "$", "$")
 	service := NewService()
 
@@ -30,7 +33,7 @@ func TestConcurrency(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 5; i++ {
-			searchConf, _ := NewSearchConfig(wordsList[i], 5, CosineMetric(), 0.7)
+			searchConf, _ := NewSearchConfig(wordsList[i], 5, metric.CosineMetric(), 0.7)
 			service.Suggest(wordsList[i], searchConf)
 		}
 
@@ -82,7 +85,7 @@ func TestConcurrencyOnDisc(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 5; i++ {
-			searchConf, _ := NewSearchConfig(wordsList[i], 5, CosineMetric(), 0.7)
+			searchConf, _ := NewSearchConfig(wordsList[i], 5, metric.CosineMetric(), 0.7)
 			result := service.Suggest(description[0].Name, searchConf)
 			actual := make([]string, 0, len(result))
 			for _, item := range result {

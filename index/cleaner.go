@@ -1,4 +1,4 @@
-package suggest
+package index
 
 import (
 	"regexp"

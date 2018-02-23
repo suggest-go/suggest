@@ -6,13 +6,16 @@ import (
 	"flag"
 	"github.com/alldroll/cdb"
 	"github.com/alldroll/suggest"
+	"github.com/alldroll/suggest/compression"
+	"github.com/alldroll/suggest/dictionary"
+	"github.com/alldroll/suggest/index"
 	"log"
 	"os"
 	"time"
 )
 
 var (
-	configPath  string
+	configPath string
 )
 
 func init() {
@@ -20,7 +23,7 @@ func init() {
 }
 
 //
-func buildDictionary(sourcePath string, config suggest.IndexDescription) suggest.Dictionary {
+func buildDictionary(sourcePath string, config suggest.IndexDescription) dictionary.Dictionary {
 	sourceFile, err := os.OpenFile(sourcePath, os.O_RDONLY, 0)
 	if err != nil {
 		log.Fatalf("cannot open source file %s", err)
@@ -64,11 +67,11 @@ func buildDictionary(sourcePath string, config suggest.IndexDescription) suggest
 		log.Fatal(err)
 	}
 
-	return suggest.NewCDBDictionary(destinationFile)
+	return dictionary.NewCDBDictionary(destinationFile)
 }
 
 //
-func storeIndex(index suggest.Index, config suggest.IndexDescription) {
+func storeIndex(indices index.Indices, config suggest.IndexDescription) {
 	headerFile, err := os.OpenFile(
 		config.GetHeaderFile(),
 		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
@@ -87,8 +90,8 @@ func storeIndex(index suggest.Index, config suggest.IndexDescription) {
 		log.Fatal(err)
 	}
 
-	writer := suggest.NewOnDiscInvertedIndexWriter(suggest.VBEncoder(), headerFile, documentListFile, 0)
-	err = writer.Save(index)
+	writer := index.NewOnDiscIndicesWriter(compression.VBEncoder(), headerFile, documentListFile, 0)
+	err = writer.Save(indices)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -117,8 +120,8 @@ func main() {
 		log.Printf("Start process '%s' config", config.Name)
 
 		alphabet := config.CreateAlphabet()
-		cleaner := suggest.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
-		generator := suggest.NewGenerator(config.NGramSize, alphabet)
+		cleaner := index.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
+		generator := index.NewGenerator(config.NGramSize, alphabet)
 
 		log.Printf("Building dictionary...")
 
@@ -127,18 +130,18 @@ func main() {
 		log.Printf("Time spent %s", time.Since(start))
 
 		// create index in memory
-		indexer := suggest.NewIndexer(config.NGramSize, generator, cleaner)
+		indexer := index.NewIndexer(config.NGramSize, generator, cleaner)
 		log.Printf("Creating index...")
 
 		start = time.Now()
-		index := indexer.Index(dictionary)
+		indices := indexer.IndexIndices(dictionary)
 		log.Printf("Time spent %s", time.Since(start))
 
 		// store index on disc
 		log.Printf("Storing index...")
 
 		start = time.Now()
-		storeIndex(index, config)
+		storeIndex(indices, config)
 		log.Printf("Time spent %s", time.Since(start))
 
 		log.Printf("End process\n\n")

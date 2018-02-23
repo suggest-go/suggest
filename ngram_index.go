@@ -1,5 +1,10 @@
 package suggest
 
+import (
+	"github.com/alldroll/suggest/index"
+	"github.com/alldroll/suggest/list_merger"
+)
+
 /*
  * inspired by
  *
@@ -20,14 +25,14 @@ type NGramIndex interface {
 
 // nGramIndexImpl implements NGramIndex
 type nGramIndexImpl struct {
-	cleaner   Cleaner
-	indices   InvertedIndexIndices
-	generator Generator
-	merger    ListMerger
+	cleaner   index.Cleaner
+	indices   index.InvertedIndexIndices
+	generator index.Generator
+	merger    list_merger.ListMerger
 }
 
 // NewNGramIndex returns a new NGramIndex object
-func NewNGramIndex(cleaner Cleaner, generator Generator, indices InvertedIndexIndices, merger ListMerger) NGramIndex {
+func NewNGramIndex(cleaner index.Cleaner, generator index.Generator, indices index.InvertedIndexIndices, merger list_merger.ListMerger) NGramIndex {
 	return &nGramIndexImpl{
 		cleaner:   cleaner,
 		indices:   indices,
@@ -55,7 +60,7 @@ func (n *nGramIndexImpl) AutoComplete(query string, topK int) []Candidate {
 // fuzzySearch
 func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []FuzzyCandidate {
 	set := n.generator.Generate(query)
-	rid := make([]PostingList, 0, len(set))
+	rid := make([]index.PostingList, 0, len(set))
 	sizeA := len(set)
 
 	metric := config.metric
@@ -71,7 +76,7 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 	}
 
 	type pp struct {
-		candidates   []*MergeCandidate
+		candidates   []*list_merger.MergeCandidate
 		sizeA, sizeB int
 	}
 

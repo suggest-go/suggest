@@ -1,4 +1,4 @@
-package suggest
+package list_merger
 
 import (
 	"reflect"
@@ -15,7 +15,7 @@ func TestMerge(t *testing.T) {
 
 	for _, merger := range mergers {
 		for _, c := range dataProvider() {
-			actual := make(map[int]PostingList, len(c.rid))
+			actual := make(map[int]RidItem, len(c.rid))
 
 			for _, candidate := range merger.Merge(c.rid, c.t) {
 				if candidate.Overlap >= c.t {
@@ -33,7 +33,7 @@ func TestMerge(t *testing.T) {
 type oneCase struct {
 	rid      Rid
 	t        int
-	expected map[int]PostingList
+	expected map[int]RidItem
 }
 
 func dataProvider() []oneCase {
@@ -46,7 +46,7 @@ func dataProvider() []oneCase {
 				{2},
 			},
 			2,
-			map[int]PostingList{
+			map[int]RidItem{
 				2: {1, 3},
 				4: {2},
 			},
@@ -59,7 +59,7 @@ func dataProvider() []oneCase {
 				{2},
 			},
 			3,
-			map[int]PostingList{
+			map[int]RidItem{
 				4: {2},
 			},
 		},
@@ -71,7 +71,7 @@ func dataProvider() []oneCase {
 				{2},
 			},
 			4,
-			map[int]PostingList{
+			map[int]RidItem{
 				4: {2},
 			},
 		},
@@ -84,7 +84,7 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			4,
-			map[int]PostingList{
+			map[int]RidItem{
 				4: {50},
 			},
 		},
@@ -97,7 +97,7 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			3,
-			map[int]PostingList{
+			map[int]RidItem{
 				4: {50},
 			},
 		},
@@ -110,7 +110,7 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			2,
-			map[int]PostingList{
+			map[int]RidItem{
 				2: {10, 60, 100},
 				4: {50},
 			},

@@ -1,14 +1,17 @@
-package suggest
+package index
 
 import (
+	"github.com/alldroll/suggest/compression"
 	"golang.org/x/exp/mmap"
 	"io"
 	"runtime"
 )
 
-type Term int32
-type Position uint32
-type PostingList []Position
+type (
+	Term        = uint32
+	Position    = uint32
+	PostingList = []Position
+)
 
 // InvertedIndex
 type InvertedIndex interface {
@@ -42,7 +45,7 @@ type invertedIndexStructure map[Term]struct {
 	position uint32
 }
 
-func NewOnDiscInvertedIndex(reader io.ReaderAt, decoder Decoder, m invertedIndexStructure) InvertedIndex {
+func NewOnDiscInvertedIndex(reader io.ReaderAt, decoder compression.Decoder, m invertedIndexStructure) InvertedIndex {
 	return &onDiscInvertedIndex{
 		reader:  reader,
 		decoder: decoder,
@@ -68,7 +71,7 @@ func (i *invertedIndexInMemoryImpl) Has(term Term) bool {
 // onDiscInvertedIndex
 type onDiscInvertedIndex struct {
 	reader  io.ReaderAt
-	decoder Decoder
+	decoder compression.Decoder
 	m       invertedIndexStructure
 }
 
@@ -114,7 +117,7 @@ func (i *invertedIndexIndicesImpl) Size() int {
 }
 
 // NewInMemoryInvertedIndexIndicesBuilder
-func NewInMemoryInvertedIndexIndicesBuilder(indices Index) InvertedIndexIndicesBuilder {
+func NewInMemoryInvertedIndexIndicesBuilder(indices Indices) InvertedIndexIndicesBuilder {
 	return &invertedIndexIndicesBuilderInMemoryImpl{
 		indices: indices,
 	}
@@ -122,15 +125,15 @@ func NewInMemoryInvertedIndexIndicesBuilder(indices Index) InvertedIndexIndicesB
 
 // invertedIndexIndicesBuilderInMemoryImpl
 type invertedIndexIndicesBuilderInMemoryImpl struct {
-	indices Index
+	indices Indices
 }
 
 // Build
 func (b *invertedIndexIndicesBuilderInMemoryImpl) Build() InvertedIndexIndices {
 	invertedIndexIndices := make([]InvertedIndex, len(b.indices))
 
-	for i, table := range b.indices {
-		invertedIndexIndices[i] = NewInMemoryInvertedIndex(table)
+	for i, index := range b.indices {
+		invertedIndexIndices[i] = NewInMemoryInvertedIndex(index)
 	}
 
 	return NewInvertedIndexIndices(invertedIndexIndices)
@@ -162,7 +165,7 @@ func (b *invertedIndexIndicesBuilderOnDiscImpl) Build() InvertedIndexIndices {
 		panic(err)
 	}
 
-	reader := NewOnDiscInvertedIndexReader(VBDecoder(), header, docList, 0)
+	reader := NewOnDiscIndicesReader(compression.VBDecoder(), header, docList, 0)
 	indices, err := reader.Load()
 	if err != nil {
 		header.Close()

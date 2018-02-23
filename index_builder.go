@@ -1,5 +1,12 @@
 package suggest
 
+import (
+	"github.com/alldroll/suggest/alphabet"
+	"github.com/alldroll/suggest/dictionary"
+	"github.com/alldroll/suggest/index"
+	"github.com/alldroll/suggest/list_merger"
+)
+
 const (
 	defaultPad       = "$"
 	defaultWrap      = "$"
@@ -11,9 +18,9 @@ type Builder interface {
 	// SetNGramSize
 	SetNGramSize(nGramSize int) Builder
 	// SetAlphabet
-	SetAlphabet(alphabet Alphabet) Builder
+	SetAlphabet(alphabet alphabet.Alphabet) Builder
 	// SetDictionary
-	SetDictionary(dictionary Dictionary) Builder
+	SetDictionary(dictionary dictionary.Dictionary) Builder
 	// SetPad
 	SetPad(pad string) Builder
 	// SetWrap
@@ -25,8 +32,8 @@ type Builder interface {
 // runTimeBuilderImpl implements Builder interface
 type runTimeBuilderImpl struct {
 	nGramSize  int
-	alphabet   Alphabet
-	dictionary Dictionary
+	alphabet   alphabet.Alphabet
+	dictionary dictionary.Dictionary
 	pad        string
 	wrap       string
 }
@@ -47,12 +54,12 @@ func (b *runTimeBuilderImpl) SetNGramSize(nGramSize int) Builder {
 	return b
 }
 
-func (b *runTimeBuilderImpl) SetAlphabet(alphabet Alphabet) Builder {
+func (b *runTimeBuilderImpl) SetAlphabet(alphabet alphabet.Alphabet) Builder {
 	b.alphabet = alphabet
 	return b
 }
 
-func (b *runTimeBuilderImpl) SetDictionary(dictionary Dictionary) Builder {
+func (b *runTimeBuilderImpl) SetDictionary(dictionary dictionary.Dictionary) Builder {
 	b.dictionary = dictionary
 	return b
 }
@@ -68,30 +75,30 @@ func (b *runTimeBuilderImpl) SetWrap(wrap string) Builder {
 }
 
 func (b *runTimeBuilderImpl) Build() NGramIndex {
-	cleaner := NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
-	generator := NewGenerator(b.nGramSize, b.alphabet)
-	indexer := NewIndexer(
+	cleaner := index.NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
+	generator := index.NewGenerator(b.nGramSize, b.alphabet)
+	indexer := index.NewIndexer(
 		b.nGramSize,
 		generator,
 		cleaner,
 	)
 
-	invertedListsBuilder := NewInMemoryInvertedIndexIndicesBuilder(indexer.Index(b.dictionary))
+	invertedListsBuilder := index.NewInMemoryInvertedIndexIndicesBuilder(indexer.IndexIndices(b.dictionary))
 	invertedIndexIndices := invertedListsBuilder.Build()
 
 	return NewNGramIndex(
 		cleaner,
 		generator,
 		invertedIndexIndices,
-		&CPMerge{},
+		&list_merger.CPMerge{},
 	)
 }
 
 // builderImpl implements Builder interface
 type builderImpl struct {
 	nGramSize        int
-	alphabet         Alphabet
-	dictionary       Dictionary
+	alphabet         alphabet.Alphabet
+	dictionary       dictionary.Dictionary
 	pad              string
 	wrap             string
 	headerPath       string
@@ -116,12 +123,12 @@ func (b *builderImpl) SetNGramSize(nGramSize int) Builder {
 	return b
 }
 
-func (b *builderImpl) SetAlphabet(alphabet Alphabet) Builder {
+func (b *builderImpl) SetAlphabet(alphabet alphabet.Alphabet) Builder {
 	b.alphabet = alphabet
 	return b
 }
 
-func (b *builderImpl) SetDictionary(dictionary Dictionary) Builder {
+func (b *builderImpl) SetDictionary(dictionary dictionary.Dictionary) Builder {
 	b.dictionary = dictionary
 	return b
 }
@@ -137,16 +144,16 @@ func (b *builderImpl) SetWrap(wrap string) Builder {
 }
 
 func (b *builderImpl) Build() NGramIndex {
-	cleaner := NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
-	generator := NewGenerator(b.nGramSize, b.alphabet)
+	cleaner := index.NewCleaner(b.alphabet.Chars(), b.pad, b.wrap)
+	generator := index.NewGenerator(b.nGramSize, b.alphabet)
 
-	invertedListsBuilder := NewOnDiscInvertedIndexIndicesBuilder(b.headerPath, b.documentListPath)
+	invertedListsBuilder := index.NewOnDiscInvertedIndexIndicesBuilder(b.headerPath, b.documentListPath)
 	invertedIndexIndices := invertedListsBuilder.Build()
 
 	return NewNGramIndex(
 		cleaner,
 		generator,
 		invertedIndexIndices,
-		&CPMerge{},
+		&list_merger.CPMerge{},
 	)
 }
