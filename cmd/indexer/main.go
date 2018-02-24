@@ -134,7 +134,7 @@ func main() {
 		log.Printf("Creating index...")
 
 		start = time.Now()
-		indices := indexer.IndexIndices(dictionary)
+		indices := indexer.Index(dictionary)
 		log.Printf("Time spent %s", time.Since(start))
 
 		// store index on disc

@@ -31,13 +31,7 @@ func NewService() *Service {
 
 // AddRunTimeIndex add/replace new dictionary with given name
 func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
-	nGramIndex := NewRunTimeBuilder().
-		SetAlphabet(config.alphabet).
-		SetDictionary(config.dictionary).
-		SetNGramSize(config.nGramSize).
-		SetWrap(config.wrap).
-		SetPad(config.pad).
-		Build()
+	nGramIndex := NewRunTimeBuilder(config).Build()
 
 	s.Lock()
 	s.indexes[name] = nGramIndex
@@ -58,13 +52,7 @@ func (s *Service) AddOnDiscIndex(description IndexDescription) error {
 		dictionaryFile.Close()
 	})
 
-	nGramIndex := NewBuilder(description.GetHeaderFile(), description.GetDocumentListFile()).
-		SetAlphabet(description.CreateAlphabet()).
-		SetDictionary(dictionary).
-		SetNGramSize(description.NGramSize).
-		SetWrap(description.Wrap).
-		SetPad(description.Pad).
-		Build()
+	nGramIndex := NewBuilder(description).Build()
 
 	s.Lock()
 	s.indexes[description.Name] = nGramIndex

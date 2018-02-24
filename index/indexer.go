@@ -7,8 +7,7 @@ type Index = map[Term]PostingList
 type Indices = []Index
 
 type Indexer interface {
-	IndexIndices(dictionary dictionary.Dictionary) Indices
-	Index(dictionary dictionary.Dictionary) Index
+	Index(dictionary dictionary.Dictionary) Indices
 }
 
 func NewIndexer(
@@ -29,9 +28,10 @@ type indexerImpl struct {
 	cleaner   Cleaner
 }
 
-func (ix *indexerImpl) IndexIndices(dictionary dictionary.Dictionary) Indices {
+func (ix *indexerImpl) Index(dictionary dictionary.Dictionary) Indices {
 	i := dictionary.Iterator()
-	indices := make(Indices, 0)
+	indices := make(Indices, 1)
+	indices[0] = make(Index)
 
 	for {
 		key, word := i.GetPair()
@@ -55,6 +55,7 @@ func (ix *indexerImpl) IndexIndices(dictionary dictionary.Dictionary) Indices {
 
 			for _, term := range set {
 				index[term] = append(index[term], key)
+				indices[0][term] = append(indices[0][term], key)
 			}
 		}
 
@@ -64,28 +65,4 @@ func (ix *indexerImpl) IndexIndices(dictionary dictionary.Dictionary) Indices {
 	}
 
 	return indices
-}
-
-func (ix *indexerImpl) Index(dictionary dictionary.Dictionary) Index {
-	i := dictionary.Iterator()
-	index := make(Index, 0)
-
-	for {
-		key, word := i.GetPair()
-
-		if len(word) >= ix.nGramSize {
-			prepared := ix.cleaner.Clean(word)
-			set := ix.generator.Generate(prepared)
-
-			for _, term := range set {
-				index[term] = append(index[term], key)
-			}
-		}
-
-		if !i.Next() {
-			break
-		}
-	}
-
-	return index
 }

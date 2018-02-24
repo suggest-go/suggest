@@ -36,8 +36,8 @@ type InvertedIndexIndicesBuilder interface {
 }
 
 // NewInMemoryInvertedIndex
-func NewInMemoryInvertedIndex(table map[Term]PostingList) InvertedIndex {
-	return &invertedIndexInMemoryImpl{table}
+func NewInMemoryInvertedIndex(index Index) InvertedIndex {
+	return &invertedIndexInMemoryImpl{index}
 }
 
 type invertedIndexStructure map[Term]struct {

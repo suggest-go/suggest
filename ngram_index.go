@@ -32,7 +32,12 @@ type nGramIndexImpl struct {
 }
 
 // NewNGramIndex returns a new NGramIndex object
-func NewNGramIndex(cleaner index.Cleaner, generator index.Generator, indices index.InvertedIndexIndices, merger list_merger.ListMerger) NGramIndex {
+func NewNGramIndex(
+	cleaner index.Cleaner,
+	generator index.Generator,
+	indices index.InvertedIndexIndices,
+	merger list_merger.ListMerger,
+) NGramIndex {
 	return &nGramIndexImpl{
 		cleaner:   cleaner,
 		indices:   indices,
@@ -45,7 +50,7 @@ func NewNGramIndex(cleaner index.Cleaner, generator index.Generator, indices ind
 func (n *nGramIndexImpl) Suggest(config *SearchConfig) []FuzzyCandidate {
 	result := make([]FuzzyCandidate, 0, config.topK)
 	preparedQuery := n.cleaner.Clean(config.query)
-	if len(preparedQuery) < 3 { // TODO дичь
+	if len(preparedQuery) < 3 {
 		return result
 	}
 

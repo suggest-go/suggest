@@ -6,8 +6,6 @@ import (
 	"github.com/alldroll/suggest/dictionary"
 	"github.com/alldroll/suggest/index"
 	"github.com/alldroll/suggest/metric"
-	"golang.org/x/exp/mmap"
-	"io"
 	"log"
 	"os"
 	"reflect"
@@ -125,12 +123,7 @@ func BenchmarkRealExampleInMemory(b *testing.B) {
 func BenchmarkRealExampleOnDisc(b *testing.B) {
 	b.StopTimer()
 
-	f, err := mmap.Open("testdata/db/cars.cdb")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	nGramIndex := buildOnDiscNGramIndex(f, 3)
+	nGramIndex := buildOnDiscNGramIndex()
 
 	queries := [...]string{
 		"Nissan Mar",
@@ -166,26 +159,31 @@ func buildNGramIndex(collection []string, nGramSize int) NGramIndex {
 		alphabet.NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	return NewRunTimeBuilder().
-		SetDictionary(dictionary.NewInMemoryDictionary(collection)).
-		SetNGramSize(nGramSize).
-		SetAlphabet(alphabet).
-		Build()
+	conf, err := NewIndexConfig(
+		nGramSize,
+		dictionary.NewInMemoryDictionary(collection),
+		alphabet,
+		"$",
+		"$",
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return NewRunTimeBuilder(conf).Build()
 }
 
-func buildOnDiscNGramIndex(reader io.ReaderAt, nGramSize int) NGramIndex {
-	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
-		alphabet.NewRussianAlphabet(),
-		alphabet.NewEnglishAlphabet(),
-		alphabet.NewNumberAlphabet(),
-		alphabet.NewSimpleAlphabet([]rune{'$'}),
-	})
+func buildOnDiscNGramIndex() NGramIndex {
+	configFile, err := os.Open("testdata/config.json")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	return NewBuilder("testdata/db/cars.hd", "testdata/db/cars.dl").
-		SetAlphabet(alphabet).
-		SetDictionary(dictionary.NewCDBDictionary(reader)).
-		SetNGramSize(nGramSize).
-		SetWrap("$").
-		SetPad("$").
-		Build()
+	description, err := ReadConfigs(configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return NewBuilder(description[0]).Build()
 }

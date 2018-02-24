@@ -44,10 +44,16 @@ func TestOnDiscWriter_Save(t *testing.T) {
 
 	indices := buildIndex()
 	writer := NewOnDiscIndicesWriter(compression.VBEncoder(), header, docList, 0)
-	writer.Save(indices)
+	err = writer.Save(indices)
+	if err != nil {
+		t.Error(err)
+	}
 
 	reader := NewOnDiscIndicesReader(compression.VBDecoder(), header, docList, 0)
-	reader.Load()
+	_, err = reader.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func buildIndex() Indices {
@@ -74,5 +80,5 @@ func buildIndex() Indices {
 
 	indexer := NewIndexer(3, NewGenerator(3, alphabet), NewCleaner(alphabet.Chars(), "$", "$"))
 
-	return indexer.IndexIndices(dictionary)
+	return indexer.Index(dictionary)
 }
