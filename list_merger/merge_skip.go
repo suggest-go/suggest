@@ -3,8 +3,8 @@ package list_merger
 import "container/heap"
 
 type record struct {
-	ridID int
-	pos   uint32
+	ridID    int
+	position uint32
 }
 
 type recordHeap []*record
@@ -14,7 +14,7 @@ func (h recordHeap) Len() int { return len(h) }
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-func (h recordHeap) Less(i, j int) bool { return h[i].pos < h[j].pos }
+func (h recordHeap) Less(i, j int) bool { return h[i].position < h[j].position }
 
 // Swap swaps the elements with indexes i and j.
 func (h recordHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
@@ -51,7 +51,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 
 	for i := 0; i < lenRid; i++ {
 		item = &tops[i]
-		item.ridID, item.pos = i, rid[i][0]
+		item.ridID, item.position = i, rid[i][0]
 		h.Push(item)
 	}
 
@@ -62,7 +62,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		// reset slice
 		poppedItems = poppedItems[:0]
 		t := h.top()
-		for h.Len() > 0 && t.pos >= h.top().pos {
+		for h.Len() > 0 && t.position >= h.top().position {
 			item = heap.Pop(&h).(*record)
 			poppedItems = append(poppedItems, item)
 		}
@@ -70,8 +70,8 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		n := len(poppedItems)
 		if n >= threshold {
 			result = append(result, &MergeCandidate{
-				Pos:     t.pos,
-				Overlap: n,
+				Position: t.position,
+				Overlap:  n,
 			})
 
 			for _, item := range poppedItems {
@@ -79,7 +79,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 				if len(cur) > 1 {
 					cur = cur[1:]
 					rid[item.ridID] = cur
-					item.pos = cur[0]
+					item.position = cur[0]
 					heap.Push(&h, item)
 				}
 			}
@@ -93,7 +93,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 				break
 			}
 
-			topPos := h.top().pos
+			topPos := h.top().position
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
 				if len(cur) == 0 {
@@ -104,7 +104,7 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 				if r != -1 {
 					cur = cur[r:]
 					rid[item.ridID] = cur
-					item.pos = cur[0]
+					item.position = cur[0]
 					heap.Push(&h, item)
 				}
 			}

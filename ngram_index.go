@@ -129,7 +129,7 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 
 		for _, c := range candidates {
 			distance := metric.Distance(c.Overlap, sizeA, sizeB)
-			collector.Add(c.Pos, distance)
+			collector.Add(c.Position, distance)
 		}
 	}
 

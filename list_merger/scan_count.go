@@ -19,10 +19,10 @@ func (lm *ScanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
 		endMergeCandidate, endRid = len(candidates), len(list)
 
 		for j < endMergeCandidate || k < endRid {
-			if j >= endMergeCandidate || (k < endRid && candidates[j].Pos > list[k]) {
+			if j >= endMergeCandidate || (k < endRid && candidates[j].Position > list[k]) {
 				tmp = append(tmp, &MergeCandidate{list[k], 1})
 				k++
-			} else if k >= endRid || (j < endMergeCandidate && candidates[j].Pos < list[k]) {
+			} else if k >= endRid || (j < endMergeCandidate && candidates[j].Position < list[k]) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {

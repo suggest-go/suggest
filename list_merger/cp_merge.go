@@ -23,10 +23,10 @@ func (cp *CPMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 		endMergeCandidate, endRid = len(candidates), len(list)
 
 		for j < endMergeCandidate || k < endRid {
-			if j >= endMergeCandidate || (k < endRid && candidates[j].Pos > list[k]) {
+			if j >= endMergeCandidate || (k < endRid && candidates[j].Position > list[k]) {
 				tmp = append(tmp, &MergeCandidate{list[k], 1})
 				k++
-			} else if k >= endRid || (j < endMergeCandidate && candidates[j].Pos < list[k]) {
+			} else if k >= endRid || (j < endMergeCandidate && candidates[j].Position < list[k]) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {
@@ -48,9 +48,9 @@ func (cp *CPMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 		tmp = tmp[:0]
 
 		for _, c := range candidates {
-			j := binarySearchLowerBound(rid[i], c.Pos)
+			j := binarySearchLowerBound(rid[i], c.Position)
 			if j != -1 {
-				if rid[i][j] == c.Pos {
+				if rid[i][j] == c.Position {
 					c.Overlap++
 				}
 

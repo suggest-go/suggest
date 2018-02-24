@@ -19,7 +19,7 @@ func TestMerge(t *testing.T) {
 
 			for _, candidate := range merger.Merge(c.rid, c.t) {
 				if candidate.Overlap >= c.t {
-					actual[candidate.Overlap] = append(actual[candidate.Overlap], candidate.Pos)
+					actual[candidate.Overlap] = append(actual[candidate.Overlap], candidate.Position)
 				}
 			}
 

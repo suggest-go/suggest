@@ -8,9 +8,7 @@ type ListMerger interface {
 	Merge(rid Rid, threshold int) []*MergeCandidate
 }
 
-type (
-	RidItem = []uint32
-)
+type RidItem = []uint32
 
 // Rid represents inverted lists for ListMerger
 type Rid []RidItem
@@ -27,6 +25,6 @@ func (p Rid) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 // MergeCandidate is result of merging Rid
 type MergeCandidate struct {
-	Pos     uint32
-	Overlap int
+	Position uint32
+	Overlap  int
 }

@@ -29,17 +29,17 @@ func (ds *DivideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 	}
 
 	var (
-		r          uint32
+		position   uint32
 		candidates = ds.merger.Merge(lShort, threshold-l)
 		result     = make([]*MergeCandidate, 0, len(candidates))
 	)
 
 	for _, c := range candidates {
-		r = c.Pos
+		position = c.Position
 
 		for _, longList := range lLong {
-			idx := binarySearchLowerBound(longList, r)
-			if idx != -1 && longList[idx] == r {
+			idx := binarySearchLowerBound(longList, position)
+			if idx != -1 && longList[idx] == position {
 				c.Overlap++
 			}
 		}
