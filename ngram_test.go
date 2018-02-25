@@ -151,6 +151,61 @@ func BenchmarkRealExampleOnDisc(b *testing.B) {
 	}
 }
 
+func TestAutoComplete(t *testing.T) {
+	collection := []string{
+		"Nissan March",
+		"Nissan Juke",
+		"Nissan Maxima",
+		"Nissan Murano",
+		"Nissan Note",
+		"Toyota Mark II",
+		"Toyota Corolla",
+		"Toyota Corona",
+	}
+
+	nGramIndex := buildNGramIndex(collection, 3)
+	candidates := nGramIndex.AutoComplete("Niss", 5)
+	actual := make(index.PostingList, 0, len(candidates))
+	for _, candidate := range candidates {
+		actual = append(actual, candidate.Key)
+	}
+
+	expected := index.PostingList{
+		0, 1, 2, 3, 4,
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf(
+			"Test Fail, expected %v, got %v",
+			expected,
+			actual,
+		)
+	}
+}
+
+func BenchmarkAutoCompleteOnDisc(b *testing.B) {
+	b.StopTimer()
+
+	nGramIndex := buildOnDiscNGramIndex()
+
+	queries := [...]string{
+		"Nissan Mar",
+		"Fit",
+		"Benz",
+		"Toyo",
+		"Nissan Juke",
+		"Hummer",
+		"Corol",
+	}
+
+	qLen := len(queries)
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		nGramIndex.AutoComplete(queries[i%qLen], 5)
+	}
+}
+
 func buildNGramIndex(collection []string, nGramSize int) NGramIndex {
 	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
 		alphabet.NewRussianAlphabet(),

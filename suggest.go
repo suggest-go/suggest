@@ -97,3 +97,30 @@ func (s *Service) Suggest(dict string, config *SearchConfig) []ResultItem {
 
 	return result
 }
+
+// AutoComplete returns first limit
+func (s *Service) AutoComplete(dict string, query string, limit int) []ResultItem {
+	s.RLock()
+	index, okIndex := s.indexes[dict]
+	dictionary, okDict := s.dictionaries[dict]
+	s.RUnlock()
+
+	if !okDict || !okIndex {
+		return nil
+	}
+
+	candidates := index.AutoComplete(query, limit)
+	l := len(candidates)
+	result := make([]ResultItem, 0, l)
+
+	for _, candidate := range candidates {
+		value, err := dictionary.Get(candidate.Key)
+		if err != nil {
+			// TODO should report error
+		} else {
+			result = append(result, ResultItem{0, value})
+		}
+	}
+
+	return result
+}

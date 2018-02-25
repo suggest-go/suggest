@@ -7,18 +7,21 @@ import (
 
 // Cleaner provides api for preparing word for index search
 type Cleaner interface {
-	// Clean returns prepared "cleaned" string
-	Clean(word string) string
+	// CleanAndWrap returns prepared "cleaned" string
+	CleanAndWrap(word string) string
+	// CleanAndLeftWrap
+	CleanAndLeftWrap(word string) string
 }
 
 // cleanerImpl implements Cleaner interface
 type cleanerImpl struct {
-	reg          *regexp.Regexp
-	pad, wrapper string
+	reg  *regexp.Regexp
+	pad  string
+	wrap [2]string
 }
 
 // NewCleaner returns new Cleaner object
-func NewCleaner(chars []rune, pad, wrapper string) Cleaner {
+func NewCleaner(chars []rune, pad string, wrap [2]string) Cleaner {
 	str := string(chars)
 	reg, err := regexp.Compile("[^" + str + "]+")
 	if err != nil {
@@ -26,15 +29,19 @@ func NewCleaner(chars []rune, pad, wrapper string) Cleaner {
 	}
 
 	return &cleanerImpl{
-		reg:     reg,
-		pad:     pad,
-		wrapper: wrapper,
+		reg:  reg,
+		pad:  pad,
+		wrap: wrap,
 	}
 }
 
 // Clean returns prepared "cleaned" string
-func (c *cleanerImpl) Clean(word string) string {
-	return c.wrap(c.clean(word))
+func (c *cleanerImpl) CleanAndWrap(word string) string {
+	return c.wrap[0] + c.clean(word) + c.wrap[1]
+}
+
+func (c *cleanerImpl) CleanAndLeftWrap(word string) string {
+	return c.wrap[0] + c.clean(word)
 }
 
 // normalize returns normalized word:
@@ -50,9 +57,4 @@ func (c *cleanerImpl) normalize(word string) string {
 func (c *cleanerImpl) clean(word string) string {
 	word = c.normalize(word)
 	return c.reg.ReplaceAllString(word, c.pad)
-}
-
-// wrap wraps word with wrapper string
-func (c *cleanerImpl) wrap(word string) string {
-	return c.wrapper + word + c.wrapper
 }

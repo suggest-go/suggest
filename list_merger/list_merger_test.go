@@ -7,10 +7,10 @@ import (
 
 func TestMerge(t *testing.T) {
 	mergers := []ListMerger{
-		&ScanCount{},
-		&CPMerge{},
-		&MergeSkip{},
-		&DivideSkip{0.01, &MergeSkip{}},
+		ScanCount(),
+		CPMerge(),
+		MergeSkip(),
+		DivideSkip(0.01, MergeSkip()),
 	}
 
 	for _, merger := range mergers {

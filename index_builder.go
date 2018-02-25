@@ -30,7 +30,7 @@ func NewRunTimeBuilder(config *IndexConfig) Builder {
 
 func (b *runTimeBuilderImpl) Build() NGramIndex {
 	conf := b.config
-	cleaner := index.NewCleaner(conf.alphabet.Chars(), conf.pad, conf.wrap)
+	cleaner := index.NewCleaner(conf.alphabet.Chars(), conf.pad, [2]string{conf.wrap, conf.wrap})
 	generator := index.NewGenerator(conf.nGramSize, conf.alphabet)
 	indexer := index.NewIndexer(
 		conf.nGramSize,
@@ -45,7 +45,8 @@ func (b *runTimeBuilderImpl) Build() NGramIndex {
 		cleaner,
 		generator,
 		indicesBuilder.Build(),
-		&list_merger.CPMerge{},
+		list_merger.CPMerge(),
+		list_merger.MergeSkipIntersect(),
 	)
 }
 
@@ -77,6 +78,7 @@ func (b *builderImpl) Build() NGramIndex {
 		cleaner,
 		generator,
 		indicesBuilder.Build(),
-		&list_merger.CPMerge{},
+		list_merger.CPMerge(),
+		list_merger.MergeSkipIntersect(),
 	)
 }

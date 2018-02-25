@@ -18,13 +18,13 @@ var (
 
 // IndexDescription is config for NgramIndex structure
 type IndexDescription struct {
-	Name       string   `json:"name"`
-	NGramSize  int      `json:"nGramSize"`
-	SourcePath string   `json:"source"`
-	OutputPath string   `json:"output"`
-	Alphabet   []string `json:"alphabet"`
-	Pad        string   `json:"pad"`
-	Wrap       string   `json:"wrap"`
+	Name       string    `json:"name"`
+	NGramSize  int       `json:"nGramSize"`
+	SourcePath string    `json:"source"`
+	OutputPath string    `json:"output"`
+	Alphabet   []string  `json:"alphabet"`
+	Pad        string    `json:"pad"`
+	Wrap       [2]string `json:"wrap"`
 }
 
 func ReadConfigs(reader io.Reader) ([]IndexDescription, error) {

@@ -6,6 +6,6 @@
     "source": "testdata/cars.dict",
     "output": "testdata/db",
     "pad": "$",
-    "wrap": "$"
+    "wrap": ["$", "$"]
   }
 ]

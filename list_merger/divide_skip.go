@@ -9,13 +9,20 @@ import (
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // We have to choose `good` parameter mu, for improving speed. So, mu depends
 // only on given dictionary, so we can find it
-type DivideSkip struct {
+func DivideSkip(mu float64, merger ListMerger) ListMerger {
+	return &divideSkip{
+		mu:     mu,
+		merger: merger,
+	}
+}
+
+type divideSkip struct {
 	mu     float64
 	merger ListMerger
 }
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (ds *DivideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (ds *divideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 	sort.Reverse(rid)
 
 	M := float64(len(rid[0]))

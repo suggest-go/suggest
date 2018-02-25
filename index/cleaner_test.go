@@ -22,9 +22,9 @@ func TestPrepareString(t *testing.T) {
 		alphabet.NewSimpleAlphabet([]rune{'$', '*'}),
 	})
 
-	clean := NewCleaner(alphabet.Chars(), "*", "$")
+	clean := NewCleaner(alphabet.Chars(), "*", [2]string{"$", "$"})
 	for _, c := range cases {
-		actual := clean.Clean(c.word)
+		actual := clean.CleanAndWrap(c.word)
 		if actual != c.expected {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",

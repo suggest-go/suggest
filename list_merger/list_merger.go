@@ -8,6 +8,11 @@ type ListMerger interface {
 	Merge(rid Rid, threshold int) []*MergeCandidate
 }
 
+// ListIntersect
+type ListIntersect interface {
+	Intersect(rid Rid, max int) []*MergeCandidate
+}
+
 type RidItem = []uint32
 
 // Rid represents inverted lists for ListMerger

@@ -37,7 +37,7 @@ func (ix *indexerImpl) Index(dictionary dictionary.Dictionary) Indices {
 		key, word := i.GetPair()
 
 		if len(word) >= ix.nGramSize {
-			prepared := ix.cleaner.Clean(word)
+			prepared := ix.cleaner.CleanAndWrap(word)
 			set := ix.generator.Generate(prepared)
 			cardinality := len(set)
 

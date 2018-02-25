@@ -5,10 +5,14 @@ import "sort"
 // CPMerge was described in paper
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
 // inspired by https://github.com/chokkan/simstring
-type CPMerge struct{}
+func CPMerge() ListMerger {
+	return &cpMerge{}
+}
+
+type cpMerge struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (cp *CPMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 	sort.Sort(rid)
 
 	lenRid := len(rid)

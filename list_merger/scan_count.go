@@ -1,13 +1,17 @@
 package list_merger
 
-// scanCount scan the N inverted lists one by one.
+// ScanCount scan the N inverted lists one by one.
 // For each string id on each list, we increment the count
 // corresponding to the string by 1. We report the string ids that
 // appear at least `threshold` times on the lists.
-type ScanCount struct{}
+func ScanCount() ListMerger {
+	return &scanCount{}
+}
+
+type scanCount struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (lm *ScanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (lm *scanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
 	size := len(rid)
 	candidates := make([]*MergeCandidate, 0, size)
 	tmp := make([]*MergeCandidate, 0, size)

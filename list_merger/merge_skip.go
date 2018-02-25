@@ -38,10 +38,27 @@ func (h recordHeap) top() *record { return h[0] }
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // Formally, main idea is to skip on the lists those record ids that cannot be in
 // the answer to the query, by utilizing the threshold
-type MergeSkip struct{}
+func MergeSkip() ListMerger {
+	return &mergeSkip{}
+}
+
+func MergeSkipIntersect() ListIntersect {
+	return &mergeSkip{}
+}
+
+type mergeSkip struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (ms *mergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
+	return ms.merge(rid, threshold, -1)
+}
+
+// Intersect returns list of candidates, that appears at least `threshold` times.
+func (ms *mergeSkip) Intersect(rid Rid, max int) []*MergeCandidate {
+	return ms.merge(rid, len(rid), max)
+}
+
+func (ms *mergeSkip) merge(rid Rid, threshold int, max int) []*MergeCandidate {
 	lenRid := len(rid)
 	h := make(recordHeap, 0, lenRid)
 	poppedItems := make([]*record, 0, lenRid)
@@ -73,6 +90,10 @@ func (ms *MergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 				Position: t.position,
 				Overlap:  n,
 			})
+
+			if max == len(result) {
+				return result
+			}
 
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]

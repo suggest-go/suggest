@@ -78,7 +78,7 @@ func buildIndex() Indices {
 		alphabet.NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	indexer := NewIndexer(3, NewGenerator(3, alphabet), NewCleaner(alphabet.Chars(), "$", "$"))
+	indexer := NewIndexer(3, NewGenerator(3, alphabet), NewCleaner(alphabet.Chars(), "$", [2]string{"$", "$"}))
 
 	return indexer.Index(dictionary)
 }

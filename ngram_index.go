@@ -20,7 +20,7 @@ type NGramIndex interface {
 	// Suggest returns top-k similar candidates
 	Suggest(config *SearchConfig) []FuzzyCandidate
 	// AutoComplete returns candidates with query as substring
-	AutoComplete(query string, topK int) []Candidate
+	AutoComplete(query string, limit int) []Candidate
 }
 
 // nGramIndexImpl implements NGramIndex
@@ -29,6 +29,7 @@ type nGramIndexImpl struct {
 	indices   index.InvertedIndexIndices
 	generator index.Generator
 	merger    list_merger.ListMerger
+	intersect list_merger.ListIntersect
 }
 
 // NewNGramIndex returns a new NGramIndex object
@@ -37,19 +38,21 @@ func NewNGramIndex(
 	generator index.Generator,
 	indices index.InvertedIndexIndices,
 	merger list_merger.ListMerger,
+	intersect list_merger.ListIntersect,
 ) NGramIndex {
 	return &nGramIndexImpl{
 		cleaner:   cleaner,
 		indices:   indices,
 		generator: generator,
 		merger:    merger,
+		intersect: intersect,
 	}
 }
 
 // Suggest returns top-k similar strings
 func (n *nGramIndexImpl) Suggest(config *SearchConfig) []FuzzyCandidate {
-	result := make([]FuzzyCandidate, 0, config.topK)
-	preparedQuery := n.cleaner.Clean(config.query)
+	result := make([]FuzzyCandidate, 0)
+	preparedQuery := n.cleaner.CleanAndWrap(config.query)
 	if len(preparedQuery) < 3 {
 		return result
 	}
@@ -58,8 +61,14 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []FuzzyCandidate {
 }
 
 // AutoComplete returns candidates with query as substring
-func (n *nGramIndexImpl) AutoComplete(query string, topK int) []Candidate {
-	return nil
+func (n *nGramIndexImpl) AutoComplete(query string, limit int) []Candidate {
+	result := make([]Candidate, 0)
+	preparedQuery := n.cleaner.CleanAndLeftWrap(query)
+	if len(preparedQuery) < 3 {
+		return result
+	}
+
+	return n.autoComplete(preparedQuery, limit)
 }
 
 // fuzzySearch
@@ -134,4 +143,33 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 	}
 
 	return collector.GetCandidates()
+}
+
+// autoComplete
+func (n *nGramIndexImpl) autoComplete(query string, limit int) []Candidate {
+	set := n.generator.Generate(query)
+	rid := make([]index.PostingList, 0, len(set))
+	result := make([]Candidate, 0)
+
+	invertedIndex := n.indices.Get(0)
+	if invertedIndex == nil {
+		return result
+	}
+
+	for _, term := range set {
+		if !invertedIndex.Has(term) {
+			return result
+		}
+	}
+
+	for _, term := range set {
+		postingList := invertedIndex.Get(term)
+		rid = append(rid, postingList)
+	}
+
+	for _, c := range n.intersect.Intersect(rid, limit) {
+		result = append(result, Candidate{c.Position})
+	}
+
+	return result
 }
