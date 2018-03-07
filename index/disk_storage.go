@@ -113,17 +113,24 @@ type onDiscIndicesWriter struct {
 
 // Save tries to save index on disc, return non nil error on failure
 //
-// *** HEADER ***
+// *** HEADER FILE ***
 // INDICES_LENGTH - 4 byte
 // [<pos1, length1>, ..., <posN, lengthN>] - 4 * 8 byte
+//
 // <pos1, length1>:
-// pos1 - <term1, size, postingListPos>
-// pos2 - <term2, size, postingListPos>
+// <term11, size, postingListPos>
+// <term12, size, postingListPos>
+// <term13, size, postingListPos>
+// <term1length1, size, postingListPos>
 // ...
 // posN - <termN, size, postingListPos>
-//
-// *** DOC LIST ***
-// Values
+// <termN1, size, postingListPos>
+// <termN2, size, postingListPos>
+// <termN3, size, postingListPos>
+// <termNlengthN, size, postingListPos>
+
+// *** DOCLIST FILE***
+// Binary encoded values
 //
 func (w *onDiscIndicesWriter) Save(indices Indices) error {
 	// Seek header to fromPosition
@@ -141,7 +148,7 @@ func (w *onDiscIndicesWriter) Save(indices Indices) error {
 		return err
 	}
 
-	// mapOffset
+	// mapOffset store inverted index structure
 	mapOffset := w.fromPosition + 4 + int64(8*len(indices))
 	// mapValueOffset store posting lists
 	mapValueOffset := int64(0)

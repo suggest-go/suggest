@@ -64,6 +64,7 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []FuzzyCandidate {
 func (n *nGramIndexImpl) AutoComplete(query string, limit int) []Candidate {
 	result := make([]Candidate, 0)
 	preparedQuery := n.cleaner.CleanAndLeftWrap(query)
+
 	if len(preparedQuery) < 3 {
 		return result
 	}
@@ -151,7 +152,7 @@ func (n *nGramIndexImpl) autoComplete(query string, limit int) []Candidate {
 	rid := make([]index.PostingList, 0, len(set))
 	result := make([]Candidate, 0)
 
-	invertedIndex := n.indices.Get(0)
+	invertedIndex := n.indices.GetWholeIndex()
 	if invertedIndex == nil {
 		return result
 	}

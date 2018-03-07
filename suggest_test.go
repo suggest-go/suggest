@@ -86,7 +86,11 @@ func TestConcurrencyOnDisc(t *testing.T) {
 	go func() {
 		for i := 0; i < 5; i++ {
 			searchConf, _ := NewSearchConfig(wordsList[i], 5, metric.CosineMetric(), 0.7)
-			result := service.Suggest(description[0].Name, searchConf)
+			result, err := service.Suggest(description[0].Name, searchConf)
+			if err != nil {
+				t.Errorf("Fail suggest %v", err)
+			}
+
 			actual := make([]string, 0, len(result))
 			for _, item := range result {
 				actual = append(actual, item.Value)

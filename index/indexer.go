@@ -2,9 +2,10 @@ package index
 
 import "github.com/alldroll/suggest/dictionary"
 
-type Index = map[Term]PostingList
-
-type Indices = []Index
+type (
+	Index   = map[Term]PostingList
+	Indices = []Index
+)
 
 type Indexer interface {
 	Index(dictionary dictionary.Dictionary) Indices

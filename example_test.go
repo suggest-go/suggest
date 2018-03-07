@@ -48,7 +48,11 @@ func Example() {
 		panic(err)
 	}
 
-	result := service.Suggest("cars", searchConf)
+	result, err := service.Suggest("cars", searchConf)
+	if err != nil {
+		panic(err)
+	}
+
 	values := make([]string, 0, len(result))
 	for _, item := range result {
 		values = append(values, item.Value)

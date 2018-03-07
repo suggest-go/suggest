@@ -1,6 +1,7 @@
 package suggest
 
 import (
+	"fmt"
 	"github.com/alldroll/suggest/dictionary"
 	"golang.org/x/exp/mmap"
 	"runtime"
@@ -72,14 +73,14 @@ func (s *Service) GetDictionaries() []string {
 }
 
 // Suggest returns Top-k approximate strings for given query in dict
-func (s *Service) Suggest(dict string, config *SearchConfig) []ResultItem {
+func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, error) {
 	s.RLock()
 	index, okIndex := s.indexes[dict]
 	dictionary, okDict := s.dictionaries[dict]
 	s.RUnlock()
 
 	if !okDict || !okIndex {
-		return nil
+		return nil, fmt.Errorf("Given dictionary %s is not exists", dict)
 	}
 
 	candidates := index.Suggest(config)
@@ -89,38 +90,37 @@ func (s *Service) Suggest(dict string, config *SearchConfig) []ResultItem {
 	for _, candidate := range candidates {
 		value, err := dictionary.Get(candidate.Key)
 		if err != nil {
-			// TODO should report error
+			return nil, err
 		} else {
 			result = append(result, ResultItem{candidate.Distance, value})
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 // AutoComplete returns first limit
-func (s *Service) AutoComplete(dict string, query string, limit int) []ResultItem {
+func (s *Service) AutoComplete(dict string, query string, limit int) ([]ResultItem, error) {
 	s.RLock()
 	index, okIndex := s.indexes[dict]
 	dictionary, okDict := s.dictionaries[dict]
 	s.RUnlock()
 
 	if !okDict || !okIndex {
-		return nil
+		return nil, fmt.Errorf("Given dictionary %s is not exists", dict)
 	}
 
 	candidates := index.AutoComplete(query, limit)
-	l := len(candidates)
-	result := make([]ResultItem, 0, l)
+	result := make([]ResultItem, 0, len(candidates))
 
 	for _, candidate := range candidates {
 		value, err := dictionary.Get(candidate.Key)
 		if err != nil {
-			// TODO should report error
+			return nil, err
 		} else {
 			result = append(result, ResultItem{0, value})
 		}
 	}
 
-	return result
+	return result, nil
 }
