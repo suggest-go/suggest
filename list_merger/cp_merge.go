@@ -54,7 +54,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 		for _, c := range candidates {
 			j := lowerBound(rid[i], c.Position)
 
-			if j >= 0 && j < len(rid[i]) {
+			if j != -1 {
 				if rid[i][j] == c.Position {
 					c.Overlap++
 				}
