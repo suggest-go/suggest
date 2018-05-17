@@ -45,7 +45,7 @@ func (ds *divideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		position = c.Position
 
 		for _, longList := range lLong {
-			idx := binarySearchLowerBound(longList, position)
+			idx := lowerBound(longList, position)
 			if idx != -1 && longList[idx] == position {
 				c.Overlap++
 			}

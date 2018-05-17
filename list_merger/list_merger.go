@@ -1,5 +1,7 @@
 package list_merger
 
+import "sort"
+
 // ListMerger solves `threshold`-occurrence problem:
 // For given inverted lists find the set of strings ids, that appears at least
 // `threshold` times.
@@ -32,4 +34,15 @@ func (p Rid) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 type MergeCandidate struct {
 	Position uint32
 	Overlap  int
+}
+
+// lowerBound returns index for the smallest record t in given arr such that t >= x
+// returns -1, if there is not such item
+func lowerBound(a RidItem, x uint32) int {
+	i := sort.Search(len(a), func(i int) bool { return a[i] >= x })
+	if i < 0 || i >= len(a) {
+		i = -1
+	}
+
+	return i
 }

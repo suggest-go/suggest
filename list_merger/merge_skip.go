@@ -121,7 +121,7 @@ func (ms *mergeSkip) merge(rid Rid, threshold int, max int) []*MergeCandidate {
 					continue
 				}
 
-				r := binarySearchLowerBound(cur, topPos)
+				r := lowerBound(cur, topPos)
 				if r != -1 {
 					cur = cur[r:]
 					rid[item.ridID] = cur

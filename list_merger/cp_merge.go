@@ -52,8 +52,9 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 		tmp = tmp[:0]
 
 		for _, c := range candidates {
-			j := binarySearchLowerBound(rid[i], c.Position)
-			if j != -1 {
+			j := lowerBound(rid[i], c.Position)
+
+			if j >= 0 && j < len(rid[i]) {
 				if rid[i][j] == c.Position {
 					c.Overlap++
 				}
@@ -73,14 +74,5 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 		}
 	}
 
-	tmp = tmp[:0]
-
-	for _, c := range candidates {
-		if c.Overlap >= threshold {
-			tmp = append(tmp, c)
-		}
-	}
-
-	candidates = tmp
 	return candidates
 }
