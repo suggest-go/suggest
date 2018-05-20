@@ -49,14 +49,14 @@ func (h *topKHeap) Pop() interface{} {
 // Top returns the top element of heap
 func (h topKHeap) top() *topKFuzzySearchItem { return h[0] }
 
-type TopKCollector struct {
+type TopKSelector struct {
 	topK int
 	h    topKHeap
 }
 
-// NewTopKCollector returns instance of TopKCollector
-func NewTopKCollector(topK int) *TopKCollector {
-	return &TopKCollector{
+// NewTopKSelector returns instance of TopKSelector
+func NewTopKSelector(topK int) *TopKSelector {
+	return &TopKSelector{
 		topK: topK,
 		h:    make(topKHeap, 0, topK),
 	}
@@ -65,7 +65,7 @@ func NewTopKCollector(topK int) *TopKCollector {
 // use heap search for finding top k items in a list efficiently
 // see http://stevehanov.ca/blog/index.php?id=122
 // Add adds item with given position and distance to collection if item belongs to `top k items`
-func (c *TopKCollector) Add(position index.Position, distance float64) {
+func (c *TopKSelector) Add(position index.Position, distance float64) {
 	if c.h.Len() >= c.topK && c.h.top().distance <= distance {
 		return
 	}
@@ -87,7 +87,7 @@ func (c *TopKCollector) Add(position index.Position, distance float64) {
 }
 
 // GetCandidates returns `top k items` (on given moment)
-func (c *TopKCollector) GetCandidates() []FuzzyCandidate {
+func (c *TopKSelector) GetCandidates() []FuzzyCandidate {
 	result := make([]FuzzyCandidate, 0, c.topK)
 
 	for c.h.Len() > 0 {

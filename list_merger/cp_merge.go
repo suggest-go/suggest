@@ -13,11 +13,16 @@ type cpMerge struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
-	sort.Sort(rid)
-
 	lenRid := len(rid)
 	minQueries := lenRid - threshold + 1
 	candidates := make([]*MergeCandidate, 0, lenRid)
+
+	if threshold > lenRid {
+		return candidates
+	}
+
+	sort.Sort(rid)
+
 	tmp := make([]*MergeCandidate, 0, lenRid)
 	j, k, endMergeCandidate, endRid := 0, 0, 0, 0
 
