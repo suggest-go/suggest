@@ -84,7 +84,7 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 
 	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
 	lenIndices := n.indices.Size()
-	collector := NewTopKCollector(topK)
+	selector := NewTopKSelector(topK)
 
 	if bMax >= lenIndices {
 		bMax = lenIndices - 1
@@ -139,11 +139,11 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 
 		for _, c := range candidates {
 			distance := metric.Distance(c.Overlap, sizeA, sizeB)
-			collector.Add(c.Position, distance)
+			selector.Add(c.Position, distance)
 		}
 	}
 
-	return collector.GetCandidates()
+	return selector.GetCandidates()
 }
 
 // autoComplete

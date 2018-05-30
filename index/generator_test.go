@@ -30,7 +30,7 @@ func TestSplitIntoNGrams(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		actual := splitIntoNGrams(c.word, c.k)
+		actual := SplitIntoNGrams(c.word, c.k)
 		if !reflect.DeepEqual(actual, c.ngrams) {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",

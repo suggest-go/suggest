@@ -26,7 +26,7 @@ func NewGenerator(nGramSize int, alphabet alphabet.Alphabet) Generator {
 
 // Generate returns terms array for given word
 func (g *generatorImpl) Generate(word string) []Term {
-	nGrams := splitIntoNGrams(word, g.nGramSize)
+	nGrams := SplitIntoNGrams(word, g.nGramSize)
 	l := len(nGrams)
 	set := make(map[Term]struct{}, l)
 	list := make([]Term, 0, l)
@@ -44,30 +44,13 @@ func (g *generatorImpl) Generate(word string) []Term {
 }
 
 // SplitIntoNGrams split given word on k-gram list
-// inspired by https://github.com/Lazin/go-ngram
-func splitIntoNGrams(word string, k int) []string {
-	sliceLen := len(word) - k + 1
-	if sliceLen <= 0 || sliceLen > len(word) {
-		panic("Invalid word length for spliting")
+func SplitIntoNGrams(word string, k int) []string {
+	runes := []rune(word)
+	result := make([]string, 0, len(runes))
+
+	for i := 0; i < len(runes)-k+1; i++ {
+		result = append(result, string(runes[i:i+k]))
 	}
-
-	var prevIndexes [maxN]int
-	result := make([]string, 0, sliceLen)
-	i := 0
-	for index := range word {
-		i++
-		if i > k {
-			top := prevIndexes[(i-k)%k]
-			substr := word[top:index]
-			result = append(result, substr)
-		}
-
-		prevIndexes[i%k] = index
-	}
-
-	top := prevIndexes[(i+1)%k]
-	substr := word[top:]
-	result = append(result, substr)
 
 	return result
 }
