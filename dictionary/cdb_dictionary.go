@@ -63,9 +63,22 @@ func (i *cdbDictionaryIterator) Next() bool {
 
 // GetPair returns key-value pair of current item
 func (i *cdbDictionaryIterator) GetPair() (Key, Value) {
-	value, key := i.cdbIterator.Value(), i.cdbIterator.Key()
+	record := i.cdbIterator.Record()
+
+	keyReader, keySize := record.Key()
+	key := make([]byte, keySize)
+	if _, err := keyReader.Read(key); err != nil {
+		panic(err)
+	}
+
 	if key == nil {
 		return 0, ""
+	}
+
+	valueReader, valSize := record.Value()
+	value := make([]byte, valSize)
+	if _, err := valueReader.Read(value); err != nil {
+		panic(err)
 	}
 
 	return binary.LittleEndian.Uint32(key), Value(value)
