@@ -95,51 +95,90 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 		sizeA, sizeB int
 	}
 
-	for sizeB := bMax; sizeB >= bMin; sizeB-- {
-		threshold := metric.Threshold(similarity, sizeA, sizeB)
-		if threshold == 0 {
-			continue
+	boundaryValues := make([]int, 0, 2)
+	i, j := sizeA, sizeA
+
+	for {
+		boundaryValues = boundaryValues[:0]
+
+		if i >= bMin {
+			boundaryValues = append(boundaryValues, i)
 		}
 
-		invertedIndex := n.indices.Get(sizeB)
-		if invertedIndex == nil {
-			continue
+		if j != i && j <= bMax {
+			boundaryValues = append(boundaryValues, j)
 		}
 
-		// maximum allowable nGram miss count
-		allowedSkips := sizeA - threshold + 1
-		for _, term := range set {
-			// there is no reason to continue, because of threshold
+		j++
+		i--
+
+		if len(boundaryValues) == 0 {
+			break
+		}
+
+		for _, sizeB := range boundaryValues {
+			threshold := metric.Threshold(similarity, sizeA, sizeB)
+			if threshold == 0 {
+				continue
+			}
+
+			lowestCandidate, lowestDistance := selector.GetLowestRecord()
+			if lowestCandidate != nil && selector.Size() == topK {
+				if lowestCandidate.Overlap > threshold {
+					threshold = lowestCandidate.Overlap
+				}
+
+				maxCurrentDistance := metric.Distance(sizeA, sizeA, sizeB)
+				// there is no reason
+				if maxCurrentDistance > lowestDistance {
+					continue
+				}
+			}
+
+			if threshold > sizeB {
+				continue
+			}
+
+			invertedIndex := n.indices.Get(sizeB)
+			if invertedIndex == nil {
+				continue
+			}
+
+			// maximum allowable nGram miss count
+			allowedSkips := sizeA - threshold + 1
+			for _, term := range set {
+				// there is no reason to continue, because of threshold
+				if allowedSkips == 0 {
+					break
+				}
+
+				if !invertedIndex.Has(term) {
+					allowedSkips--
+				}
+			}
+
 			if allowedSkips == 0 {
-				break
+				continue
 			}
 
-			if !invertedIndex.Has(term) {
-				allowedSkips--
+			rid = rid[:0]
+
+			// maybe run it concurrent?
+			// go func() { buildRid, mergeCandidates, ch <- {candidates, sizeA, sizeB}
+			// in main goroutine just collect it
+			for _, term := range set {
+				postingList := invertedIndex.Get(term)
+				if len(postingList) > 0 {
+					rid = append(rid, postingList)
+				}
 			}
-		}
 
-		if allowedSkips == 0 {
-			continue
-		}
+			candidates := n.merger.Merge(rid, threshold)
 
-		rid = rid[:0]
-
-		// maybe run it concurrent?
-		// go func() { buildRid, mergeCandidates, ch <- {candidates, sizeA, sizeB}
-		// in main goroutine just collect it
-		for _, term := range set {
-			postingList := invertedIndex.Get(term)
-			if len(postingList) > 0 {
-				rid = append(rid, postingList)
+			for _, c := range candidates {
+				distance := metric.Distance(c.Overlap, sizeA, sizeB)
+				selector.Add(c, distance)
 			}
-		}
-
-		candidates := n.merger.Merge(rid, threshold)
-
-		for _, c := range candidates {
-			distance := metric.Distance(c.Overlap, sizeA, sizeB)
-			selector.Add(c.Position, distance)
 		}
 	}
 

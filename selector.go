@@ -3,6 +3,7 @@ package suggest
 import (
 	"container/heap"
 	"github.com/alldroll/suggest/index"
+	"github.com/alldroll/suggest/list_merger"
 )
 
 type Candidate struct {
@@ -18,8 +19,8 @@ type FuzzyCandidate struct {
 }
 
 type topKFuzzySearchItem struct {
-	position index.Position
-	distance float64
+	candidate *list_merger.MergeCandidate
+	distance  float64
 }
 
 type topKHeap []*topKFuzzySearchItem
@@ -65,7 +66,7 @@ func NewTopKSelector(topK int) *TopKSelector {
 // use heap search for finding top k items in a list efficiently
 // see http://stevehanov.ca/blog/index.php?id=122
 // Add adds item with given position and distance to collection if item belongs to `top k items`
-func (c *TopKSelector) Add(position index.Position, distance float64) {
+func (c *TopKSelector) Add(candidate *list_merger.MergeCandidate, distance float64) {
 	if c.h.Len() >= c.topK && c.h.top().distance <= distance {
 		return
 	}
@@ -76,14 +77,29 @@ func (c *TopKSelector) Add(position index.Position, distance float64) {
 		r = heap.Pop(&c.h).(*topKFuzzySearchItem)
 	} else {
 		r = &topKFuzzySearchItem{
-			position: 0,
-			distance: 0.0,
+			candidate: nil,
+			distance:  0.0,
 		}
 	}
 
-	r.position = position
+	r.candidate = candidate
 	r.distance = distance
 	heap.Push(&c.h, r)
+}
+
+//
+func (c *TopKSelector) GetLowestRecord() (*list_merger.MergeCandidate, float64) {
+	if c.h.Len() > 0 {
+		top := c.h.top()
+		return top.candidate, top.distance
+	}
+
+	return nil, 1
+}
+
+//
+func (c *TopKSelector) Size() int {
+	return c.h.Len()
 }
 
 // GetCandidates returns `top k items` (on given moment)
@@ -93,7 +109,7 @@ func (c *TopKSelector) GetCandidates() []FuzzyCandidate {
 	for c.h.Len() > 0 {
 		r := heap.Pop(&c.h).(*topKFuzzySearchItem)
 		result = append(
-			[]FuzzyCandidate{{Candidate{r.position}, r.distance}},
+			[]FuzzyCandidate{{Candidate{r.candidate.Position}, r.distance}},
 			result...,
 		)
 	}
