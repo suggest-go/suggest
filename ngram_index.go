@@ -124,14 +124,14 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 
 			lowestCandidate, lowestDistance := selector.GetLowestRecord()
 			if lowestCandidate != nil && selector.Size() == topK {
-				if lowestCandidate.Overlap > threshold {
-					threshold = lowestCandidate.Overlap
+				// there is no reason
+				if metric.Distance(sizeA, sizeA, sizeB) > lowestDistance {
+					continue
 				}
 
-				maxCurrentDistance := metric.Distance(sizeA, sizeA, sizeB)
-				// there is no reason
-				if maxCurrentDistance > lowestDistance {
-					continue
+				thresholdForLowestDistance := metric.Threshold(1.0-lowestDistance, sizeA, sizeB)
+				if thresholdForLowestDistance > threshold {
+					threshold = thresholdForLowestDistance
 				}
 			}
 
