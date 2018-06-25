@@ -90,11 +90,6 @@ func (n *nGramIndexImpl) fuzzySearch(query string, config *SearchConfig) []Fuzzy
 		bMax = lenIndices - 1
 	}
 
-	type pp struct {
-		candidates   []*list_merger.MergeCandidate
-		sizeA, sizeB int
-	}
-
 	boundaryValues := make([]int, 0, 2)
 	i, j := sizeA, sizeA
 
