@@ -72,26 +72,8 @@ func buildDictionary(sourcePath string, config suggest.IndexDescription) diction
 
 //
 func storeIndex(indices index.Indices, config suggest.IndexDescription) {
-	headerFile, err := os.OpenFile(
-		config.GetHeaderFile(),
-		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
-		0644,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	documentListFile, err := os.OpenFile(
-		config.GetDocumentListFile(),
-		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
-		0644,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	writer := index.NewOnDiscIndicesWriter(compression.VBEncoder(), headerFile, documentListFile, 0)
-	err = writer.Save(indices)
+	writer := index.NewOnDiscIndicesWriter(compression.VBEncoder(), config.GetHeaderFile(), config.GetDocumentListFile())
+	err := writer.Save(indices)
 	if err != nil {
 		log.Fatal(err)
 	}

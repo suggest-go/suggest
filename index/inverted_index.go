@@ -2,9 +2,6 @@ package index
 
 import (
 	"github.com/alldroll/suggest/compression"
-	"golang.org/x/exp/mmap"
-	"io"
-	"runtime"
 )
 
 type (
@@ -73,9 +70,9 @@ type invertedIndexStructure map[Term]struct {
 }
 
 // NewOnDiscInvertedIndex returns new instance of InvertedIndex that is stored on disc
-func NewOnDiscInvertedIndex(reader io.ReaderAt, decoder compression.Decoder, m invertedIndexStructure) InvertedIndex {
+func NewOnDiscInvertedIndex(data []byte, decoder compression.Decoder, m invertedIndexStructure) InvertedIndex {
 	return &onDiscInvertedIndex{
-		reader:  reader,
+		data:    data,
 		decoder: decoder,
 		m:       m,
 	}
@@ -83,7 +80,7 @@ func NewOnDiscInvertedIndex(reader io.ReaderAt, decoder compression.Decoder, m i
 
 // onDiscInvertedIndex is on disk inverted index implementation
 type onDiscInvertedIndex struct {
-	reader  io.ReaderAt
+	data    []byte
 	decoder compression.Decoder
 	m       invertedIndexStructure
 }
@@ -95,10 +92,7 @@ func (i *onDiscInvertedIndex) Get(term Term) PostingList {
 		return nil
 	}
 
-	buf := make([]byte, s.size)
-	i.reader.ReadAt(buf, int64(s.position))
-
-	return i.decoder.Decode(buf)
+	return i.decoder.Decode(i.data[s.position : s.position+s.size])
 }
 
 // Has checks is there is given term in inverted index
@@ -179,29 +173,12 @@ type invertedIndexIndicesBuilderOnDiscImpl struct {
 
 // Build creates new "On disc" InvertedIndexIndices
 func (b *invertedIndexIndicesBuilderOnDiscImpl) Build() InvertedIndexIndices {
-	header, err := mmap.Open(b.headerPath)
-	if err != nil {
-		panic(err)
-	}
-
-	docList, err := mmap.Open(b.documentListPath)
-	if err != nil {
-		header.Close()
-		panic(err)
-	}
-
-	reader := NewOnDiscIndicesReader(compression.VBDecoder(), header, docList, 0)
+	reader := NewOnDiscIndicesReader(compression.VBDecoder(), b.headerPath, b.documentListPath)
 	indices, err := reader.Load()
+
 	if err != nil {
-		header.Close()
-		docList.Close()
 		panic(err)
 	}
-
-	runtime.SetFinalizer(indices, func(impl *invertedIndexIndicesImpl) {
-		header.Close()
-		docList.Close()
-	})
 
 	return indices
 }

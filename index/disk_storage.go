@@ -5,7 +5,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/alldroll/suggest/compression"
+	mmap "github.com/edsrzf/mmap-go"
 	"io"
+	"os"
+	"runtime"
 )
 
 var (
@@ -13,39 +16,43 @@ var (
 )
 
 // NewOnDiscIndicesReader returns new instance of IndicesReader
-func NewOnDiscIndicesReader(decoder compression.Decoder, header io.ReaderAt, documentList io.ReaderAt, fromPosition int64) IndicesReader {
+func NewOnDiscIndicesReader(decoder compression.Decoder, header, documentList string) IndicesReader {
 	return &onDiscIndicesReader{
 		decoder:      decoder,
 		header:       header,
 		documentList: documentList,
-		fromPosition: fromPosition,
 	}
 }
 
 // NewOnDiscIndicesWriter returns new instance of IndicesWriter
-func NewOnDiscIndicesWriter(encoder compression.Encoder, header io.WriteSeeker, documentList io.Writer, fromPosition int64) IndicesWriter {
+func NewOnDiscIndicesWriter(encoder compression.Encoder, header, documentList string) IndicesWriter {
 	return &onDiscIndicesWriter{
 		encoder:      encoder,
 		header:       header,
 		documentList: documentList,
-		fromPosition: fromPosition,
 	}
 }
 
 // onDiscIndicesReader implements Reader interface
 type onDiscIndicesReader struct {
-	decoder      compression.Decoder
-	header       io.ReaderAt
-	documentList io.ReaderAt
-	fromPosition int64
+	decoder              compression.Decoder
+	header, documentList string
 }
 
 // Load loads inverted index structure from disk
 func (r *onDiscIndicesReader) Load() (InvertedIndexIndices, error) {
+	headerFile, err := os.Open(r.header)
+	if err != nil {
+		return nil, err
+	}
+
+	headerBuf := headerFile //bufio.NewReader(headerFile)
+	defer headerFile.Close()
+
 	buf := make([]byte, 4)
 
 	// first of all we read indices length
-	_, err := r.header.ReadAt(buf, r.fromPosition)
+	_, err = headerBuf.Read(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +63,19 @@ func (r *onDiscIndicesReader) Load() (InvertedIndexIndices, error) {
 
 	// read indices structure
 	buf = make([]byte, 4*2*indicesLength)
-	_, err = r.header.ReadAt(buf, r.fromPosition+4)
+	_, err = headerBuf.Read(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	documentListFile, err := os.Open(r.documentList)
+	if err != nil {
+		return nil, err
+	}
+
+	defer documentListFile.Close()
+
+	data, err := mmap.Map(documentListFile, mmap.RDONLY, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +99,7 @@ func (r *onDiscIndicesReader) Load() (InvertedIndexIndices, error) {
 			mapBuf = make([]byte, 12*length)
 		)
 
-		_, err = r.header.ReadAt(mapBuf, int64(position))
+		_, err = headerBuf.ReadAt(mapBuf, int64(position))
 		if err != nil {
 			return nil, err
 		}
@@ -97,18 +116,22 @@ func (r *onDiscIndicesReader) Load() (InvertedIndexIndices, error) {
 			}{size: size, position: offset}
 		}
 
-		indices[i] = NewOnDiscInvertedIndex(r.documentList, r.decoder, m)
+		indices[i] = NewOnDiscInvertedIndex(data, r.decoder, m)
 	}
 
-	return NewInvertedIndexIndices(indices), nil
+	invertedIndices := NewInvertedIndexIndices(indices)
+
+	runtime.SetFinalizer(invertedIndices, func(r *invertedIndexIndicesImpl) {
+		data.Unmap()
+	})
+
+	return invertedIndices, nil
 }
 
 // onDiscIndicesWriter implements IndicesWriter interface
 type onDiscIndicesWriter struct {
-	encoder      compression.Encoder
-	header       io.WriteSeeker
-	documentList io.Writer
-	fromPosition int64
+	encoder              compression.Encoder
+	header, documentList string
 }
 
 // Save tries to save index on disc, return non nil error on failure
@@ -133,14 +156,31 @@ type onDiscIndicesWriter struct {
 // Binary encoded values
 //
 func (w *onDiscIndicesWriter) Save(indices Indices) error {
-	// Seek header to fromPosition
-	_, err := w.header.Seek(w.fromPosition, io.SeekStart)
+	headerFile, err := os.OpenFile(
+		w.header,
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0644,
+	)
+
 	if err != nil {
 		return err
 	}
 
-	headerBuf := bufio.NewWriter(w.header)
-	documentListBuf := bufio.NewWriter(w.documentList)
+	headerBuf := bufio.NewWriter(headerFile)
+	defer headerFile.Close()
+
+	documentListFile, err := os.OpenFile(
+		w.documentList,
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0644,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	documentListBuf := bufio.NewWriter(documentListFile)
+	defer documentListFile.Close()
 
 	// Save indices length in header (4 bytes)
 	err = binary.Write(headerBuf, binary.LittleEndian, uint32(len(indices)))
@@ -149,7 +189,7 @@ func (w *onDiscIndicesWriter) Save(indices Indices) error {
 	}
 
 	// mapOffset store inverted index structure
-	mapOffset := w.fromPosition + 4 + int64(8*len(indices))
+	mapOffset := 4 + int64(8*len(indices))
 	// mapValueOffset store posting lists
 	mapValueOffset := int64(0)
 

@@ -11,24 +11,15 @@ import (
 )
 
 func TestOnDiscWriter_Save(t *testing.T) {
-	header, err := os.Create("../testdata/db/test.hd")
+	headerFile := "../testdata/db/test.hd"
 	defer func() {
-		header.Close()
-		os.Remove(header.Name())
-	}()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	docList, err := os.Create("../testdata/db/test.dl")
-	defer func() {
-		docList.Close()
-		os.Remove(docList.Name())
+		os.Remove(headerFile)
 	}()
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	docListFile := "../testdata/db/test.dl"
+	defer func() {
+		os.Remove(docListFile)
+	}()
 
 	dict, err := os.Open("../testdata/cars.dict")
 	defer dict.Close()
@@ -43,13 +34,13 @@ func TestOnDiscWriter_Save(t *testing.T) {
 	}
 
 	indices := buildIndex()
-	writer := NewOnDiscIndicesWriter(compression.VBEncoder(), header, docList, 0)
+	writer := NewOnDiscIndicesWriter(compression.VBEncoder(), headerFile, docListFile)
 	err = writer.Save(indices)
 	if err != nil {
 		t.Error(err)
 	}
 
-	reader := NewOnDiscIndicesReader(compression.VBDecoder(), header, docList, 0)
+	reader := NewOnDiscIndicesReader(compression.VBDecoder(), headerFile, docListFile)
 	_, err = reader.Load()
 	if err != nil {
 		log.Fatal(err)
