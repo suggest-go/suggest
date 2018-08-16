@@ -3,7 +3,6 @@ package suggest
 import (
 	"fmt"
 	"github.com/alldroll/suggest/dictionary"
-	"golang.org/x/exp/mmap"
 	"runtime"
 	"sync"
 )
@@ -43,7 +42,7 @@ func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
 
 // AddOnDiscIndex add/replace new dictionary with given name
 func (s *Service) AddOnDiscIndex(description IndexDescription) error {
-	dictionaryFile, err := mmap.Open(description.GetDictionaryFile())
+	dictionaryFile, err := NewMmapReader(description.GetDictionaryFile())
 	if err != nil {
 		return err
 	}
