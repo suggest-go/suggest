@@ -13,12 +13,12 @@ func NewRussianAlphabet() Alphabet {
 }
 
 // Note, that we map ё as e
-func (a *russianAlphabet) MapChar(char rune) int32 {
+func (a *russianAlphabet) Has(char rune) bool {
 	if char == 'ё' {
-		return a.parent.MapChar('е')
+		return a.parent.Has('е')
 	}
 
-	return a.parent.MapChar(char)
+	return a.parent.Has(char)
 }
 
 func (a *russianAlphabet) Size() int {

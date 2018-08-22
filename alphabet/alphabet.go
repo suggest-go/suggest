@@ -1,12 +1,9 @@
 package alphabet
 
-// InvalidChar represents unmapped value of given char
-const InvalidChar = -1
-
 // Alphabet is abstract for manipulating with set of symbols
 type Alphabet interface {
-	// MapChar map given char to int32
-	MapChar(char rune) int32
+	// Has tells is given char exists in alphabet
+	Has(char rune) bool
 	// Size returns the size of alphabet
 	Size() int
 	// Chars returns the current set of symbols

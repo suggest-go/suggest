@@ -32,11 +32,9 @@ func (g *generatorImpl) Generate(word string) []Term {
 	list := make([]Term, 0, l)
 
 	for _, nGram := range nGrams {
-		index := g.nGramToIndex(nGram)
-		_, found := set[index]
-		set[index] = struct{}{}
-		if !found {
-			list = append(list, index)
+		if _, found := set[nGram]; !found {
+			set[nGram] = struct{}{}
+			list = append(list, nGram)
 		}
 	}
 
@@ -53,20 +51,4 @@ func SplitIntoNGrams(word string, k int) []string {
 	}
 
 	return result
-}
-
-// Map ngram to int (index)
-func (g *generatorImpl) nGramToIndex(nGram string) Term {
-	index := int32(0)
-	size := g.alphabet.Size()
-	for _, char := range nGram {
-		i := g.alphabet.MapChar(char)
-		if index == alphabet.InvalidChar {
-			panic("Invalid char was detected")
-		}
-
-		index = index*int32(size) + i
-	}
-
-	return Term(index)
 }

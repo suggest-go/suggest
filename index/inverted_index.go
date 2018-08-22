@@ -5,7 +5,7 @@ import (
 )
 
 type (
-	Term = uint32
+	Term = string
 	// Position (posting) is list item of PostingList
 	Position = DocumentID
 	// PostingList is a list of "documents", which contains specific term

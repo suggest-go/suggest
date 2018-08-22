@@ -9,18 +9,19 @@ func TestSequentialAlphabet(t *testing.T) {
 
 	cases := []struct {
 		char     rune
-		expected int32
+		expected bool
 	}{
-		{'а', 0},
-		{'е', 5},
-		{'ё', 5},
-		{'я', 31},
-		{'j', InvalidChar},
-		{'7', InvalidChar},
+		{'а', true},
+		{'е', true},
+		{'ё', true},
+		{'я', true},
+		{'j', false},
+		{'7', false},
 	}
 
 	for _, c := range cases {
-		actual := alphabet.MapChar(c.char)
+		actual := alphabet.Has(c.char)
+
 		if c.expected != actual {
 			t.Errorf("Test Fail, expected %d, got %d", c.expected, actual)
 		}
@@ -38,29 +39,29 @@ func TestCompositeAlphabet(t *testing.T) {
 
 	cases := []struct {
 		char     rune
-		expected int32
+		expected bool
 	}{
-		{'a', 10 + 0},
-		{'b', 10 + 1},
-		{'z', 10 + 25},
-		{'а', 10 + 26 + 0},
-		{'ё', 10 + 26 + 5},
-		{'е', 10 + 26 + 5},
-		{'ж', 10 + 26 + 6},
-		{'я', 10 + 26 + 31},
-		{'7', 7},
-		{'-', InvalidChar},
+		{'a', true},
+		{'b', true},
+		{'z', true},
+		{'а', true},
+		{'ё', true},
+		{'е', true},
+		{'ж', true},
+		{'я', true},
+		{'7', true},
+		{'-', false},
 	}
 
 	for _, c := range cases {
-		actual := alphabet.MapChar(c.char)
+		actual := alphabet.Has(c.char)
 		if c.expected != actual {
 			t.Errorf("Test Fail, expected %d, got %d", c.expected, actual)
 		}
 	}
 }
 
-func BenchmarkMapChar(b *testing.B) {
+func BenchmarkHas(b *testing.B) {
 	ngram := "ёj9"
 	alphabet := NewCompositeAlphabet(
 		[]Alphabet{
@@ -72,7 +73,7 @@ func BenchmarkMapChar(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		for _, runeVal := range ngram {
-			alphabet.MapChar(runeVal)
+			alphabet.Has(runeVal)
 		}
 	}
 }

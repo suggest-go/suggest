@@ -20,10 +20,6 @@ func NewSequentialAlphabet(min, max rune) Alphabet {
 	}
 }
 
-func (a *sequentialAlphabet) MapChar(char rune) int32 {
-	if char < a.min || char > a.max {
-		return InvalidChar
-	}
-
-	return int32(char - a.min)
+func (a *sequentialAlphabet) Has(char rune) bool {
+	return char >= a.min && char <= a.max
 }

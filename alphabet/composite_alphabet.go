@@ -31,19 +31,15 @@ func NewCompositeAlphabet(alphabets []Alphabet) Alphabet {
 	}
 }
 
-// trouble with mapping, we sort alphabet in size order for it, but will be collision when size are equals
-func (a *compositeAlphabet) MapChar(char rune) int32 {
-	key := int32(InvalidChar)
-	shift := 0
+//
+func (a *compositeAlphabet) Has(char rune) bool {
+	has := false
+
 	for _, alphabet := range a.alphabets {
-		key = alphabet.MapChar(char)
-		if key != InvalidChar {
-			key += int32(shift)
+		if has = alphabet.Has(char); has {
 			break
 		}
-
-		shift += alphabet.Size()
 	}
 
-	return key
+	return has
 }
