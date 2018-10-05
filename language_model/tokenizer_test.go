@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestEnglishTokenize(t *testing.T) {
+func TestTokenize(t *testing.T) {
 	cases := []struct {
 		text     string
 		expected []Word
