@@ -94,14 +94,14 @@ func TestGenerate(t *testing.T) {
 		)
 
 		generator := NewGenerator(
-			retriever,
 			c.order,
 			start,
 			end,
 		)
 
 		for _, expected := range c.expected {
-			actual := generator.Generate()
+			sentence := retriever.Retrieve()
+			actual := generator.Generate(sentence)
 
 			if !reflect.DeepEqual(actual, expected) {
 				t.Errorf("Test fail, expected %v, got %v", expected, actual)
