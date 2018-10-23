@@ -1,32 +1,44 @@
 package language_model
 
-const maxOrder = 5
+type WordCount = uint32
 
+type TrieWalker = func(path []WordId, count WordCount)
+
+// Trie represents data structure for counting ngrams.
 type Trie interface {
-	Find(sentence []wordId) (uint32, error)
-	Put(sentence []wordId) error
-	Walk(observer func(path []wordId, count uint32))
+	// Find returns WordCount for given wordId sequence.
+	Find(sentence []WordId) (WordCount, error)
+	// Put increments WordCount for last element of given sequence.
+	Put(sentence []WordId) error
+	// Walk iterates through trie and calls walker function on each element.
+	Walk(walker TrieWalker)
 }
 
+// NewTrie creates new instance of Trie
 func NewTrie() *trie {
 	return &trie{
 		root: &node{
-			children: make(map[uint32]*node),
+			children: make(childrenTable),
 			count:    0,
 		},
 	}
 }
 
+// trie implements Trie data structure
 type trie struct {
 	root *node
 }
 
+// node represents trie element
 type node struct {
-	children map[uint32]*node
-	count    uint32
+	children childrenTable
+	count    WordCount
 }
 
-func (t *trie) Find(sentence []wordId) (uint32, error) {
+// childrenTable
+type childrenTable map[WordId]*node
+
+func (t *trie) Find(sentence []WordId) (WordCount, error) {
 	n := t.root
 
 	for _, w := range sentence {
@@ -44,7 +56,7 @@ func (t *trie) Find(sentence []wordId) (uint32, error) {
 	return 0, nil
 }
 
-func (t *trie) Put(sentence []wordId) error {
+func (t *trie) Put(sentence []WordId) error {
 	n := t.root
 
 	for _, w := range sentence {
@@ -52,7 +64,7 @@ func (t *trie) Put(sentence []wordId) error {
 
 		if child == nil {
 			if n.children == nil {
-				n.children = make(map[uint32]*node)
+				n.children = make(childrenTable)
 			}
 
 			child = &node{
@@ -70,18 +82,18 @@ func (t *trie) Put(sentence []wordId) error {
 	return nil
 }
 
-func (t *trie) Walk(observer func(path []wordId, count uint32)) {
-	t.root.walk([]wordId{}, observer)
+func (t *trie) Walk(walker TrieWalker) {
+	t.root.walk([]WordId{}, walker)
 }
 
-func (n *node) walk(path []wordId, observer func(path []wordId, count uint32)) {
-	observer(path, n.count)
+func (n *node) walk(path []WordId, walker TrieWalker) {
+	walker(path, n.count)
 
 	if n.children == nil {
 		return
 	}
 
 	for w, child := range n.children {
-		child.walk(append(path, w), observer)
+		child.walk(append(path, w), walker)
 	}
 }

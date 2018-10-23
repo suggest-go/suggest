@@ -10,6 +10,29 @@ type Alphabet interface {
 	Chars() []rune
 }
 
+var (
+	alphabetMap = map[string]Alphabet{
+		"english": NewEnglishAlphabet(),
+		"russian": NewRussianAlphabet(),
+		"numbers": NewNumberAlphabet(),
+	}
+)
+
+func CreateAlphabet(description []string) Alphabet {
+	alphabets := make([]Alphabet, 0)
+
+	for _, symbols := range description {
+		if alphabet, ok := alphabetMap[symbols]; ok {
+			alphabets = append(alphabets, alphabet)
+			continue
+		}
+
+		alphabets = append(alphabets, NewSimpleAlphabet([]rune(symbols)))
+	}
+
+	return NewCompositeAlphabet(alphabets)
+}
+
 type charHolder struct {
 	chars []rune
 }

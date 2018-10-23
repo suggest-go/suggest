@@ -1,0 +1,7 @@
+{
+    "nGramOrder": 3,
+    "source": "test.txt",
+    "output": ".",
+    "alphabet": ["english", "-."],
+    "separators": ["\n"]
+}

@@ -8,14 +8,6 @@ import (
 	"io/ioutil"
 )
 
-var (
-	alphabetMap = map[string]alphabet.Alphabet{
-		"english": alphabet.NewEnglishAlphabet(),
-		"russian": alphabet.NewRussianAlphabet(),
-		"numbers": alphabet.NewNumberAlphabet(),
-	}
-)
-
 // IndexDescription is config for NgramIndex structure
 type IndexDescription struct {
 	Name       string    `json:"name"`
@@ -44,18 +36,7 @@ func ReadConfigs(reader io.Reader) ([]IndexDescription, error) {
 }
 
 func (d *IndexDescription) CreateAlphabet() alphabet.Alphabet {
-	alphabets := make([]alphabet.Alphabet, 0)
-
-	for _, symbols := range d.Alphabet {
-		if alphabet, ok := alphabetMap[symbols]; ok {
-			alphabets = append(alphabets, alphabet)
-			continue
-		}
-
-		alphabets = append(alphabets, alphabet.NewSimpleAlphabet([]rune(symbols)))
-	}
-
-	return alphabet.NewCompositeAlphabet(alphabets)
+	return alphabet.CreateAlphabet(d.Alphabet)
 }
 
 func (d *IndexDescription) GetDictionaryFile() string {

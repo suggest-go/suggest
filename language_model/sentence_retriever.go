@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/alldroll/suggest/alphabet"
 	"io"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -35,8 +36,7 @@ type retriever struct {
 func (r *retriever) Retrieve() Sentence {
 	if r.scanner.Scan() {
 		text := r.scanner.Text()
-		t := r.tokenizer.Tokenize(text)
-		return t
+		return r.tokenizer.Tokenize(strings.ToLower(text))
 	}
 
 	return nil
