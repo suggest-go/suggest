@@ -3,7 +3,7 @@
 Tool for Top-k Approximate String Matching.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/alldroll/suggest)](https://goreportcard.com/report/github.com/alldroll/suggest)
-[![GoDoc](https://godoc.org/github.com/Lazin/go-ngram?status.png)](https://godoc.org/github.com/alldroll/suggest)
+[![GoDoc](https://godoc.org/github.com/alldroll/suggest?status.svg)](https://godoc.org/github.com/alldroll/suggest)
 
 ## Usage
 
