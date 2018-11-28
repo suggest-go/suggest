@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"flag"
 	"github.com/alldroll/cdb"
@@ -9,17 +10,22 @@ import (
 	"github.com/alldroll/suggest/compression"
 	"github.com/alldroll/suggest/dictionary"
 	"github.com/alldroll/suggest/index"
+	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
+	"syscall"
 	"time"
 )
 
 var (
 	configPath string
+	pidPath    string
 )
 
 func init() {
 	flag.StringVar(&configPath, "config", "config.json", "config path")
+	flag.StringVar(&pidPath, "pid", "", "pid path")
 }
 
 //
@@ -79,6 +85,27 @@ func storeIndex(indices index.Indices, config suggest.IndexDescription) {
 	}
 }
 
+//
+func tryToSendReindexSignal() {
+	if pidPath == "" {
+		return
+	}
+
+	d, err := ioutil.ReadFile(pidPath)
+	if err != nil {
+		log.Fatalf("error parsing pid from %s: %s", pidPath, err)
+	}
+
+	pid, err := strconv.Atoi(string(bytes.TrimSpace(d)))
+	if err != nil {
+		log.Fatalf("error parsing pid from %s: %s", pidPath, err)
+	}
+
+	if err := syscall.Kill(pid, syscall.SIGHUP); err != nil {
+		log.Printf("Fail to send reindex signal to %d, %s", pid, err)
+	}
+}
+
 func main() {
 	log.SetPrefix("indexer: ")
 	log.SetFlags(0)
@@ -130,4 +157,6 @@ func main() {
 	}
 
 	log.Printf("Total time spent %s", time.Since(totalStart).String())
+
+	tryToSendReindexSignal()
 }
