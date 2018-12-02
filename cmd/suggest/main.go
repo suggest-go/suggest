@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/alldroll/suggest/cmd/suggest/api"
+	"log"
 )
 
 var (
@@ -18,6 +19,8 @@ func init() {
 }
 
 func main() {
+	log.SetPrefix("suggest: ")
+	log.SetFlags(0)
 	flag.Parse()
 
 	config := api.AppConfig{

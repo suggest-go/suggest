@@ -39,13 +39,11 @@ func (a App) Run() {
 		log.Fatal("Port must be set")
 	}
 
-	if err := a.writePIDFile(); err != nil {
-		log.Fatal(err)
-	}
+	a.writePIDFile()
 
 	suggestService := suggest.NewService()
 	if err := a.configureService(suggestService); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Fail to configure service %s", err)
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -55,8 +53,9 @@ func (a App) Run() {
 			cancelFn,
 			func() {
 				if err := a.configureService(suggestService); err != nil {
-					// TODO use proper way to say about errors
-					log.Fatal(err)
+					log.Printf("Fail to reload index %s", err)
+				} else {
+					log.Printf("Reindex done!")
 				}
 			},
 		)
@@ -74,7 +73,7 @@ func (a App) Run() {
 }
 
 //
-func (a App) writePIDFile() error {
+func (a App) writePIDFile() {
 	if a.config.PidPath == "" {
 		log.Fatal("PidPath should be set")
 	}
@@ -87,11 +86,8 @@ func (a App) writePIDFile() error {
 	// Retrieve the PID and write it.
 	pid := strconv.Itoa(os.Getpid())
 	if err := ioutil.WriteFile(a.config.PidPath, []byte(pid), 0644); err != nil {
-		// TODO make corresponding error
-		return err
+		log.Fatal("Fail to write pid file to %s, %s", a.config.PidPath, err)
 	}
-
-	return nil
 }
 
 //
@@ -128,11 +124,11 @@ func (a App) listenToSystemSignals(cancelFn context.CancelFunc, reindexFn func()
 	for {
 		select {
 		case <-sighupChan:
-			log.Println("signupSignal")
+			log.Println("Reindex job..")
 			reindexFn()
 
 		case <-signalChan:
-			log.Println("signtermSignal")
+			log.Println("Interrupt signal..")
 			cancelFn()
 		}
 	}

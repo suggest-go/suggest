@@ -10,7 +10,6 @@ import (
 type httpServer struct {
 	r    http.Handler
 	addr string
-	log  log.Logger
 }
 
 //
@@ -35,13 +34,13 @@ func (h *httpServer) Run(ctx context.Context) error {
 		<-ctx.Done()
 
 		if err := srv.Shutdown(context.Background()); err != nil {
-			log.Fatal(err)
+			log.Fatalf("Fail to shutdown server %s", err)
 		}
 	}()
 
 	err := srv.ListenAndServe()
 	if err == http.ErrServerClosed {
-		log.Println("server was shutdown gracefully")
+		log.Println("Server was shutdown gracefully")
 		return nil
 	}
 
