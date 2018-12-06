@@ -4,3 +4,4 @@ vendor/*/
 *.test
 cmd/web/models.dict
 .idea/*
+build/*
