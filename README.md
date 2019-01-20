@@ -8,53 +8,72 @@ Tool for Top-k Approximate String Matching.
 ## Usage
 
 ```go
-// here we define our alphabet for given collection of words
-alphabet := suggest.NewCompositeAlphabet([]suggest.Alphabet{
-    suggest.NewEnglishAlphabet(),
-    suggest.NewSimpleAlphabet([]rune{'$'}), // pad wrap
-})
+// This example demonstrates an usage of suggest.Service
+package suggest_test
 
-// create IndexConfig with ngramSize, alphabet, wrap and pad
-wrap, pad := "$", "$"
-ngramSize := 3
-conf, err := suggest.NewIndexConfig(ngramSize, alphabet, wrap, pad)
-if err != nil {
-    panic(err)
+import (
+	"fmt"
+	"github.com/alldroll/suggest/pkg/alphabet"
+	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/alldroll/suggest/pkg/metric"
+	"github.com/alldroll/suggest/pkg/suggest"
+)
+
+// This example demonstrates how to use this package.
+func Example() {
+	// here we define our alphabet for given collection of words
+	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
+		alphabet.NewEnglishAlphabet(),
+		alphabet.NewSimpleAlphabet([]rune{'$'}), // pad wrap
+	})
+
+	// we create InMemoryDictionary. Here we can use anything we want,
+	// for example SqlDictionary
+	collection := []string{
+		"Nissan March",
+		"Nissan Juke",
+		"Nissan Maxima",
+		"Nissan Murano",
+		"Nissan Note",
+		"Toyota Mark II",
+		"Toyota Corolla",
+		"Toyota Corona",
+	}
+
+	dictionary := dictionary.NewInMemoryDictionary(collection)
+
+	// create IndexConfig with ngramSize, alphabet, wrap and pad
+	wrap, pad := "$", "$"
+	ngramSize := 3
+	conf, err := suggest.NewIndexConfig(ngramSize, dictionary, alphabet, wrap, pad)
+	if err != nil {
+		panic(err)
+	}
+
+	service := suggest.NewService()
+	service.AddRunTimeIndex("cars", conf)
+
+	topK := 5
+	sim := 0.4
+	query := "niss ma"
+	searchConf, err := suggest.NewSearchConfig(query, topK, metric.CosineMetric(), sim)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := service.Suggest("cars", searchConf)
+	if err != nil {
+		panic(err)
+	}
+
+	values := make([]string, 0, len(result))
+	for _, item := range result {
+		values = append(values, item.Value)
+	}
+
+	fmt.Println(values)
+	// Output: [Nissan Maxima Nissan March]
 }
-
-// we create InMemoryDictionary. Here we can use anything we want,
-// for example SqlDictionary
-collection := []string{
-    "Nissan March",
-    "Nissan Juke",
-    "Nissan Maxima",
-    "Nissan Murano",
-    "Nissan Note",
-    "Toyota Mark II",
-    "Toyota Corolla",
-    "Toyota Corona",
-}
-dictionary := suggest.NewInMemoryDictionary(collection)
-
-service := suggest.NewService()
-service.AddDictionary("cars", dictionary, conf)
-
-topK := 5
-sim := 0.4
-query := "niss ma"
-searchConf, err := suggest.NewSearchConfig(query, topK, suggest.CosineMetric(), sim)
-if err != nil {
-    panic(err)
-}
-
-result := service.Suggest("cars", searchConf)
-values := make([]string, 0, len(result))
-for _, item := range result {
-    values = append(values, item.Value)
-}
-
-fmt.Println(values)
-// Output: [Nissan Maxima Nissan March]
 ```
 
 ## Demo

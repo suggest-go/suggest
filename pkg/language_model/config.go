@@ -7,11 +7,13 @@ import (
 )
 
 type Config struct {
-	NGramOrder uint8    `json:"nGramOrder"`
-	SourcePath string   `json:"source"`
-	OutputPath string   `json:"output"`
-	Alphabet   []string `json:"alphabet"`
-	Separators []string `json:"separators"`
+	NGramOrder  uint8    `json:"nGramOrder"`
+	SourcePath  string   `json:"source"`
+	OutputPath  string   `json:"output"`
+	Alphabet    []string `json:"alphabet"`
+	Separators  []string `json:"separators"`
+	StartSymbol string   `json:"startSymbol"`
+	EndSymbol   string   `json:"endSymbol"`
 }
 
 func ReadConfig(reader io.Reader) (*Config, error) {

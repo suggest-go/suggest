@@ -3,5 +3,7 @@
     "source": "test.txt",
     "output": ".",
     "alphabet": ["english", "-."],
-    "separators": ["\n"]
+    "separators": ["\n"],
+    "startSymbol": "<S>",
+    "endSymbol": "</S>"
 }
