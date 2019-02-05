@@ -8,7 +8,7 @@ Tool for Top-k Approximate String Matching.
 ## Usage
 
 ```go
-// This example demonstrates an usage of suggest.Service
+// This example demonstrates the usage of suggest.Service
 package suggest_test
 
 import (
@@ -22,13 +22,14 @@ import (
 // This example demonstrates how to use this package.
 func Example() {
 	// here we define our alphabet for given collection of words
+        // chars that are not in the alphabet will be replaced with "pad" (here pad is symbol $)
 	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
 		alphabet.NewEnglishAlphabet(),
 		alphabet.NewSimpleAlphabet([]rune{'$'}), // pad wrap
 	})
 
 	// we create InMemoryDictionary. Here we can use anything we want,
-	// for example SqlDictionary
+	// for example SqlDictionary or CDBDictionary
 	collection := []string{
 		"Nissan March",
 		"Nissan Juke",
@@ -43,6 +44,7 @@ func Example() {
 	dictionary := dictionary.NewInMemoryDictionary(collection)
 
 	// create IndexConfig with ngramSize, alphabet, wrap and pad
+        // each collection's item will be wrapped with "wrap" 
 	wrap, pad := "$", "$"
 	ngramSize := 3
 	conf, err := suggest.NewIndexConfig(ngramSize, dictionary, alphabet, wrap, pad)
@@ -51,7 +53,8 @@ func Example() {
 	}
 
 	service := suggest.NewService()
-	service.AddRunTimeIndex("cars", conf)
+        // Here we are going to use runtime index (whole index will be stored in memory)
+	service.AddRunTimeIndex("cars", conf) 
 
 	topK := 5
 	sim := 0.4
