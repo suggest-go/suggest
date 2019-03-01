@@ -1,8 +1,8 @@
 {
     "nGramOrder": 3,
-    "source": "test.txt",
-    "output": ".",
-    "alphabet": ["english", "-."],
+    "source": "/tmp/queries",
+    "output": "/tmp",
+    "alphabet": ["english", "russian", "numbers", "-."],
     "separators": ["\n"],
     "startSymbol": "<S>",
     "endSymbol": "</S>"

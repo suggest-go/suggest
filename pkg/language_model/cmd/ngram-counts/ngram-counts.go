@@ -18,7 +18,7 @@ func init() {
 }
 
 //
-func buildNGramsCount(config *lm.Config, indexer lm.Indexer) lm.Trie {
+func buildNGramsCount(config *lm.Config, indexer lm.Indexer) lm.CountingTrie {
 	sourceFile, err := os.Open(config.SourcePath)
 	if err != nil {
 		log.Fatalf("could read source file %s", err)
@@ -32,14 +32,19 @@ func buildNGramsCount(config *lm.Config, indexer lm.Indexer) lm.Trie {
 		alphabet.CreateAlphabet(config.Separators),
 	)
 
-	builder := lm.NewNGramBuilder(retriever, indexer, config.NGramOrder)
+	builder := lm.NewNGramBuilder(
+		indexer,
+		config.StartSymbol,
+		config.EndSymbol,
+	)
 
-	return builder.Build()
+	return builder.Build(retriever, config.NGramOrder)
 }
 
 //
-func storeNGramsCount(config *lm.Config, trie lm.Trie, indexer lm.Indexer) {
+func storeNGramsCount(config *lm.Config, trie lm.CountingTrie, indexer lm.Indexer) {
 	writer := lm.NewGoogleNGramWriter(indexer, config.NGramOrder, config.OutputPath)
+
 	if err := writer.Write(trie); err != nil {
 		log.Fatalf("could save ngrams %s", err)
 	}

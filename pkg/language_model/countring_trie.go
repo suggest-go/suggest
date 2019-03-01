@@ -4,19 +4,17 @@ type WordCount = uint32
 
 type TrieWalker = func(path []WordId, count WordCount)
 
-// Trie represents data structure for counting ngrams.
-type Trie interface {
-	// Find returns WordCount for given wordId sequence.
-	Find(sentence []WordId) (WordCount, error)
+// CountingTrie represents data structure for counting ngrams.
+type CountingTrie interface {
 	// Put increments WordCount for last element of given sequence.
 	Put(sentence []WordId) error
 	// Walk iterates through trie and calls walker function on each element.
 	Walk(walker TrieWalker)
 }
 
-// NewTrie creates new instance of Trie
-func NewTrie() *trie {
-	return &trie{
+// NewCountingTrie creates new instance of CountingTrie
+func NewTrie() *countingTrie {
+	return &countingTrie{
 		root: &node{
 			children: make(childrenTable),
 			count:    0,
@@ -24,8 +22,8 @@ func NewTrie() *trie {
 	}
 }
 
-// trie implements Trie data structure
-type trie struct {
+// countingTrie implements Trie data structure
+type countingTrie struct {
 	root *node
 }
 
@@ -35,28 +33,10 @@ type node struct {
 	count    WordCount
 }
 
-// childrenTable
+// childrenTable represents map for children of given node
 type childrenTable map[WordId]*node
 
-func (t *trie) Find(sentence []WordId) (WordCount, error) {
-	n := t.root
-
-	for _, w := range sentence {
-		n = n.children[w]
-
-		if n == nil {
-			break
-		}
-	}
-
-	if n != nil {
-		return n.count, nil
-	}
-
-	return 0, nil
-}
-
-func (t *trie) Put(sentence []WordId) error {
+func (t *countingTrie) Put(sentence []WordId) error {
 	n := t.root
 
 	for _, w := range sentence {
@@ -82,7 +62,7 @@ func (t *trie) Put(sentence []WordId) error {
 	return nil
 }
 
-func (t *trie) Walk(walker TrieWalker) {
+func (t *countingTrie) Walk(walker TrieWalker) {
 	t.root.walk([]WordId{}, walker)
 }
 

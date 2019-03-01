@@ -13,7 +13,7 @@ const (
 )
 
 type NGramWriter interface {
-	Write(trie Trie) error
+	Write(trie CountingTrie) error
 }
 
 func NewGoogleNGramWriter(indexer Indexer, nGramOrder uint8, outputPath string) *googleNGramFormatWriter {
@@ -30,11 +30,11 @@ type googleNGramFormatWriter struct {
 	nGramOrder uint8
 }
 
-func (gw *googleNGramFormatWriter) Write(trie Trie) error {
+func (gw *googleNGramFormatWriter) Write(trie CountingTrie) (err error) {
 	bufs := []*bufio.Writer{}
 
 	for i := 0; i < int(gw.nGramOrder); i++ {
-		f, err := os.OpenFile(fmt.Sprintf(fileFormat, gw.outputPath, i+1), os.O_WRONLY|os.O_CREATE, 0666)
+		f, err := os.OpenFile(fmt.Sprintf(fileFormat, gw.outputPath, i+1), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 
 		if err != nil {
 			return err
@@ -49,6 +49,12 @@ func (gw *googleNGramFormatWriter) Write(trie Trie) error {
 
 	grams := make(NGram, 0, int(gw.nGramOrder))
 
+	defer func() {
+		if r := recover(); r != nil {
+			err, _ = r.(error)
+		}
+	}()
+
 	trie.Walk(func(path []WordId, count WordCount) {
 		if len(path) == 0 {
 			return
@@ -59,7 +65,7 @@ func (gw *googleNGramFormatWriter) Write(trie Trie) error {
 		for _, g := range path {
 			nGram, err := gw.indexer.Find(g)
 			if err != nil {
-				panic(err) // TODO catch error
+				panic(err)
 			}
 
 			grams = append(grams, nGram)
