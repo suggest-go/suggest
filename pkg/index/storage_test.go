@@ -2,12 +2,13 @@ package index
 
 import (
 	"bufio"
-	"github.com/alldroll/suggest/pkg/alphabet"
-	"github.com/alldroll/suggest/pkg/compression"
-	"github.com/alldroll/suggest/pkg/dictionary"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/alphabet"
+	"github.com/alldroll/suggest/pkg/compression"
+	"github.com/alldroll/suggest/pkg/dictionary"
 )
 
 func TestOnDiscWriter_Save(t *testing.T) {
@@ -69,7 +70,7 @@ func buildIndex() Indices {
 		alphabet.NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	indexer := NewIndexer(3, NewGenerator(3, alphabet), NewCleaner(alphabet.Chars(), "$", [2]string{"$", "$"}))
+	indexer := NewIndexer(3, NewGenerator(3), NewCleaner(alphabet.Chars(), "$", [2]string{"$", "$"}))
 
 	return indexer.Index(dictionary)
 }

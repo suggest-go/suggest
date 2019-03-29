@@ -31,7 +31,7 @@ func NewRunTimeBuilder(config *IndexConfig) Builder {
 func (b *runTimeBuilderImpl) Build() NGramIndex {
 	conf := b.config
 	cleaner := index.NewCleaner(conf.alphabet.Chars(), conf.pad, [2]string{conf.wrap, conf.wrap})
-	generator := index.NewGenerator(conf.nGramSize, conf.alphabet)
+	generator := index.NewGenerator(conf.nGramSize)
 	indexer := index.NewIndexer(
 		conf.nGramSize,
 		generator,
@@ -67,7 +67,7 @@ func (b *builderImpl) Build() NGramIndex {
 	alphabet := desc.CreateAlphabet()
 
 	cleaner := index.NewCleaner(alphabet.Chars(), desc.Pad, desc.Wrap)
-	generator := index.NewGenerator(desc.NGramSize, alphabet)
+	generator := index.NewGenerator(desc.NGramSize)
 
 	indicesBuilder := index.NewOnDiscInvertedIndexIndicesBuilder(
 		desc.GetHeaderFile(),

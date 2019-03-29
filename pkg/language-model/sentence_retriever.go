@@ -1,20 +1,26 @@
-package language_model
+package lm
 
 import (
 	"bufio"
-	"github.com/alldroll/suggest/pkg/alphabet"
 	"io"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/alldroll/suggest/pkg/alphabet"
 )
 
-type Sentence = []Word
+// Sentence is a sequence of tokens
+type Sentence = []Token
 
-type SentenceRetriver interface {
+// SentenceRetriever is an entity that responsible for retrieving
+// sentences from the given source
+type SentenceRetriever interface {
+	// Retrieves and returns the next sentence from the source
 	Retrieve() Sentence
 }
 
-func NewSentenceRetriver(tokenizer Tokenizer, reader io.Reader, alphabet alphabet.Alphabet) *retriever {
+// NewSentenceRetriever
+func NewSentenceRetriever(tokenizer Tokenizer, reader io.Reader, alphabet alphabet.Alphabet) *retriever {
 	scanner := bufio.NewScanner(reader)
 
 	r := &retriever{
@@ -27,12 +33,14 @@ func NewSentenceRetriver(tokenizer Tokenizer, reader io.Reader, alphabet alphabe
 	return r
 }
 
+// retiever implements SentenceRetriever interface
 type retriever struct {
 	scanner   *bufio.Scanner
 	tokenizer Tokenizer
 	alphabet  alphabet.Alphabet
 }
 
+// Retrieves and returns the next sentence from the source
 func (r *retriever) Retrieve() Sentence {
 	if r.scanner.Scan() {
 		text := r.scanner.Text()
@@ -42,6 +50,7 @@ func (r *retriever) Retrieve() Sentence {
 	return nil
 }
 
+//
 func (r *retriever) scanSentence(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	start := 0
 	for width := 0; start < len(data); start += width {

@@ -1,4 +1,4 @@
-package language_model
+package lm
 
 import (
 	"bufio"
@@ -12,10 +12,13 @@ const (
 	nGramFormat = "%s\t%d\n"
 )
 
+//
 type NGramWriter interface {
-	Write(trie CountingTrie) error
+	//
+	Write(trie CountTrie) error
 }
 
+//
 func NewGoogleNGramWriter(indexer Indexer, nGramOrder uint8, outputPath string) *googleNGramFormatWriter {
 	return &googleNGramFormatWriter{
 		indexer:    indexer,
@@ -30,7 +33,8 @@ type googleNGramFormatWriter struct {
 	nGramOrder uint8
 }
 
-func (gw *googleNGramFormatWriter) Write(trie CountingTrie) (err error) {
+//
+func (gw *googleNGramFormatWriter) Write(trie CountTrie) (err error) {
 	bufs := []*bufio.Writer{}
 
 	for i := 0; i < int(gw.nGramOrder); i++ {
@@ -55,7 +59,7 @@ func (gw *googleNGramFormatWriter) Write(trie CountingTrie) (err error) {
 		}
 	}()
 
-	trie.Walk(func(path []WordId, count WordCount) {
+	trie.Walk(func(path []WordID, count WordCount) {
 		if len(path) == 0 {
 			return
 		}

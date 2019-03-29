@@ -1,7 +1,5 @@
 package index
 
-import "github.com/alldroll/suggest/pkg/alphabet"
-
 const maxN = 8
 
 // Generator represents entity for creating terms from given word
@@ -13,14 +11,12 @@ type Generator interface {
 // generatorImpl implements Generator interface
 type generatorImpl struct {
 	nGramSize int
-	alphabet  alphabet.Alphabet
 }
 
 // NewGenerator returns new instance of Generator
-func NewGenerator(nGramSize int, alphabet alphabet.Alphabet) Generator {
+func NewGenerator(nGramSize int) Generator {
 	return &generatorImpl{
 		nGramSize: nGramSize,
-		alphabet:  alphabet,
 	}
 }
 

@@ -5,11 +5,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"flag"
-	"github.com/alldroll/cdb"
-	"github.com/alldroll/suggest/pkg/compression"
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/suggest"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,6 +12,12 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/alldroll/cdb"
+	"github.com/alldroll/suggest/pkg/compression"
+	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/alldroll/suggest/pkg/index"
+	"github.com/alldroll/suggest/pkg/suggest"
 )
 
 var (
@@ -63,7 +64,7 @@ func main() {
 
 		alphabet := config.CreateAlphabet()
 		cleaner := index.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
-		generator := index.NewGenerator(config.NGramSize, alphabet)
+		generator := index.NewGenerator(config.NGramSize)
 
 		log.Printf("Building dictionary...")
 

@@ -5,10 +5,11 @@ import (
 )
 
 type (
+	// Term represents an independent search element in a search document
 	Term = string
-	// Position (posting) is list item of PostingList
+	// Position (posting) is a list item of PostingList
 	Position = DocumentID
-	// PostingList is a list of "documents", which contains specific term
+	// PostingList is a list of "documents", that contains the specific term
 	PostingList = []Position
 )
 
@@ -33,9 +34,9 @@ type InvertedIndexIndices interface {
 	Size() int
 }
 
-// InvertedIndexIndicesBuilder
+// InvertedIndexIndicesBuilder is an entity that is responsible for building InvertedIndexIndices
 type InvertedIndexIndicesBuilder interface {
-	// Build
+	// Build returns a new instance of InvertedIndexIndices
 	Build() InvertedIndexIndices
 }
 

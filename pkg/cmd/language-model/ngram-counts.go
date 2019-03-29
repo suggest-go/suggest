@@ -3,10 +3,11 @@ package main
 import (
 	"bufio"
 	"flag"
-	"github.com/alldroll/suggest/pkg/alphabet"
-	lm "github.com/alldroll/suggest/pkg/language_model"
 	"log"
 	"os"
+
+	"github.com/alldroll/suggest/pkg/alphabet"
+	lm "github.com/alldroll/suggest/pkg/language-model"
 )
 
 var (
@@ -18,7 +19,7 @@ func init() {
 }
 
 //
-func buildNGramsCount(config *lm.Config, indexer lm.Indexer) lm.CountingTrie {
+func buildNGramsCount(config *lm.Config, indexer lm.Indexer) lm.CountTrie {
 	sourceFile, err := os.Open(config.SourcePath)
 	if err != nil {
 		log.Fatalf("could read source file %s", err)
@@ -26,7 +27,7 @@ func buildNGramsCount(config *lm.Config, indexer lm.Indexer) lm.CountingTrie {
 
 	defer sourceFile.Close()
 
-	retriever := lm.NewSentenceRetriver(
+	retriever := lm.NewSentenceRetriever(
 		lm.NewTokenizer(alphabet.CreateAlphabet(config.Alphabet)),
 		bufio.NewReader(sourceFile),
 		alphabet.CreateAlphabet(config.Separators),
@@ -42,7 +43,7 @@ func buildNGramsCount(config *lm.Config, indexer lm.Indexer) lm.CountingTrie {
 }
 
 //
-func storeNGramsCount(config *lm.Config, trie lm.CountingTrie, indexer lm.Indexer) {
+func storeNGramsCount(config *lm.Config, trie lm.CountTrie, indexer lm.Indexer) {
 	writer := lm.NewGoogleNGramWriter(indexer, config.NGramOrder, config.OutputPath)
 
 	if err := writer.Write(trie); err != nil {

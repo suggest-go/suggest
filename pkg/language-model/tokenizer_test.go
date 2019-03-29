@@ -1,21 +1,22 @@
-package language_model
+package lm
 
 import (
-	"github.com/alldroll/suggest/pkg/alphabet"
 	"reflect"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/alphabet"
 )
 
 func TestTokenize(t *testing.T) {
 	cases := []struct {
 		text     string
-		expected []Word
+		expected []Token
 	}{
-		{"i wanna rock", []Word{"i", "wanna", "rock"}},
-		{"", []Word{}},
-		{"!!! test $-)", []Word{"test"}},
-		{"    ", []Word{}},
-		{"hello, привет, 33", []Word{"hello", "привет", "33"}},
+		{"i wanna rock", []Token{"i", "wanna", "rock"}},
+		{"", []Token{}},
+		{"!!! test $-)", []Token{"test"}},
+		{"    ", []Token{}},
+		{"hello, привет, 33", []Token{"hello", "привет", "33"}},
 	}
 
 	tokenizer := NewTokenizer(alphabet.NewCompositeAlphabet(

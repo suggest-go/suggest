@@ -1,15 +1,19 @@
-package language_model
+package lm
 
-type NGram = []Word
+type NGram = []Token
 type NGrams = []NGram
 
+// Generator is entity that responsible for transferring the given
+// sentence into a sequence of NGrams
 type Generator interface {
+	// Generates a sequence of NGrams for the given sentence
 	Generate(sentence Sentence) NGrams
 }
 
+// NewGenerator creates a generator entity
 func NewGenerator(
 	nGramOrder uint8,
-	startSymbol, endSymbol Word,
+	startSymbol, endSymbol Token,
 ) *generator {
 	return &generator{
 		nGramOrder:  nGramOrder,
@@ -18,18 +22,18 @@ func NewGenerator(
 	}
 }
 
-//
+// generator implements Generator interface
 type generator struct {
 	nGramOrder             uint8
-	startSymbol, endSymbol Word
+	startSymbol, endSymbol Token
 }
 
-//
+// Generates a sequence of NGrams for the given sentence
 func (g *generator) Generate(sentence Sentence) NGrams {
 	nGrams := NGrams{}
 	k := int(g.nGramOrder)
 
-	sentence = append([]Word{g.startSymbol}, sentence...)
+	sentence = append([]Token{g.startSymbol}, sentence...)
 	sentence = append(sentence, g.endSymbol)
 
 	for i := 0; i <= len(sentence)-k; i++ {

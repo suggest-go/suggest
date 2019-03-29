@@ -1,10 +1,11 @@
-package language_model
+package lm
 
 import (
-	"github.com/alldroll/suggest/pkg/alphabet"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/alphabet"
 )
 
 const (
@@ -87,7 +88,7 @@ func TestGenerate(t *testing.T) {
 	stopAlphabet := alphabet.NewSimpleAlphabet([]rune{'.', '?', '!'})
 
 	for _, c := range cases {
-		retriever := NewSentenceRetriver(
+		retriever := NewSentenceRetriever(
 			tokenizer,
 			strings.NewReader(c.text),
 			stopAlphabet,

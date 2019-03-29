@@ -1,4 +1,4 @@
-package language_model
+package lm
 
 import (
 	"encoding/json"

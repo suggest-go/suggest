@@ -1,0 +1,87 @@
+package lm
+
+import (
+	"fmt"
+	"math/rand"
+	"reflect"
+	"sort"
+	"strings"
+	"testing"
+)
+
+func TestFlow(t *testing.T) {
+	trie := NewCountTrie()
+
+	trie.Put([]WordID{1, 2, 3}, 3)
+	trie.Put([]WordID{1, 2, 3}, 0)
+	trie.Put([]WordID{1, 2, 4}, 2)
+	trie.Put([]WordID{1, 2, 3}, 2)
+	trie.Put([]WordID{2, 3, 4, 5}, 7)
+	trie.Put([]WordID{1, 2}, 7)
+	trie.Put([]WordID{1}, 12)
+	trie.Put([]WordID{4}, 8)
+	trie.Put([]WordID{4}, 0)
+	trie.Put([]WordID{1, 2, 3, 4}, 7)
+	trie.Put([]WordID{3}, 2)
+	trie.Put([]WordID{3, 2}, 3)
+
+	type row struct {
+		path  string
+		count WordCount
+	}
+
+	expected := []row{
+		{"1", 12},
+		{"1 2", 7},
+		{"1 2 3", 5},
+		{"1 2 3 4", 7},
+		{"1 2 4", 2},
+		{"2 3 4 5", 7},
+		{"3", 2},
+		{"3 2", 3},
+		{"4", 8},
+	}
+
+	actual := make([]row, 0)
+
+	trie.Walk(func(path []WordID, count WordCount) {
+		actual = append(
+			actual,
+			row{
+				path:  strings.Trim(strings.Replace(fmt.Sprint(path), " ", " ", -1), "[]"),
+				count: count,
+			},
+		)
+	})
+
+	sort.Slice(actual, func(i, j int) bool {
+		return actual[i].path < actual[j].path
+	})
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Errorf("Expected %v, got %v", expected, actual)
+	}
+}
+
+func BenchmarkWalk(b *testing.B) {
+	trie := NewCountTrie()
+	path := make([]WordID, 0, 4)
+
+	for i := 0; i < 10000; i++ {
+		for j := 0; j < rand.Intn(3)+1; j++ {
+			path = append(path, WordID(rand.Int31n(10000)))
+		}
+
+		trie.Put(path, 100)
+		path = path[:0]
+	}
+
+	b.StartTimer()
+
+	j := 0
+	for i := 0; i < b.N; i++ {
+		trie.Walk(func(path []WordID, count WordCount) {
+			j++
+		})
+	}
+}
