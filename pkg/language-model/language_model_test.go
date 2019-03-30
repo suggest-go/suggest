@@ -6,16 +6,22 @@ import (
 )
 
 func TestScoreSentenceFromFile(t *testing.T) {
+	config := Config{
+		NGramOrder:  3,
+		StartSymbol: "<S>",
+		EndSymbol:   "</S>",
+		OutputPath:  "fixtures",
+	}
+
 	indexer := NewIndexer()
-	reader := NewGoogleNGramReader(3, indexer, "fixtures")
+	reader := NewGoogleNGramReader(config.NGramOrder, indexer, config.OutputPath)
 
 	model, err := reader.Read()
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	generator := NewGenerator(3, start, end)
-	lm := NewLanguageModel(model, generator, indexer)
+	lm := NewLanguageModel(model, indexer, config)
 
 	cases := []struct {
 		sentence      Sentence

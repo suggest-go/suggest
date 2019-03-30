@@ -1,43 +1,22 @@
 package lm
 
-type NGram = []Token
-type NGrams = []NGram
+type (
+	// NGrams is the result of splitting the given sequence of words into nGrams
+	NGrams = [][]WordID
+)
 
-// Generator is entity that responsible for transferring the given
-// sentence into a sequence of NGrams
-type Generator interface {
-	// Generates a sequence of NGrams for the given sentence
-	Generate(sentence Sentence) NGrams
-}
+// SplitIntoNGrams splits the given sequence of WordID into a set of nGrams
+func SplitIntoNGrams(sequence []WordID, nGramOrder uint8) NGrams {
+	k := int(nGramOrder)
 
-// NewGenerator creates a generator entity
-func NewGenerator(
-	nGramOrder uint8,
-	startSymbol, endSymbol Token,
-) *generator {
-	return &generator{
-		nGramOrder:  nGramOrder,
-		startSymbol: startSymbol,
-		endSymbol:   endSymbol,
+	if len(sequence) < k {
+		return NGrams{}
 	}
-}
 
-// generator implements Generator interface
-type generator struct {
-	nGramOrder             uint8
-	startSymbol, endSymbol Token
-}
+	nGrams := make(NGrams, 0, len(sequence)-k+1)
 
-// Generates a sequence of NGrams for the given sentence
-func (g *generator) Generate(sentence Sentence) NGrams {
-	nGrams := NGrams{}
-	k := int(g.nGramOrder)
-
-	sentence = append([]Token{g.startSymbol}, sentence...)
-	sentence = append(sentence, g.endSymbol)
-
-	for i := 0; i <= len(sentence)-k; i++ {
-		nGrams = append(nGrams, sentence[i:i+k])
+	for i := 0; i <= len(sequence)-k; i++ {
+		nGrams = append(nGrams, sequence[i:i+k])
 	}
 
 	return nGrams

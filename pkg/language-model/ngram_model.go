@@ -5,13 +5,11 @@ import (
 	"math"
 )
 
-//
+// NGramModel is an entity that responses for scoring the given nGrams
 type NGramModel interface {
-	//
-	Put(nGrams []WordID, count WordCount) error
-	//
+	// Score returns a lm value of the given sequence of WordID
 	Score(nGrams []WordID) float64
-	//
+	// Next returns a list of WordID which follow after the given sequence of nGrams
 	Next(nGrams []WordID) ([]WordID, error)
 }
 
@@ -20,45 +18,21 @@ const (
 	unknownWordScore = -100.0
 )
 
+// nGramModel implements NGramModel Stupid backoff
 type nGramModel struct {
 	indices    []NGramVector
 	nGramOrder uint8
 }
 
-//
-func NewNGramModel(nGramOrder uint8) NGramModel {
-	indices := make([]NGramVector, nGramOrder)
-
-	for i := 0; i < int(nGramOrder); i++ {
-		indices[i] = NewNGramVector()
-	}
-
+// NewNGramModel creates a new instance of NGramModel instance
+func NewNGramModel(indices []NGramVector) NGramModel {
 	return &nGramModel{
 		indices:    indices,
-		nGramOrder: nGramOrder,
+		nGramOrder: uint8(len(indices)),
 	}
 }
 
-//
-func (m *nGramModel) Put(nGrams []WordID, count WordCount) error {
-	if len(nGrams) > int(m.nGramOrder) {
-		return errors.New("nGrams order is out of range")
-	}
-
-	parent := InvalidContextOffset
-
-	for i := 0; i < len(nGrams); i++ {
-		if i == len(nGrams)-1 {
-			m.indices[i].Put(nGrams[i], parent, count)
-		} else {
-			parent = m.indices[i].GetContextOffset(nGrams[i], parent)
-		}
-	}
-
-	return nil
-}
-
-//
+// Score returns a lm value of the given sequence of WordID
 func (m *nGramModel) Score(nGrams []WordID) float64 {
 	order := int(m.nGramOrder)
 	if order > len(nGrams) {
@@ -81,7 +55,7 @@ func (m *nGramModel) Score(nGrams []WordID) float64 {
 	return calcScore(counts)
 }
 
-//
+// Next returns a list of WordID where each candidate follows after the given sequence of nGrams
 func (m *nGramModel) Next(nGrams []WordID) ([]WordID, error) {
 	if int(m.nGramOrder) <= len(nGrams) {
 		return nil, errors.New("nGrams length should be less than the nGramModel order")
@@ -103,7 +77,7 @@ func (m *nGramModel) Next(nGrams []WordID) ([]WordID, error) {
 	return m.indices[order].Next(parent), nil
 }
 
-//
+// calcScore returns score for the given counts
 func calcScore(counts []WordCount) float64 {
 	factor := float64(1)
 

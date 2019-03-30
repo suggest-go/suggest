@@ -2,26 +2,28 @@ package lm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 )
 
-//
+// NGramReader is responsible for creating NGramModel from the files
 type NGramReader interface {
-	//
+	// Read builds NGramModel from the given list of readers
 	Read() (NGramModel, error)
 }
 
+// googleNGramFormatReader implements NGramReader with google nGram format storage
 type googleNGramFormatReader struct {
 	indexer    Indexer
 	sourcePath string
 	nGramOrder uint8
 }
 
-//
-func NewGoogleNGramReader(nGramOrder uint8, indexer Indexer, sourcePath string) *googleNGramFormatReader {
+// NewGoogleNGramReader creates new instance of NGramReader
+func NewGoogleNGramReader(nGramOrder uint8, indexer Indexer, sourcePath string) NGramReader {
 	return &googleNGramFormatReader{
 		nGramOrder: nGramOrder,
 		indexer:    indexer,
@@ -29,8 +31,13 @@ func NewGoogleNGramReader(nGramOrder uint8, indexer Indexer, sourcePath string) 
 	}
 }
 
+// Read builds NGramModel from the given list of readers
 func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
-	model := NewNGramModel(gr.nGramOrder)
+	if gr.nGramOrder == 0 {
+		return nil, errors.New("nGramOrder should be >= 1")
+	}
+
+	vectors := []NGramVector{}
 	nGrams := make([]WordID, 0, int(gr.nGramOrder))
 
 	for i := 0; i < int(gr.nGramOrder); i++ {
@@ -41,8 +48,8 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 		}
 
 		defer f.Close()
-
 		scanner := bufio.NewScanner(f)
+		builder := NewNGramVectorBuilder(vectors)
 
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -57,14 +64,16 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 				return nil, err
 			}
 
-			model.Put(nGrams, WordCount(count))
+			builder.Put(nGrams, WordCount(count))
 			nGrams = nGrams[:0]
 		}
 
 		if err := scanner.Err(); err != nil {
 			return nil, err
 		}
+
+		vectors = append(vectors, builder.Build())
 	}
 
-	return model, nil
+	return NewNGramModel(vectors), nil
 }

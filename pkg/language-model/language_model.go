@@ -2,69 +2,84 @@ package lm
 
 // LanguageModel is an interface for an n-gram language model
 type LanguageModel interface {
-	// ScoreSentence scores and returns a weight in the language model for the given sentence
+	// ScoreSentence scores and returns a lm weight for the given sentence
 	ScoreSentence(sentence Sentence) float64
-	// Predict returns possible next tokens for the given sentence
-	Predict(sentence Sentence, topK int) []Token
+	// ScoreWordIDs scores and returns a lm weight for the given sequence of nGrams
+	ScoreWordIDs(sequence []WordID) float64
+	// GetWordID returns id for the given token
+	GetWordID(token Token) WordID
+}
+
+// MapIntoListOfWordIDs maps the given sentence into a list of WordIDs
+func MapIntoListOfWordIDs(lm LanguageModel, sentence Sentence) []WordID {
+	ids := make([]WordID, 0, len(sentence))
+
+	for _, token := range sentence {
+		ids = append(ids, lm.GetWordID(token))
+	}
+
+	return ids
 }
 
 // languageModel implements LanguageModel interface
 type languageModel struct {
-	model     NGramModel
-	generator Generator
-	indexer   Indexer
+	model   NGramModel
+	indexer Indexer
+	config  Config
 }
 
 // NewLanguageModel creates LanguageModel instance
-func NewLanguageModel(model NGramModel, generator Generator, indexer Indexer) LanguageModel {
+func NewLanguageModel(
+	model NGramModel,
+	indexer Indexer,
+	config Config,
+) LanguageModel {
 	return &languageModel{
-		model:     model,
-		generator: generator,
-		indexer:   indexer,
+		model:   model,
+		indexer: indexer,
+		config:  config,
 	}
 }
 
 // ScoreSentence scores and returns a weight in the language model for the given sentence
 func (lm *languageModel) ScoreSentence(sentence Sentence) float64 {
+	return lm.ScoreWordIDs(
+		MapIntoListOfWordIDs(lm, lm.wrapSentence(sentence)),
+	)
+}
+
+// ScoreWordIDs scores and returns a lm weight for the given sequence of WordID
+func (lm *languageModel) ScoreWordIDs(sequence []WordID) float64 {
 	score := 0.0
-	nGramsIds := make([]WordID, 0, 8)
 
-	for _, nGrams := range lm.generator.Generate(sentence) {
-		for _, nGram := range nGrams {
-			nGramsIds = append(nGramsIds, lm.indexer.Get(nGram))
-		}
-
-		score += lm.model.Score(nGramsIds)
-		nGramsIds = nGramsIds[:0]
+	for _, nGrams := range lm.split(sequence) {
+		score += lm.model.Score(nGrams)
 	}
 
 	return score
 }
 
-// Predict returns possible next tokens for the given sentence
-func (lm *languageModel) Predict(sentence Sentence, topK int) []Token {
-	nGrams := lm.generator.Generate(sentence)
-	if len(nGrams) == 0 {
-		return []Token{}
-	}
+// GetWordID returns id for the given token
+func (lm *languageModel) GetWordID(token Token) WordID {
+	return lm.indexer.Get(token)
+}
 
-	last := nGrams[len(nGrams)-1]
-	nGramsIds := make([]WordID, 0, 8)
+// split splits the given sequence of WordIDs to nGrams
+func (lm *languageModel) split(sequence []WordID) NGrams {
+	return SplitIntoNGrams(sequence, lm.config.NGramOrder)
+}
 
-	for _, nGram := range last {
-		nGramsIds = append(nGramsIds, lm.indexer.Get(nGram))
-	}
+// wrapSentence wraps the given sentence with start and end symbols
+func (lm *languageModel) wrapSentence(sentence Sentence) Sentence {
+	return lm.leftWrapSentence(lm.rightWrapSentence(sentence))
+}
 
-	nextWordIDs, err := lm.model.Next(nGramsIds[len(nGramsIds)-1:])
-	if err != nil {
-		panic(err)
-	}
+// leftWrapSentence prepends the start symbol to the given sentence
+func (lm *languageModel) leftWrapSentence(sentence Sentence) Sentence {
+	return append([]Token{lm.config.StartSymbol}, sentence...)
+}
 
-	if len(nextWordIDs) == 0 {
-		return []Token{}
-	}
-
-	// TODO implement me!
-
-	return nil
+// rightWrapSentence appends the end symbol to the given sentence
+func (lm *languageModel) rightWrapSentence(sentence Sentence) Sentence {
+	return append(sentence, lm.config.EndSymbol)
 }

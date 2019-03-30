@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 )
 
+//
 type Config struct {
 	NGramOrder  uint8    `json:"nGramOrder"`
 	SourcePath  string   `json:"source"`
@@ -16,6 +17,7 @@ type Config struct {
 	EndSymbol   string   `json:"endSymbol"`
 }
 
+//
 func ReadConfig(reader io.Reader) (*Config, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {

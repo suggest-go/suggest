@@ -6,13 +6,14 @@ import (
 	"sort"
 )
 
-// ContextOffset represents the id of parent nGram path
-type ContextOffset = uint32
+type (
+	// ContextOffset represents the id of parent nGram path
+	ContextOffset = uint32
+	key           = uint64
+)
 
 // NGramVector represents one level of nGram trie
 type NGramVector interface {
-	// Puts the given pair(word, context) in the collection
-	Put(word, context WordID, count WordCount)
 	// Returns WordCount and Node ContextOffset for the given pair (word, context)
 	GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset)
 	// Returns the given node context offset
@@ -31,40 +32,9 @@ const (
 )
 
 type sortedArray struct {
-	keys   []uint64
-	values []uint32
-	total  uint32
-}
-
-// NewNGramVector creates new instance of NGramVector
-func NewNGramVector() NGramVector {
-	return &sortedArray{
-		keys:   make([]uint64, 0),
-		values: make([]uint32, 0),
-		total:  0,
-	}
-}
-
-// Puts the given pair(word, context) in the collection
-func (s *sortedArray) Put(word WordID, context ContextOffset, count WordCount) {
-	key := makeKey(word, context)
-	s.total += count
-
-	switch i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= key }); {
-	case i < 0:
-		s.keys = append([]uint64{key}, s.keys...)
-		s.values = append([]uint32{count}, s.values...)
-	case i >= len(s.keys):
-		s.keys = append(s.keys, key)
-		s.values = append(s.values, count)
-	default:
-		if s.keys[i] == key {
-			s.values[i] += count
-		} else {
-			s.keys = append(s.keys[:i], append([]uint64{key}, s.keys[i:]...)...)
-			s.values = append(s.values[:i], append([]uint32{count}, s.values[i:]...)...)
-		}
-	}
+	keys   []key
+	values []WordCount
+	total  WordCount
 }
 
 // Returns WordCount and Node ContextOffset for the given pair (word, context)
@@ -121,7 +91,7 @@ func (s *sortedArray) find(key uint64) ContextOffset {
 }
 
 // Creates uint64 key for the given pair (word, context)
-func makeKey(word WordID, context ContextOffset) uint64 {
+func makeKey(word WordID, context ContextOffset) key {
 	if context > maxContextOffset {
 		log.Fatal(errors.New("Out of maxContextOffset"))
 	}
@@ -130,7 +100,7 @@ func makeKey(word WordID, context ContextOffset) uint64 {
 }
 
 // getWordID returns the word id for the given key
-func getWordID(key uint64) uint32 {
+func getWordID(key key) WordID {
 	_, wordID := unpack(key)
 	return wordID
 }
