@@ -1,9 +1,14 @@
 package lm
 
 import (
+	"bytes"
+	"encoding/binary"
+	"encoding/gob"
 	"errors"
+	"fmt"
 	"log"
 	"sort"
+	"strconv"
 )
 
 type (
@@ -79,6 +84,74 @@ func (s *sortedArray) Next(context ContextOffset) []WordID {
 	return words
 }
 
+// MarshalBinary encodes the receiver into a binary form and returns the result.
+func (s *sortedArray) MarshalBinary() ([]byte, error) {
+	var result bytes.Buffer
+
+	encodedKeys := make([]byte, len(s.keys)*binary.MaxVarintLen64)
+	prevKey := uint64(0)
+	keyEndPos := 0
+
+	// performs delta encoding
+	for _, el := range s.keys {
+		keyEndPos += binary.PutUvarint(encodedKeys[keyEndPos:], el-prevKey)
+		prevKey = el
+	}
+
+	valEndPos := len(s.values) * 4
+	encodedValues := make([]byte, valEndPos)
+
+	for i, el := range s.values {
+		binary.LittleEndian.PutUint32(encodedValues[i*4:(i+1)*4], el)
+	}
+
+	// allocate buffer capacity
+	result.Grow(keyEndPos + valEndPos + 4 + strconv.IntSize*2)
+
+	// write header
+	fmt.Fprintln(&result, keyEndPos, valEndPos, s.total)
+
+	// write data
+	result.Write(encodedKeys[:keyEndPos])
+	result.Write(encodedValues)
+
+	return result.Bytes(), nil
+}
+
+// UnmarshalBinary decodes the binary form
+func (s *sortedArray) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	keySize, valSize := 0, 0
+
+	_, err := fmt.Fscanln(buf, &keySize, &valSize, &s.total)
+	if err != nil {
+		return err
+	}
+
+	n := 0
+	keyEndPos := 0
+	encodedKeys := buf.Next(keySize)
+	s.keys = make([]key, valSize/4)
+	prev := uint64(0)
+
+	// 0, 1, 3, 6, 7 -> 0, 1, 4, 10, 17
+	for i := 0; i < len(s.keys); i++ {
+		s.keys[i], n = binary.Uvarint(encodedKeys[keyEndPos:])
+		s.keys[i] += prev
+		prev = s.keys[i]
+		keyEndPos += n
+	}
+
+	encodedValues := buf.Next(valSize)
+	s.values = make([]WordCount, valSize/4)
+
+	for i := 0; i < len(s.values); i++ {
+		s.values[i] = binary.LittleEndian.Uint32(encodedValues[i*4 : (i+1)*4])
+	}
+
+	return nil
+}
+
 // Finds given key in the collection. Returns ContextOffset if the given key exists
 func (s *sortedArray) find(key uint64) ContextOffset {
 	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= key })
@@ -113,4 +186,8 @@ func pack(a, b uint32) uint64 {
 // Unpacks explode uint64 into 2 uint32
 func unpack(v uint64) (uint32, uint32) {
 	return uint32(v >> 32), uint32(v)
+}
+
+func init() {
+	gob.Register(&sortedArray{})
 }

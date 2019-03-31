@@ -1,6 +1,8 @@
 package lm
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"math"
 )
@@ -77,6 +79,50 @@ func (m *nGramModel) Next(nGrams []WordID) ([]WordID, error) {
 	return m.indices[order].Next(parent), nil
 }
 
+// MarshalBinary encodes the receiver into a binary form and returns the result.
+func (m *nGramModel) MarshalBinary() ([]byte, error) {
+	buf := bytes.Buffer{}
+	encoder := gob.NewEncoder(&buf)
+	err := encoder.Encode(m.nGramOrder)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, vector := range m.indices {
+		err := encoder.Encode(&vector)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.Bytes(), nil
+}
+
+// UnmarshalBinary decodes the binary form
+func (m *nGramModel) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	encoder := gob.NewDecoder(buf)
+	err := encoder.Decode(&m.nGramOrder)
+
+	if err != nil {
+		return err
+	}
+
+	m.indices = make([]NGramVector, int(m.nGramOrder))
+
+	for i := 0; i < len(m.indices); i++ {
+		err := encoder.Decode(&m.indices[i])
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // calcScore returns score for the given counts
 func calcScore(counts []WordCount) float64 {
 	factor := float64(1)
@@ -90,4 +136,8 @@ func calcScore(counts []WordCount) float64 {
 	}
 
 	return unknownWordScore
+}
+
+func init() {
+	gob.Register(&nGramModel{})
 }
