@@ -80,4 +80,4 @@ func Example() {
 ```
 
 ## Demo
-see https://suggest-demo.herokuapp.com/ as complete example (https://github.com/alldroll/suggest_demo)
+see http://54.183.244.111:8000/ as complete example (https://github.com/alldroll/suggest_demo)
