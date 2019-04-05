@@ -44,6 +44,7 @@ func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
 func (s *Service) AddOnDiscIndex(description IndexDescription) error {
 	dictionaryFile, err := NewMmapReader(description.GetDictionaryFile())
 	if err != nil {
+		// TODO add specific error
 		return err
 	}
 

@@ -2,8 +2,7 @@ package api
 
 import (
 	"context"
-	"github.com/alldroll/suggest/pkg/suggest"
-	"github.com/gorilla/mux"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,6 +10,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+
+	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/gorilla/mux"
 )
 
 //
@@ -33,13 +35,10 @@ func NewApp(config AppConfig) App {
 }
 
 //
-func (a App) Run() {
-	port := a.config.Port
-	if port == "" {
-		log.Fatal("Port must be set")
+func (a App) Run() error {
+	if err := a.writePIDFile(); err != nil {
+		return err
 	}
-
-	a.writePIDFile()
 
 	suggestService := suggest.NewService()
 	reindexJob := func() error {
@@ -47,7 +46,7 @@ func (a App) Run() {
 	}
 
 	if err := reindexJob(); err != nil {
-		log.Printf("Fail to configure service %s", err)
+		return fmt.Errorf("Fail to configure service: %s", err)
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -73,26 +72,29 @@ func (a App) Run() {
 	r.HandleFunc("/dict/list/", (&dictionaryHandler{suggestService}).handle).Methods("GET")
 	r.HandleFunc("/internal/reindex/", (&reindexHandler{reindexJob}).handle).Methods("POST")
 
-	httpServer := newHttpServer(r, "0.0.0.0:"+port)
-	httpServer.Run(ctx)
+	httpServer := newHttpServer(r, "0.0.0.0:"+a.config.Port)
+
+	return httpServer.Run(ctx)
 }
 
 //
-func (a App) writePIDFile() {
+func (a App) writePIDFile() error {
 	if a.config.PidPath == "" {
-		log.Fatal("PidPath should be set")
+		return nil
 	}
 
 	err := os.MkdirAll(filepath.Dir(a.config.PidPath), 0700)
 	if err != nil {
-		log.Fatalf("There is no such file for %s, %s", a.config.PidPath, err)
+		return fmt.Errorf("There is no such file for %s, %s", a.config.PidPath, err)
 	}
 
 	// Retrieve the PID and write it.
 	pid := strconv.Itoa(os.Getpid())
 	if err := ioutil.WriteFile(a.config.PidPath, []byte(pid), 0644); err != nil {
-		log.Fatalf("Fail to write pid file to %s, %s", a.config.PidPath, err)
+		return fmt.Errorf("Fail to write pid file to %s, %s", a.config.PidPath, err)
 	}
+
+	return nil
 }
 
 //
