@@ -2,13 +2,15 @@ package suggest
 
 import (
 	"fmt"
-	"github.com/alldroll/suggest/pkg/dictionary"
 	"runtime"
 	"sync"
+
+	"github.com/alldroll/suggest/pkg/dictionary"
 )
 
 // ResultItem represents element of top-k similar strings in dictionary for given query
 type ResultItem struct {
+	// TODO rename Distance with score
 	Distance float64
 	// Value is a string value of candidate
 	Value string
@@ -48,7 +50,11 @@ func (s *Service) AddOnDiscIndex(description IndexDescription) error {
 		return err
 	}
 
-	dictionary := dictionary.NewCDBDictionary(dictionaryFile)
+	dictionary, err := dictionary.NewCDBDictionary(dictionaryFile)
+	if err != nil {
+		return err
+	}
+
 	runtime.SetFinalizer(dictionary, func(d interface{}) {
 		dictionaryFile.Close()
 	})
@@ -62,17 +68,18 @@ func (s *Service) AddOnDiscIndex(description IndexDescription) error {
 	return nil
 }
 
+// GetDictionaries returns the managed list of dictionaries
 func (s *Service) GetDictionaries() []string {
 	names := make([]string, 0, len(s.dictionaries))
 
-	for name, _ := range s.dictionaries {
+	for name := range s.dictionaries {
 		names = append(names, name)
 	}
 
 	return names
 }
 
-// Suggest returns Top-k approximate strings for given query in dict
+// Suggest returns Top-k approximate strings for the given query in the dict
 func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, error) {
 	s.RLock()
 	index, okIndex := s.indexes[dict]
@@ -91,9 +98,9 @@ func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, erro
 		value, err := dictionary.Get(candidate.Key)
 		if err != nil {
 			return nil, err
-		} else {
-			result = append(result, ResultItem{candidate.Distance, value})
 		}
+
+		result = append(result, ResultItem{candidate.Distance, value})
 	}
 
 	return result, nil
@@ -117,9 +124,9 @@ func (s *Service) AutoComplete(dict string, query string, limit int) ([]ResultIt
 		value, err := dictionary.Get(candidate.Key)
 		if err != nil {
 			return nil, err
-		} else {
-			result = append(result, ResultItem{0, value})
 		}
+
+		result = append(result, ResultItem{0, value})
 	}
 
 	return result, nil

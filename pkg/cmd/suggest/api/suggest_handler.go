@@ -3,41 +3,41 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"github.com/alldroll/suggest/pkg/metric"
-	"github.com/alldroll/suggest/pkg/suggest"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/alldroll/suggest/pkg/metric"
+	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/gorilla/mux"
 )
 
 const (
-	Jaccard = "Jaccard"
-	Cosine  = "Cosine"
-	Dice    = "Dice"
-	Exact   = "Exact"
-	Overlap = "Overlap"
+	jaccard = "Jaccard"
+	cosine  = "Cosine"
+	dice    = "Dice"
+	exact   = "Exact"
+	overlap = "Overlap"
 )
 
 var metrics map[string]metric.Metric
 
-//
 func init() {
 	metrics = map[string]metric.Metric{
-		Jaccard: metric.JaccardMetric(),
-		Cosine:  metric.CosineMetric(),
-		Dice:    metric.DiceMetric(),
-		Exact:   metric.ExactMetric(),
-		Overlap: metric.OverlapMetric(),
+		jaccard: metric.JaccardMetric(),
+		cosine:  metric.CosineMetric(),
+		dice:    metric.DiceMetric(),
+		exact:   metric.ExactMetric(),
+		overlap: metric.OverlapMetric(),
 	}
 }
 
-//
+// suggestHandler responses for handling suggest requests
 type suggestHandler struct {
 	suggestService *suggest.Service
 }
 
-//
+// handle performs processing of the suggest query
 func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 	var (
 		vars       = mux.Vars(r)
@@ -84,12 +84,10 @@ func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
 
-//
+// buildSearchConfig builds a search config for the given list of parameters
 func buildSearchConfig(query, metricName, sim string, k int) (*suggest.SearchConfig, error) {
 	if _, ok := metrics[metricName]; !ok {
 		return nil, errors.New("Metric not found")

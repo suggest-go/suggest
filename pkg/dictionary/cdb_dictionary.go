@@ -2,8 +2,10 @@ package dictionary
 
 import (
 	"encoding/binary"
-	"github.com/alldroll/cdb"
+	"fmt"
 	"io"
+
+	"github.com/alldroll/cdb"
 )
 
 // cdbDictionary implements Dictionary with cdb as database
@@ -12,16 +14,17 @@ type cdbDictionary struct {
 }
 
 // NewCDBDictionary creates new instance of cdbDictionary
-func NewCDBDictionary(r io.ReaderAt) Dictionary {
+func NewCDBDictionary(r io.ReaderAt) (Dictionary, error) {
 	handle := cdb.New()
 	reader, err := handle.GetReader(r)
+
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("Fail to create cdb dictionary: %v", err)
 	}
 
 	return &cdbDictionary{
 		reader: reader,
-	}
+	}, nil
 }
 
 // Get returns value associated with a particular key
@@ -29,57 +32,42 @@ func (d *cdbDictionary) Get(key Key) (Value, error) {
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, key)
 	value, err := d.reader.Get(bs)
+
 	if err != nil {
-		return "", err
+		return "<nil/>", err // Useful for debug
 	}
 
 	return Value(value), nil
 }
 
 // Iterator returns an iterator over the elements in this dictionary
-func (d *cdbDictionary) Iterator() DictionaryIterator {
-	iterator, err := d.reader.Iterator()
+func (d *cdbDictionary) Iterate(iterator Iterator) error {
+	cdbIterator, err := d.reader.Iterator()
+
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	return &cdbDictionaryIterator{cdbIterator: iterator}
-}
+	for cdbIterator.HasNext() {
+		if _, err := cdbIterator.Next(); err != nil {
+			return err
+		}
 
-// cdbDictionaryIterator implements interface DictionaryIterator for cdbDictionary
-type cdbDictionaryIterator struct {
-	cdbIterator cdb.Iterator
-}
+		record := cdbIterator.Record()
+		keyReader, keySize := record.Key()
+		key := make([]byte, keySize)
+		if _, err := keyReader.Read(key); err != nil {
+			return err
+		}
 
-// Next moves iterator to the next item. Returns true on success otherwise false
-func (i *cdbDictionaryIterator) Next() bool {
-	ok, err := i.cdbIterator.Next()
-	if err != nil {
-		panic(err)
+		valueReader, valSize := record.Value()
+		value := make([]byte, valSize)
+		if _, err := valueReader.Read(value); err != nil {
+			return err
+		}
+
+		iterator(binary.LittleEndian.Uint32(key), Value(value))
 	}
 
-	return ok
-}
-
-// GetPair returns key-value pair of current item
-func (i *cdbDictionaryIterator) GetPair() (Key, Value) {
-	record := i.cdbIterator.Record()
-
-	keyReader, keySize := record.Key()
-	key := make([]byte, keySize)
-	if _, err := keyReader.Read(key); err != nil {
-		panic(err)
-	}
-
-	if key == nil {
-		return 0, ""
-	}
-
-	valueReader, valSize := record.Value()
-	value := make([]byte, valSize)
-	if _, err := valueReader.Read(value); err != nil {
-		panic(err)
-	}
-
-	return binary.LittleEndian.Uint32(key), Value(value)
+	return nil
 }

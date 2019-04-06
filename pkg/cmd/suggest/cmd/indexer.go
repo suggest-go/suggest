@@ -126,11 +126,16 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("Time spent %s", time.Since(start))
 
 	// create index in memory
-	indexer := index.NewIndexer(config.NGramSize, generator, cleaner)
 	log.Printf("Creating index...")
-
 	start = time.Now()
-	indices := indexer.Index(dictionary)
+
+	indicesBuilder := index.NewIndicesBuilder(config.NGramSize, generator, cleaner)
+	indices, err := indicesBuilder.Build(dictionary)
+
+	if err != nil {
+		return err
+	}
+
 	log.Printf("Time spent %s", time.Since(start))
 
 	// store index on disc
@@ -143,7 +148,6 @@ func indexJob(config suggest.IndexDescription) error {
 	}
 
 	log.Printf("Time spent %s", time.Since(start))
-
 	log.Printf("End process\n\n")
 
 	return nil
@@ -198,7 +202,7 @@ func buildDictionary(sourcePath string, config suggest.IndexDescription) (dictio
 		return nil, fmt.Errorf("Error to rename file %s", err)
 	}
 
-	return dictionary.NewCDBDictionary(destinationFile), nil
+	return dictionary.NewCDBDictionary(destinationFile)
 }
 
 //

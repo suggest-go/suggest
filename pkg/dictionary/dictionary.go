@@ -1,7 +1,9 @@
 package dictionary
 
 type (
-	Key   = uint32
+	// Key represents a key of an item
+	Key = uint32
+	// Value represents a value of an item
 	Value = string
 )
 
@@ -9,14 +11,9 @@ type (
 type Dictionary interface {
 	// Get returns value associated with a particular key
 	Get(key Key) (Value, error)
-	// Iterator returns an iterator over the elements in this dictionary
-	Iterator() DictionaryIterator
+	// Iterate walks through each kv pair and calls iterator on it
+	Iterate(iterator Iterator) error
 }
 
-// DictionaryIterator represents Iterator of Dictionary
-type DictionaryIterator interface {
-	// Next moves iterator to the next item. Returns true on success otherwise false
-	Next() bool
-	// GetPair returns key-value pair of current item
-	GetPair() (Key, Value)
-}
+// Iterator is a callback that is called on each pair of the dictionary
+type Iterator func(key Key, value Value)

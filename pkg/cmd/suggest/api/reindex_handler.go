@@ -2,7 +2,7 @@ package api
 
 import "net/http"
 
-//
+// reindexHandler is an entity that responsible for handling reindex requests
 type reindexHandler struct {
 	reindexJob func() error
 }

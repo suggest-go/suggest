@@ -12,15 +12,15 @@ type httpServer struct {
 	addr string
 }
 
-//
-func newHttpServer(r http.Handler, addr string) *httpServer {
+// newHttpServer creates new instance of httpServer
+func newHTTPServer(r http.Handler, addr string) *httpServer {
 	return &httpServer{
 		r:    r,
 		addr: addr,
 	}
 }
 
-//
+// Run starts serving http requests
 func (h *httpServer) Run(ctx context.Context) error {
 	srv := &http.Server{
 		Addr:         h.addr,

@@ -32,19 +32,24 @@ func (b *runTimeBuilderImpl) Build() NGramIndex {
 	conf := b.config
 	cleaner := index.NewCleaner(conf.alphabet.Chars(), conf.pad, [2]string{conf.wrap, conf.wrap})
 	generator := index.NewGenerator(conf.nGramSize)
-	indexer := index.NewIndexer(
+	indicesBuilder := index.NewIndicesBuilder(
 		conf.nGramSize,
 		generator,
 		cleaner,
 	)
 
-	indices := indexer.Index(conf.dictionary)
-	indicesBuilder := index.NewInMemoryInvertedIndexIndicesBuilder(indices)
+	indices, err := indicesBuilder.Build(conf.dictionary)
+
+	if err != nil {
+		panic(err)
+	}
+
+	builder := index.NewInMemoryInvertedIndexIndicesBuilder(indices)
 
 	return NewNGramIndex(
 		cleaner,
 		generator,
-		indicesBuilder.Build(),
+		builder.Build(),
 		list_merger.CPMerge(),
 		list_merger.MergeSkipIntersect(),
 	)

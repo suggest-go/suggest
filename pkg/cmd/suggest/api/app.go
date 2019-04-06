@@ -15,26 +15,26 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//
+// App is an entity
 type App struct {
 	config AppConfig
 }
 
-//
+// AppConfig is an application config
 type AppConfig struct {
 	Port       string
 	ConfigPath string
 	PidPath    string
 }
 
-//
+// NewApp creates new instance of App for the given config
 func NewApp(config AppConfig) App {
 	return App{
 		config: config,
 	}
 }
 
-//
+// Run
 func (a App) Run() error {
 	if err := a.writePIDFile(); err != nil {
 		return err
@@ -72,7 +72,7 @@ func (a App) Run() error {
 	r.HandleFunc("/dict/list/", (&dictionaryHandler{suggestService}).handle).Methods("GET")
 	r.HandleFunc("/internal/reindex/", (&reindexHandler{reindexJob}).handle).Methods("POST")
 
-	httpServer := newHttpServer(r, "0.0.0.0:"+a.config.Port)
+	httpServer := newHTTPServer(r, "0.0.0.0:"+a.config.Port)
 
 	return httpServer.Run(ctx)
 }
@@ -97,7 +97,7 @@ func (a App) writePIDFile() error {
 	return nil
 }
 
-//
+// configureService tries to
 func (a App) configureService(suggestService *suggest.Service) error {
 	config, err := os.Open(a.config.ConfigPath)
 	if err != nil {

@@ -5,12 +5,18 @@ import (
 )
 
 type (
+	// DocumentID is a unique indentificator of a indexed document
+	DocumentID = uint32
 	// Term represents an independent search element in a search document
 	Term = string
 	// Position (posting) is a list item of PostingList
 	Position = DocumentID
 	// PostingList is a list of "documents", that contains the specific term
 	PostingList = []Position
+	// Index is a low level data structure for storing a map of posting lists
+	Index = map[Term]PostingList
+	// Indices is a list of Indexes grouped by a length of a document's nGram set
+	Indices = []Index
 )
 
 // InvertedIndex is an index data structure that contains list of

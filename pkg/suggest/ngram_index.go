@@ -60,7 +60,7 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) []FuzzyCandidate {
 	return n.fuzzySearch(preparedQuery, config)
 }
 
-// AutoComplete returns candidates with query as substring
+// AutoComplete returns candidates with the query as substring
 func (n *nGramIndexImpl) AutoComplete(query string, limit int) []Candidate {
 	result := make([]Candidate, 0)
 	preparedQuery := n.cleaner.CleanAndLeftWrap(query)

@@ -4,14 +4,16 @@ import (
 	"bufio"
 	"encoding/gob"
 	"errors"
-	"github.com/alldroll/suggest/pkg/compression"
-	mmap "github.com/edsrzf/mmap-go"
 	"os"
 	"runtime"
+
+	"github.com/alldroll/suggest/pkg/compression"
+	mmap "github.com/edsrzf/mmap-go"
 )
 
 var (
-	PostingListShouldBeNotNilError = errors.New("PostingList should be not nil")
+	// ErrPostingListShouldBeNotNil occurs when was an attempt to persist nil Posting List
+	ErrPostingListShouldBeNotNil = errors.New("PostingList should be not nil")
 )
 
 // NewOnDiscIndicesReader returns new instance of IndicesReader
@@ -172,7 +174,7 @@ func (w *onDiscIndicesWriter) Save(indices Indices) error {
 		for term, postingList := range index {
 			// there is not possible, we should throw error
 			if postingList == nil {
-				return PostingListShouldBeNotNilError
+				return ErrPostingListShouldBeNotNil
 			}
 
 			// Encode posting list into value

@@ -2,41 +2,38 @@ package index
 
 import "github.com/alldroll/suggest/pkg/dictionary"
 
-type (
-	Index   = map[Term]PostingList
-	Indices = []Index
-)
-
-type Indexer interface {
-	Index(dictionary dictionary.Dictionary) Indices
+// IndicesBuilder is the entity that is resposible for building Indices from the given dictionary
+type IndicesBuilder interface {
+	// Build builds Indices from the given dictionary
+	Build(dictionary dictionary.Dictionary) (Indices, error)
 }
 
-func NewIndexer(
+// NewIndicesBuilder returns new instance of IndicesBuilder
+func NewIndicesBuilder(
 	nGramSize int,
 	generator Generator,
 	cleaner Cleaner,
-) Indexer {
-	return &indexerImpl{
+) IndicesBuilder {
+	return &indicesBuilder{
 		nGramSize: nGramSize,
 		generator: generator,
 		cleaner:   cleaner,
 	}
 }
 
-type indexerImpl struct {
+// indicesBuilder implements IndicesBuilder interface
+type indicesBuilder struct {
 	nGramSize int
 	generator Generator
 	cleaner   Cleaner
 }
 
-func (ix *indexerImpl) Index(dictionary dictionary.Dictionary) Indices {
-	i := dictionary.Iterator()
+// Build builds Indices from the given dictionary
+func (ix *indicesBuilder) Build(dict dictionary.Dictionary) (Indices, error) {
 	indices := make(Indices, 1)
 	indices[0] = make(Index)
 
-	for {
-		key, word := i.GetPair()
-
+	err := dict.Iterate(func(key dictionary.Key, word dictionary.Value) {
 		if len(word) >= ix.nGramSize {
 			prepared := ix.cleaner.CleanAndWrap(word)
 			set := ix.generator.Generate(prepared)
@@ -59,11 +56,11 @@ func (ix *indexerImpl) Index(dictionary dictionary.Dictionary) Indices {
 				indices[0][term] = append(indices[0][term], key)
 			}
 		}
+	})
 
-		if !i.Next() {
-			break
-		}
+	if err != nil {
+		return nil, err
 	}
 
-	return indices
+	return indices, nil
 }

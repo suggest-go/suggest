@@ -34,7 +34,11 @@ func TestOnDiscWriter_Save(t *testing.T) {
 		collection = append(collection, scanner.Text())
 	}
 
-	indices := buildIndex()
+	indices, err := buildIndex()
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+
 	writer := NewOnDiscIndicesWriter(compression.VBEncoder(), headerFile, docListFile)
 	err = writer.Save(indices)
 	if err != nil {
@@ -48,12 +52,13 @@ func TestOnDiscWriter_Save(t *testing.T) {
 	}
 }
 
-func buildIndex() Indices {
+func buildIndex() (Indices, error) {
 	dict, err := os.Open("../suggest/testdata/cars.dict")
-	defer dict.Close()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
+	defer dict.Close()
 
 	scanner := bufio.NewScanner(dict)
 	collection := make([]string, 0)
@@ -70,7 +75,7 @@ func buildIndex() Indices {
 		alphabet.NewSimpleAlphabet([]rune{'$'}),
 	})
 
-	indexer := NewIndexer(3, NewGenerator(3), NewCleaner(alphabet.Chars(), "$", [2]string{"$", "$"}))
+	indicesBuilder := NewIndicesBuilder(3, NewGenerator(3), NewCleaner(alphabet.Chars(), "$", [2]string{"$", "$"}))
 
-	return indexer.Index(dictionary)
+	return indicesBuilder.Build(dictionary)
 }
