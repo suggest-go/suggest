@@ -1,89 +1,94 @@
 package suggest
 
 import (
+	"fmt"
+
+	"github.com/alldroll/suggest/pkg/compression"
+	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
 	"github.com/alldroll/suggest/pkg/list_merger"
 )
 
-const (
-	defaultPad       = "$"
-	defaultWrap      = "$"
-	defaultNGramSize = 3
-)
-
-// Builder
+// Builder is the entity that is responsible for tuning and creating a NGramIndex
 type Builder interface {
-	Build() NGramIndex
-}
-
-// runTimeBuilderImpl implements Builder interface
-type runTimeBuilderImpl struct {
-	config *IndexConfig
-}
-
-// NewRunTimeBuilder returns new instance of runTimeBuilderImpl
-func NewRunTimeBuilder(config *IndexConfig) Builder {
-	return &runTimeBuilderImpl{
-		config: config,
-	}
-}
-
-func (b *runTimeBuilderImpl) Build() NGramIndex {
-	conf := b.config
-	cleaner := index.NewCleaner(conf.alphabet.Chars(), conf.pad, [2]string{conf.wrap, conf.wrap})
-	generator := index.NewGenerator(conf.nGramSize)
-	indicesBuilder := index.NewIndicesBuilder(
-		conf.nGramSize,
-		generator,
-		cleaner,
-	)
-
-	indices, err := indicesBuilder.Build(conf.dictionary)
-
-	if err != nil {
-		panic(err)
-	}
-
-	builder := index.NewInMemoryInvertedIndexIndicesBuilder(indices)
-
-	return NewNGramIndex(
-		cleaner,
-		generator,
-		builder.Build(),
-		list_merger.CPMerge(),
-		list_merger.MergeSkipIntersect(),
-	)
+	// Build configures and returns a new instance of NGramIndex
+	Build() (NGramIndex, error)
 }
 
 // builderImpl implements Builder interface
 type builderImpl struct {
-	description IndexDescription
+	indexReader *index.Reader
+	cleaner     index.Cleaner
+	generator   index.Generator
 }
 
-// NewBuilder works with already indexed data
-func NewBuilder(description IndexDescription) Builder {
-	return &builderImpl{
-		description: description,
+// NewFSBuilder works with already indexed data
+func NewFSBuilder(description IndexDescription) (Builder, error) {
+	directory, err := index.NewFSDirectory(description.OutputPath)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create fs directory: %v", err)
 	}
+
+	alphabet := description.CreateAlphabet()
+	cleaner := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
+	generator := index.NewGenerator(description.NGramSize)
+
+	return &builderImpl{
+		indexReader: index.NewIndexReader(
+			directory,
+			description.CreateWriterConfig(),
+			compression.VBDecoder(),
+		),
+		generator: generator,
+		cleaner:   cleaner,
+	}, nil
 }
 
-func (b *builderImpl) Build() NGramIndex {
-	desc := b.description
-	alphabet := desc.CreateAlphabet()
+// NewRAMBuilder creates a search index by using the given dictionary and the index description
+// in a RAMDriver directory
+func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Builder, error) {
+	directory := index.NewRAMDirectory()
 
-	cleaner := index.NewCleaner(alphabet.Chars(), desc.Pad, desc.Wrap)
-	generator := index.NewGenerator(desc.NGramSize)
+	alphabet := description.CreateAlphabet()
+	cleaner := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
+	generator := index.NewGenerator(description.NGramSize)
+	writerConfig := description.CreateWriterConfig()
 
-	indicesBuilder := index.NewOnDiscInvertedIndexIndicesBuilder(
-		desc.GetHeaderFile(),
-		desc.GetDocumentListFile(),
+	indexWriter := index.NewIndexWriter(
+		directory,
+		writerConfig,
+		compression.VBEncoder(),
 	)
+
+	if err := index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
+		return nil, fmt.Errorf("Failed to build index in RAMDriver directory: %v", err)
+	}
+
+	return &builderImpl{
+		indexReader: index.NewIndexReader(
+			directory,
+			writerConfig,
+			compression.VBDecoder(),
+		),
+		generator: generator,
+		cleaner:   cleaner,
+	}, nil
+}
+
+// Build configures and returns a new instance of NGramIndex
+func (b *builderImpl) Build() (NGramIndex, error) {
+	invertedIndices, err := b.indexReader.Read()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to build NGramIndex: %v", err)
+	}
 
 	return NewNGramIndex(
-		cleaner,
-		generator,
-		indicesBuilder.Build(),
+		b.cleaner,
+		b.generator,
+		invertedIndices,
 		list_merger.CPMerge(),
 		list_merger.MergeSkipIntersect(),
-	)
+	), nil
 }

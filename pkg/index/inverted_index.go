@@ -1,6 +1,8 @@
 package index
 
 import (
+	"fmt"
+
 	"github.com/alldroll/suggest/pkg/compression"
 )
 
@@ -23,7 +25,7 @@ type (
 // references to documents for each term
 type InvertedIndex interface {
 	// Get returns corresponding posting list for given term
-	Get(term Term) PostingList
+	Get(term Term) (PostingList, error)
 	// Has checks is there is given term in inverted index
 	Has(term Term) bool
 }
@@ -40,33 +42,6 @@ type InvertedIndexIndices interface {
 	Size() int
 }
 
-// InvertedIndexIndicesBuilder is an entity that is responsible for building InvertedIndexIndices
-type InvertedIndexIndicesBuilder interface {
-	// Build returns a new instance of InvertedIndexIndices
-	Build() InvertedIndexIndices
-}
-
-// NewInMemoryInvertedIndex returns new instance of InvertedIndex that is stored in memory
-func NewInMemoryInvertedIndex(index Index) InvertedIndex {
-	return &invertedIndexInMemoryImpl{index}
-}
-
-// invertedIndexInMemoryImpl is in memory inverted index implementation
-type invertedIndexInMemoryImpl struct {
-	table map[Term]PostingList
-}
-
-// Get returns corresponding posting list for given term
-func (i *invertedIndexInMemoryImpl) Get(term Term) PostingList {
-	return i.table[term]
-}
-
-// Has checks is there is given term in inverted index
-func (i *invertedIndexInMemoryImpl) Has(term Term) bool {
-	_, ok := i.table[term]
-	return ok
-}
-
 // invertedIndexStructure is a first part of inverted index. It is stored in memory,
 // with pointers to each posting list, which is stored on disk
 type invertedIndexStructure map[Term]struct {
@@ -76,34 +51,40 @@ type invertedIndexStructure map[Term]struct {
 	position uint32
 }
 
-// NewOnDiscInvertedIndex returns new instance of InvertedIndex that is stored on disc
-func NewOnDiscInvertedIndex(data []byte, decoder compression.Decoder, m invertedIndexStructure) InvertedIndex {
-	return &onDiscInvertedIndex{
-		data:    data,
+// NewInvertedIndex returns new instance of InvertedIndex that is stored on disc
+func NewInvertedIndex(reader Input, decoder compression.Decoder, m invertedIndexStructure) InvertedIndex {
+	return &invertedIndexImpl{
+		reader:  reader,
 		decoder: decoder,
 		m:       m,
 	}
 }
 
-// onDiscInvertedIndex is on disk inverted index implementation
-type onDiscInvertedIndex struct {
-	data    []byte
+// invertedIndexImpl implements InvertedIndex interface
+type invertedIndexImpl struct {
+	reader  Input
 	decoder compression.Decoder
 	m       invertedIndexStructure
 }
 
 // Get returns corresponding posting list for given term
-func (i *onDiscInvertedIndex) Get(term Term) PostingList {
+func (i *invertedIndexImpl) Get(term Term) (PostingList, error) {
 	s, ok := i.m[term]
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
-	return i.decoder.Decode(i.data[s.position : s.position+s.size])
+	buf, err := i.reader.Data()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read data from index.Input: %v", err)
+	}
+
+	return i.decoder.Decode(buf[s.position : s.position+s.size]), nil
 }
 
 // Has checks is there is given term in inverted index
-func (i *onDiscInvertedIndex) Has(term Term) bool {
+func (i *invertedIndexImpl) Has(term Term) bool {
 	_, ok := i.m[term]
 	return ok
 }
@@ -135,57 +116,4 @@ func (i *invertedIndexIndicesImpl) Get(index int) InvertedIndex {
 // Size returns number of InvertedIndex
 func (i *invertedIndexIndicesImpl) Size() int {
 	return len(i.indices)
-}
-
-// NewInMemoryInvertedIndexIndicesBuilder returns new instance of InvertedIndexIndicesBuilder
-// that builds "In memory" InvertedIndexIndices
-func NewInMemoryInvertedIndexIndicesBuilder(indices Indices) InvertedIndexIndicesBuilder {
-	return &invertedIndexIndicesBuilderInMemoryImpl{
-		indices: indices,
-	}
-}
-
-// invertedIndexIndicesBuilderInMemoryImpl builds "In memory" InvertedIndexIndices
-type invertedIndexIndicesBuilderInMemoryImpl struct {
-	indices Indices
-}
-
-// Build creates new "In memory" InvertedIndexIndices
-func (b *invertedIndexIndicesBuilderInMemoryImpl) Build() InvertedIndexIndices {
-	invertedIndexIndices := make([]InvertedIndex, len(b.indices))
-
-	for i, index := range b.indices {
-		invertedIndexIndices[i] = NewInMemoryInvertedIndex(index)
-	}
-
-	return NewInvertedIndexIndices(invertedIndexIndices)
-}
-
-// NewOnDiscInvertedIndexIndicesBuilder returns new instance of InvertedIndexIndicesBuilder
-// that builds "On disc" InvertedIndexIndices
-func NewOnDiscInvertedIndexIndicesBuilder(headerPath, documentListPath string) InvertedIndexIndicesBuilder {
-	return &invertedIndexIndicesBuilderOnDiscImpl{
-		headerPath:       headerPath,
-		documentListPath: documentListPath,
-	}
-}
-
-// invertedIndexIndicesBuilderOnDiscImpl builds "On disc" InvertedIndexIndices
-type invertedIndexIndicesBuilderOnDiscImpl struct {
-	// headerPath is path to file, that contains InvertedIndexIndices structure
-	headerPath string
-	// documentListPath is path to file, that contains PostingList
-	documentListPath string
-}
-
-// Build creates new "On disc" InvertedIndexIndices
-func (b *invertedIndexIndicesBuilderOnDiscImpl) Build() InvertedIndexIndices {
-	reader := NewOnDiscIndicesReader(compression.VBDecoder(), b.headerPath, b.documentListPath)
-	indices, err := reader.Load()
-
-	if err != nil {
-		panic(err)
-	}
-
-	return indices
 }

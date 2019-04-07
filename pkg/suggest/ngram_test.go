@@ -2,14 +2,14 @@ package suggest
 
 import (
 	"bufio"
-	"github.com/alldroll/suggest/pkg/alphabet"
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/metric"
 	"log"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/alldroll/suggest/pkg/index"
+	"github.com/alldroll/suggest/pkg/metric"
 )
 
 func TestSuggestAuto(t *testing.T) {
@@ -24,15 +24,21 @@ func TestSuggestAuto(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	nGramIndex := buildNGramIndex(collection, 3)
-
+	nGramIndex := buildNGramIndex(collection)
 	conf, err := NewSearchConfig("Nissan ma", 2, metric.JaccardMetric(), 0.5)
+
 	if err != nil {
-		panic(err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
-	candidates := nGramIndex.Suggest(conf)
+	candidates, err := nGramIndex.Suggest(conf)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	actual := make(index.PostingList, 0, len(candidates))
+
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
 	}
@@ -52,7 +58,6 @@ func TestSuggestAuto(t *testing.T) {
 }
 
 func BenchmarkSuggest(b *testing.B) {
-	b.StopTimer()
 	collection := []string{
 		"Nissan March",
 		"Nissan Juke",
@@ -64,12 +69,13 @@ func BenchmarkSuggest(b *testing.B) {
 		"Toyota Corona",
 	}
 
-	nGramIndex := buildNGramIndex(collection, 3)
+	nGramIndex := buildNGramIndex(collection)
 
-	b.StartTimer()
+	b.ResetTimer()
 	conf, err := NewSearchConfig("Nissan mar", 2, metric.JaccardMetric(), 0.5)
+
 	if err != nil {
-		panic(err)
+		b.Errorf("Unexpected error: %v", err)
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -78,53 +84,36 @@ func BenchmarkSuggest(b *testing.B) {
 }
 
 func BenchmarkRealExampleInMemory(b *testing.B) {
-	b.StopTimer()
-
 	file, err := os.Open("testdata/cars.dict")
-	defer file.Close()
+
 	if err != nil {
-		panic(err)
+		b.Errorf("Unexpected error: %v", err)
 	}
+
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	collection := make([]string, 0)
+
 	for scanner.Scan() {
 		collection = append(collection, scanner.Text())
 	}
 
-	nGramIndex := buildNGramIndex(collection, 3)
+	nGramIndex := buildNGramIndex(collection)
 
-	queries := [...]string{
-		"Nissan Mar",
-		"Hnda Fi",
-		"Mersdes Benz",
-		"Tayota carolla",
-		"Nssan Skylike",
-		"Nissan Juke",
-		"Dodje iper",
-		"Hummer",
-		"tayota",
-	}
-
-	qLen := len(queries)
-	b.StartTimer()
-
-	conf, err := NewSearchConfig("Nissan mar", 5, metric.CosineMetric(), 0.3)
-	if err != nil {
-		panic(err)
-	}
-
-	for i := 0; i < b.N; i++ {
-		conf.query = queries[i%qLen]
-		nGramIndex.Suggest(conf)
-	}
+	b.ResetTimer()
+	benchmarkRealExample(b, nGramIndex)
 }
 
 func BenchmarkRealExampleOnDisc(b *testing.B) {
-	b.StopTimer()
-
 	nGramIndex := buildOnDiscNGramIndex()
 
+	b.ResetTimer()
+	benchmarkRealExample(b, nGramIndex)
+}
+
+//
+func benchmarkRealExample(b *testing.B, index NGramIndex) {
 	queries := [...]string{
 		"Nissan Mar",
 		"Hnda Fi",
@@ -138,16 +127,15 @@ func BenchmarkRealExampleOnDisc(b *testing.B) {
 	}
 
 	qLen := len(queries)
-	b.StartTimer()
-
 	conf, err := NewSearchConfig("Nissan mar", 5, metric.CosineMetric(), 0.3)
+
 	if err != nil {
-		panic(err)
+		b.Errorf("Unexpected error: %v", err)
 	}
 
 	for i := 0; i < b.N; i++ {
 		conf.query = queries[i%qLen]
-		nGramIndex.Suggest(conf)
+		index.Suggest(conf)
 	}
 }
 
@@ -163,8 +151,13 @@ func TestAutoComplete(t *testing.T) {
 		"Toyota Corona",
 	}
 
-	nGramIndex := buildNGramIndex(collection, 3)
-	candidates := nGramIndex.AutoComplete("Niss", 5)
+	nGramIndex := buildNGramIndex(collection)
+	candidates, err := nGramIndex.AutoComplete("Niss", 5)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	actual := make(index.PostingList, 0, len(candidates))
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
@@ -206,39 +199,55 @@ func BenchmarkAutoCompleteOnDisc(b *testing.B) {
 	}
 }
 
-func buildNGramIndex(collection []string, nGramSize int) NGramIndex {
-	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
-		alphabet.NewRussianAlphabet(),
-		alphabet.NewEnglishAlphabet(),
-		alphabet.NewNumberAlphabet(),
-		alphabet.NewSimpleAlphabet([]rune{'$'}),
-	})
-
-	conf, err := NewIndexConfig(
-		nGramSize,
+func buildNGramIndex(collection []string) NGramIndex {
+	builder, err := NewRAMBuilder(
 		dictionary.NewInMemoryDictionary(collection),
-		alphabet,
-		"$",
-		"$",
+		IndexDescription{
+			Name:      "index",
+			NGramSize: 3,
+			Pad:       "$",
+			Wrap:      [2]string{"$", "$"},
+			Alphabet:  []string{"english", "russian", "numbers", "$"},
+		},
 	)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return NewRunTimeBuilder(conf).Build()
+	index, err := builder.Build()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return index
 }
 
 func buildOnDiscNGramIndex() NGramIndex {
 	configFile, err := os.Open("testdata/config.json")
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	description, err := ReadConfigs(configFile)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return NewBuilder(description[0]).Build()
+	builder, err := NewFSBuilder(description[0])
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	index, err := builder.Build()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return index
 }

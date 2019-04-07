@@ -18,6 +18,7 @@ var (
 	}
 )
 
+// CreateAlphabet creates alphabet from a string declaration
 func CreateAlphabet(description []string) Alphabet {
 	alphabets := make([]Alphabet, 0)
 

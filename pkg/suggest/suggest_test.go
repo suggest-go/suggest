@@ -1,73 +1,59 @@
 package suggest
 
 import (
-	"github.com/alldroll/suggest/pkg/alphabet"
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/metric"
 	"os"
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/metric"
 )
 
-func TestConcurrency(t *testing.T) {
-	alphabet := alphabet.NewCompositeAlphabet([]alphabet.Alphabet{
-		alphabet.NewEnglishAlphabet(),
-		alphabet.NewSimpleAlphabet([]rune{'$'}),
-	})
-
-	wordsList := []string{"abc", "test2", "test3", "test4", "teta"}
-	dictionary := dictionary.NewInMemoryDictionary(wordsList)
-	conf, _ := NewIndexConfig(3, dictionary, alphabet, "$", "$")
-	service := NewService()
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() {
-		for i := 0; i < 10; i++ {
-			service.AddRunTimeIndex(wordsList[i%5], conf)
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		for i := 0; i < 5; i++ {
-			searchConf, _ := NewSearchConfig(wordsList[i], 5, metric.CosineMetric(), 0.7)
-			service.Suggest(wordsList[i], searchConf)
-		}
-
-		wg.Done()
-	}()
-
-	wg.Wait()
+func TestConcurrencyOnDisc(t *testing.T) {
+	testConcurrency(t, DiscDriver)
 }
 
-func TestConcurrencyOnDisc(t *testing.T) {
+func TestConcurrencyRAM(t *testing.T) {
+	testConcurrency(t, RAMDriver)
+}
+
+func testConcurrency(t *testing.T, driver Driver) {
 	configFile, err := os.Open("testdata/config.json")
 	if err != nil {
 		t.Error(err)
 	}
 
-	description, err := ReadConfigs(configFile)
+	descriptions, err := ReadConfigs(configFile)
+	if err != nil {
+		t.Error(err)
+	}
+
+	description := descriptions[0]
+	description.Driver = driver
+	service := NewService()
+
+	if description.Driver == DiscDriver {
+		err = service.AddOnDiscIndex(description)
+	} else {
+		err = service.AddRunTimeIndex(description)
+	}
+
 	if err != nil {
 		t.Error(err)
 	}
 
 	wordsList := []string{"Nissan March", "Honda Fitt", "Wolfsvagen", "Tayota Corolla", "Micra Nissan"}
-	service := NewService()
-
-	err = service.AddOnDiscIndex(description[0])
-	if err != nil {
-		t.Error(err)
-	}
-
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		for i := 0; i < 5; i++ {
-			err = service.AddOnDiscIndex(description[0])
+			if description.Driver == DiscDriver {
+				err = service.AddOnDiscIndex(description)
+			} else {
+				err = service.AddRunTimeIndex(description)
+			}
+
 			if err != nil {
 				t.Error(err)
 			}
@@ -86,7 +72,7 @@ func TestConcurrencyOnDisc(t *testing.T) {
 	go func() {
 		for i := 0; i < 5; i++ {
 			searchConf, _ := NewSearchConfig(wordsList[i], 5, metric.CosineMetric(), 0.7)
-			result, err := service.Suggest(description[0].Name, searchConf)
+			result, err := service.Suggest(description.Name, searchConf)
 			if err != nil {
 				t.Errorf("Fail suggest %v", err)
 			}

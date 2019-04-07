@@ -1,22 +1,25 @@
 package suggest
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"runtime"
 	"sync"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/alldroll/suggest/pkg/utils"
 )
 
 // ResultItem represents element of top-k similar strings in dictionary for given query
 type ResultItem struct {
-	// TODO rename Distance with score
-	Distance float64
+	// Score is a float64 value of a candidate
+	Score float64
 	// Value is a string value of candidate
 	Value string
 }
 
-// Service is a service for topK approximate string fuzzySearch in dictionary
+// Service provides methods for autocomplete and topK approximate string search
 type Service struct {
 	sync.RWMutex
 	indexes      map[string]NGramIndex
@@ -31,40 +34,62 @@ func NewService() *Service {
 	}
 }
 
-// AddRunTimeIndex add/replace new dictionary with given name
-func (s *Service) AddRunTimeIndex(name string, config *IndexConfig) error {
-	nGramIndex := NewRunTimeBuilder(config).Build()
+// AddIndexByDescription adds a new search index with given description
+func (s *Service) AddIndexByDescription(description IndexDescription) error {
+	if description.Driver == RAMDriver {
+		return s.AddRunTimeIndex(description)
+	}
+
+	return s.AddOnDiscIndex(description)
+}
+
+// AddRunTimeIndex adds a new RAM search index with the given description
+func (s *Service) AddRunTimeIndex(description IndexDescription) error {
+	dictionary, err := openRAMDictionary(description.SourcePath)
+
+	if err != nil {
+		return fmt.Errorf("Failed to create RAMDriver builder: %v", err)
+	}
+
+	builder, err := NewRAMBuilder(dictionary, description)
+
+	if err != nil {
+		return fmt.Errorf("Failed to create RAMDriver builder: %v", err)
+	}
+
+	return s.AddIndex(description.Name, dictionary, builder)
+}
+
+// AddOnDiscIndex adds a new DISC search index with the given description
+func (s *Service) AddOnDiscIndex(description IndexDescription) error {
+	dictionary, err := openCDBDictionary(description.GetDictionaryFile())
+
+	if err != nil {
+		return fmt.Errorf("Failed to create CDB dictionary: %v", err)
+	}
+
+	builder, err := NewFSBuilder(description)
+
+	if err != nil {
+		return fmt.Errorf("Failed to open FS inverted index: %v", err)
+	}
+
+	return s.AddIndex(description.Name, dictionary, builder)
+}
+
+// AddIndex adds an index with the given name, dictionary and builder
+func (s *Service) AddIndex(name string, dict dictionary.Dictionary, builder Builder) error {
+	nGramIndex, err := builder.Build()
+
+	if err != nil {
+		return fmt.Errorf("Failed to build NGramIndex: %v", err)
+	}
 
 	s.Lock()
 	s.indexes[name] = nGramIndex
-	s.dictionaries[name] = config.dictionary
+	s.dictionaries[name] = dict
 	s.Unlock()
-	return nil
-}
 
-// AddOnDiscIndex add/replace new dictionary with given name
-func (s *Service) AddOnDiscIndex(description IndexDescription) error {
-	dictionaryFile, err := NewMmapReader(description.GetDictionaryFile())
-	if err != nil {
-		// TODO add specific error
-		return err
-	}
-
-	dictionary, err := dictionary.NewCDBDictionary(dictionaryFile)
-	if err != nil {
-		return err
-	}
-
-	runtime.SetFinalizer(dictionary, func(d interface{}) {
-		dictionaryFile.Close()
-	})
-
-	nGramIndex := NewBuilder(description).Build()
-
-	s.Lock()
-	s.indexes[description.Name] = nGramIndex
-	s.dictionaries[description.Name] = dictionary
-	s.Unlock()
 	return nil
 }
 
@@ -90,7 +115,12 @@ func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, erro
 		return nil, fmt.Errorf("Given dictionary %s is not exists", dict)
 	}
 
-	candidates := index.Suggest(config)
+	candidates, err := index.Suggest(config)
+
+	if err != nil {
+		return nil, err
+	}
+
 	l := len(candidates)
 	result := make([]ResultItem, 0, l)
 
@@ -100,7 +130,7 @@ func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, erro
 			return nil, err
 		}
 
-		result = append(result, ResultItem{candidate.Distance, value})
+		result = append(result, ResultItem{candidate.Score, value})
 	}
 
 	return result, nil
@@ -117,7 +147,12 @@ func (s *Service) AutoComplete(dict string, query string, limit int) ([]ResultIt
 		return nil, fmt.Errorf("Given dictionary %s is not exists", dict)
 	}
 
-	candidates := index.AutoComplete(query, limit)
+	candidates, err := index.AutoComplete(query, limit)
+
+	if err != nil {
+		return nil, err
+	}
+
 	result := make([]ResultItem, 0, len(candidates))
 
 	for _, candidate := range candidates {
@@ -130,4 +165,45 @@ func (s *Service) AutoComplete(dict string, query string, limit int) ([]ResultIt
 	}
 
 	return result, nil
+}
+
+// openCDBDictionary opens a dictionary from cdb file
+func openCDBDictionary(path string) (dictionary.Dictionary, error) {
+	dictionaryFile, err := utils.NewMMapReader(path)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open cdb dictionary file: %v", err)
+	}
+
+	dictionary, err := dictionary.NewCDBDictionary(dictionaryFile)
+
+	if err != nil {
+		return nil, err
+	}
+
+	runtime.SetFinalizer(dictionary, func(d interface{}) {
+		dictionaryFile.Close()
+	})
+
+	return dictionary, nil
+}
+
+// openRAMDictionary opens a dictionary from the given path and stores items in RAMDriver
+func openRAMDictionary(path string) (dictionary.Dictionary, error) {
+	dictionaryFile, err := os.Open(path)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open dictionary file: %v", err)
+	}
+
+	defer dictionaryFile.Close()
+
+	scanner := bufio.NewScanner(dictionaryFile)
+	collection := make([]string, 0)
+
+	for scanner.Scan() {
+		collection = append(collection, scanner.Text())
+	}
+
+	return dictionary.NewInMemoryDictionary(collection), nil
 }

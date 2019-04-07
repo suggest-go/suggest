@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,7 +13,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alldroll/cdb"
 	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
@@ -27,8 +24,6 @@ var (
 	host string
 )
 
-const tmpSuffix = ".tmp"
-
 func init() {
 	indexCmd.Flags().StringVarP(&dict, "dict", "d", "", "reindex certain dict")
 	indexCmd.Flags().StringVarP(&host, "host", "", "", "host to send reindex request")
@@ -39,7 +34,7 @@ func init() {
 var indexCmd = &cobra.Command{
 	Use:   "indexer -c [config file]",
 	Short: "builds indexes and dictionaries",
-	Long:  `builds indexes and dictionaries and send signal to reload fresh data`,
+	Long:  `builds indexes and dictionaries and send signal to reload suggest-service`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetPrefix("indexer: ")
 		log.SetFlags(0)
@@ -88,9 +83,10 @@ var indexCmd = &cobra.Command{
 	},
 }
 
-//
+// readConfigs retrieves a list of index descriptions from the configPath
 func readConfigs() ([]suggest.IndexDescription, error) {
 	f, err := os.Open(configPath)
+
 	if err != nil {
 		return nil, fmt.Errorf("Could not open config file %s", err)
 	}
@@ -105,32 +101,15 @@ func readConfigs() ([]suggest.IndexDescription, error) {
 	return configs, nil
 }
 
-//
+// indexJob performs building a dictionary, a search index for the given index description
 func indexJob(config suggest.IndexDescription) error {
 	log.Printf("Start process '%s' config", config.Name)
 
-	alphabet := config.CreateAlphabet()
-	cleaner := index.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
-	generator := index.NewGenerator(config.NGramSize)
-
-	// create dictionary
-	log.Printf("Building dictionary...")
-
+	// create a cdb dictionary
+	log.Printf("Building a dictionary...")
 	start := time.Now()
 
-	dictionary, err := buildDictionary(config.SourcePath, config)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Time spent %s", time.Since(start))
-
-	// create index in memory
-	log.Printf("Creating index...")
-	start = time.Now()
-
-	indicesBuilder := index.NewIndicesBuilder(config.NGramSize, generator, cleaner)
-	indices, err := indicesBuilder.Build(dictionary)
+	dictionary, err := dictionary.BuildCDBDictionary(config.SourcePath, config.GetDictionaryFile())
 
 	if err != nil {
 		return err
@@ -138,12 +117,11 @@ func indexJob(config suggest.IndexDescription) error {
 
 	log.Printf("Time spent %s", time.Since(start))
 
-	// store index on disc
-	log.Printf("Storing index...")
-
+	// create a search index
+	log.Printf("Creating a search index...")
 	start = time.Now()
 
-	if err := storeIndex(indices, config); err != nil {
+	if err = buildIndex(dictionary, config); err != nil {
 		return err
 	}
 
@@ -153,89 +131,42 @@ func indexJob(config suggest.IndexDescription) error {
 	return nil
 }
 
-//
-func buildDictionary(sourcePath string, config suggest.IndexDescription) (dictionary.Dictionary, error) {
-	sourceFile, err := os.OpenFile(sourcePath, os.O_RDONLY, 0)
+// buildIndex builds a search index by using the given config and the dictionary
+// and persists it on FS
+func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) error {
+	directory, err := index.NewFSDirectory(config.OutputPath)
+
 	if err != nil {
-		log.Fatalf("cannot open source file %s", err)
+		return err
 	}
 
-	destinationFile, err := os.OpenFile(
-		config.GetDictionaryFile()+tmpSuffix,
-		os.O_CREATE|os.O_RDWR|os.O_TRUNC,
-		0644,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to create dictionary file %s", err)
-	}
-
-	cdbHandle := cdb.New()
-	cdbWriter, err := cdbHandle.GetWriter(destinationFile)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to create cdb writer %s", err)
-	}
-
-	var (
-		docID   uint32
-		key     = make([]byte, 4)
-		scanner = bufio.NewScanner(sourceFile)
-	)
-
-	for scanner.Scan() {
-		binary.LittleEndian.PutUint32(key, docID)
-		err = cdbWriter.Put(key, scanner.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("Fail to put record to cdb %s", err)
-		}
-
-		docID++
-	}
-
-	log.Printf("Number of string %d", docID)
-
-	err = cdbWriter.Close()
-	if err != nil {
-		return nil, fmt.Errorf("Fail to save cdb dictionary %s", err)
-	}
-
-	if err := os.Rename(config.GetDictionaryFile()+tmpSuffix, config.GetDictionaryFile()); err != nil {
-		return nil, fmt.Errorf("Error to rename file %s", err)
-	}
-
-	return dictionary.NewCDBDictionary(destinationFile)
-}
-
-//
-func storeIndex(indices index.Indices, config suggest.IndexDescription) error {
-	writer := index.NewOnDiscIndicesWriter(
+	indexWriter := index.NewIndexWriter(
+		directory,
+		config.CreateWriterConfig(),
 		compression.VBEncoder(),
-		config.GetHeaderFile()+tmpSuffix,
-		config.GetDocumentListFile()+tmpSuffix,
 	)
 
-	if err := writer.Save(indices); err != nil {
-		return fmt.Errorf("Fail to save index %s", err)
-	}
+	alphabet := config.CreateAlphabet()
+	cleaner := index.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
+	generator := index.NewGenerator(config.NGramSize)
 
-	if err := os.Rename(config.GetHeaderFile()+tmpSuffix, config.GetHeaderFile()); err != nil {
-		return fmt.Errorf("Error to rename file %s", err)
-	}
-
-	if err := os.Rename(config.GetDocumentListFile()+tmpSuffix, config.GetDocumentListFile()); err != nil {
-		return fmt.Errorf("Error to rename file %s", err)
+	if err = index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-//
+// tryToSendReindexSignal sends a SIGHUP signal to the pid
 func tryToSendReindexSignal() error {
 	d, err := ioutil.ReadFile(pidPath)
+
 	if err != nil {
 		return fmt.Errorf("error parsing pid from %s: %s", pidPath, err)
 	}
 
 	pid, err := strconv.Atoi(string(bytes.TrimSpace(d)))
+
 	if err != nil {
 		return fmt.Errorf("error parsing pid from %s: %s", pidPath, err)
 	}
@@ -247,9 +178,10 @@ func tryToSendReindexSignal() error {
 	return nil
 }
 
-//
+// tryToSendReindexRequest sends a http request with a reindex purpose
 func tryToSendReindexRequest() error {
 	resp, err := http.Post(host, "text/plain", nil)
+
 	if err != nil {
 		return fmt.Errorf("Fail to send reindex request to %s, %s", host, err)
 	}

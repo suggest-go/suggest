@@ -2,46 +2,9 @@ package suggest
 
 import (
 	"fmt"
-	"github.com/alldroll/suggest/pkg/alphabet"
-	"github.com/alldroll/suggest/pkg/dictionary"
+
 	"github.com/alldroll/suggest/pkg/metric"
 )
-
-const (
-	// MinNGramSize is a minimum allowed size of ngram
-	MinNGramSize = 2
-	// MaxNGramSize is a maximum allowed size of ngram
-	MaxNGramSize = 4
-)
-
-// IndexConfig is config for NgramIndex structure
-// deprecated
-type IndexConfig struct {
-	nGramSize  int
-	alphabet   alphabet.Alphabet
-	wrap       string
-	pad        string
-	dictionary dictionary.Dictionary
-}
-
-// NewIndexConfig returns new instance of IndexConfig
-func NewIndexConfig(k int, dictionary dictionary.Dictionary, alphabet alphabet.Alphabet, wrap, pad string) (*IndexConfig, error) {
-	if k < MinNGramSize || k > MaxNGramSize {
-		return nil, fmt.Errorf("k should be in [%d, %d]", MinNGramSize, MaxNGramSize)
-	}
-
-	if alphabet.Size() == 0 {
-		return nil, fmt.Errorf("Alphabet should not be empty")
-	}
-
-	return &IndexConfig{
-		nGramSize:  k,
-		alphabet:   alphabet,
-		wrap:       wrap,
-		pad:        pad,
-		dictionary: dictionary,
-	}, nil
-}
 
 // SearchConfig is a config for NGramIndex Suggest method
 type SearchConfig struct {

@@ -34,7 +34,8 @@ func NewApp(config AppConfig) App {
 	}
 }
 
-// Run
+// Run starts the application
+// performs http requests handling
 func (a App) Run() error {
 	if err := a.writePIDFile(); err != nil {
 		return err
@@ -77,7 +78,7 @@ func (a App) Run() error {
 	return httpServer.Run(ctx)
 }
 
-//
+// writePIDFile performs writing a PID of the application service
 func (a App) writePIDFile() error {
 	if a.config.PidPath == "" {
 		return nil
@@ -97,7 +98,7 @@ func (a App) writePIDFile() error {
 	return nil
 }
 
-// configureService tries to
+// configureService tries to retrieve index descriptions and to setup the suggest service
 func (a App) configureService(suggestService *suggest.Service) error {
 	config, err := os.Open(a.config.ConfigPath)
 	if err != nil {
@@ -112,7 +113,7 @@ func (a App) configureService(suggestService *suggest.Service) error {
 	}
 
 	for _, config := range description {
-		if err := suggestService.AddOnDiscIndex(config); err != nil {
+		if err := suggestService.AddIndexByDescription(config); err != nil {
 			return err
 		}
 	}
@@ -120,7 +121,7 @@ func (a App) configureService(suggestService *suggest.Service) error {
 	return nil
 }
 
-//
+// listenToSystemSignals handles OS signals
 func (a App) listenToSystemSignals(cancelFn context.CancelFunc, reindexFn func()) {
 	signalChan := make(chan os.Signal, 1)
 	sighupChan := make(chan os.Signal, 1)

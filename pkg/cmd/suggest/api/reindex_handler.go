@@ -7,7 +7,7 @@ type reindexHandler struct {
 	reindexJob func() error
 }
 
-//
+// handle performs
 func (h *reindexHandler) handle(w http.ResponseWriter, r *http.Request) {
 	if err := h.reindexJob(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -6,7 +6,7 @@ build-suggest:
 build: build-suggest
 
 build-docker:
-	docker build --no-cache -t suggest:0.0.1 .
+	docker build --no-cache -t suggest:latest .
 
 test:
 	go test ./pkg/...
