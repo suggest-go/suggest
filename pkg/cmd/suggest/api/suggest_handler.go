@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/alldroll/suggest/pkg/metric"
 	"github.com/alldroll/suggest/pkg/suggest"
@@ -37,7 +36,7 @@ type suggestHandler struct {
 	suggestService *suggest.Service
 }
 
-// handle performs processing of the suggest query
+// handle performs topK approximate string search
 func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 	var (
 		vars       = mux.Vars(r)
@@ -48,36 +47,28 @@ func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 		k          = r.FormValue("topK")
 	)
 
-	type candidates struct {
-		Data    []suggest.ResultItem `json:"data"`
-		Elapsed string               `json:"elapsed"`
-	}
-
 	i64, err := strconv.ParseInt(k, 10, 0)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	topK := int(i64)
-	searchConf, err := buildSearchConfig(query, metricName, similarity, topK)
+	searchConf, err := buildSearchConfig(query, metricName, similarity, int(i64))
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	start := time.Now()
+	// TODO return 4** on dictionary not found
 	resultItems, err := h.suggestService.Suggest(dict, searchConf)
-	elapsed := time.Since(start).String()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	result := candidates{resultItems, elapsed}
-	data, err := json.Marshal(result)
+	data, err := json.Marshal(resultItems)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -85,7 +76,6 @@ func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
 
@@ -97,6 +87,7 @@ func buildSearchConfig(query, metricName, sim string, k int) (*suggest.SearchCon
 
 	metric := metrics[metricName]
 	similarity, err := strconv.ParseFloat(sim, 64)
+
 	if err != nil {
 		return nil, err
 	}

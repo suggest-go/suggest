@@ -16,8 +16,8 @@ type SearchConfig struct {
 
 // NewSearchConfig returns new instance of SearchConfig
 func NewSearchConfig(query string, topK int, metric metric.Metric, similarity float64) (*SearchConfig, error) {
-	if topK < 0 {
-		return nil, fmt.Errorf("topK is invalid") //TODO fixme
+	if topK <= 0 {
+		return nil, fmt.Errorf("topK should be greater or equal to 1")
 	}
 
 	if similarity <= 0 || similarity > 1 {

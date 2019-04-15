@@ -2,19 +2,19 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/alldroll/suggest/pkg/suggest"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
-	"time"
+
+	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/gorilla/mux"
 )
 
-//
+// autocompleteHandler is responsible for query autocomplete
 type autocompleteHandler struct {
 	suggestService *suggest.Service
 }
 
-//
+// handle performs autocomplete for the given query
 func (h *autocompleteHandler) handle(w http.ResponseWriter, r *http.Request) {
 	var (
 		vars  = mux.Vars(r)
@@ -23,24 +23,21 @@ func (h *autocompleteHandler) handle(w http.ResponseWriter, r *http.Request) {
 		k     = r.FormValue("topK")
 	)
 
-	type candidates struct {
-		Data    []suggest.ResultItem `json:"data"`
-		Elapsed string               `json:"elapsed"`
+	i64, err := strconv.ParseInt(k, 10, 0)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	i64, err := strconv.ParseInt(k, 10, 0)
+	resultItems, err := h.suggestService.AutoComplete(dict, query, int(i64))
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	topK := int(i64)
-	start := time.Now()
-	resultItems, _ := h.suggestService.AutoComplete(dict, query, topK)
-	elapsed := time.Since(start).String()
-
-	result := candidates{resultItems, elapsed}
-	data, err := json.Marshal(result)
+	data, err := json.Marshal(resultItems)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -48,6 +45,5 @@ func (h *autocompleteHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }

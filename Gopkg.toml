@@ -44,3 +44,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/alldroll/go-datastructures"
+
+[[constraint]]
+  name = "github.com/gorilla/handlers"
+  version = "1.4.0"

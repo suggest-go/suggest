@@ -2,16 +2,17 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/alldroll/suggest/pkg/suggest"
 	"net/http"
+
+	"github.com/alldroll/suggest/pkg/suggest"
 )
 
-//
+// dictionaryHandler handles requests with dictionaries purpose
 type dictionaryHandler struct {
 	suggestService *suggest.Service
 }
 
-//
+// handle returns all managed dictionaries by the current suggestService
 func (h *dictionaryHandler) handle(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(h.suggestService.GetDictionaries())
 
@@ -21,6 +22,5 @@ func (h *dictionaryHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }

@@ -12,10 +12,11 @@ import (
 	"syscall"
 
 	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
-// App is an entity
+// App is our application
 type App struct {
 	config AppConfig
 }
@@ -73,7 +74,12 @@ func (a App) Run() error {
 	r.HandleFunc("/dict/list/", (&dictionaryHandler{suggestService}).handle).Methods("GET")
 	r.HandleFunc("/internal/reindex/", (&reindexHandler{reindexJob}).handle).Methods("POST")
 
-	httpServer := newHTTPServer(r, "0.0.0.0:"+a.config.Port)
+	corsHeaders := handlers.AllowedOrigins([]string{"*"})
+	corsMethods := handlers.AllowedMethods([]string{"GET"})
+
+	handler := handlers.LoggingHandler(os.Stdout, r)
+	handler = handlers.CORS(corsHeaders, corsMethods)(handler)
+	httpServer := newHTTPServer(handler, "0.0.0.0:"+a.config.Port)
 
 	return httpServer.Run(ctx)
 }

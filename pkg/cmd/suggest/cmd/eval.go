@@ -3,8 +3,9 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/alldroll/suggest/pkg/metric"
 	"github.com/alldroll/suggest/pkg/suggest"
@@ -12,9 +13,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	topK       int
+	similarity float64
+)
+
 func init() {
 	evalCmd.Flags().StringVarP(&dict, "dict", "d", "", "dictionary name")
 	evalCmd.MarkPersistentFlagRequired("dict")
+
+	evalCmd.Flags().IntVarP(&topK, "topK", "k", 5, "topK elements")
+	evalCmd.Flags().Float64VarP(&similarity, "sim", "s", 0.5, "similarity of candidates")
 
 	rootCmd.AddCommand(evalCmd)
 }
@@ -24,9 +33,6 @@ var evalCmd = &cobra.Command{
 	Short: "cli to approximate string search access",
 	Long:  `cli to approximate string search access`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		log.SetPrefix("eval: ")
-		log.SetFlags(0)
-
 		suggestService, err := configureService()
 
 		if err != nil {
@@ -34,28 +40,35 @@ var evalCmd = &cobra.Command{
 		}
 
 		scanner := bufio.NewScanner(os.Stdin)
-
 		fmt.Print(">> ")
 
 		for scanner.Scan() {
-			searchConf, err := suggest.NewSearchConfig(scanner.Text(), 5, metric.CosineMetric(), 0.4)
+			query := strings.TrimSpace(scanner.Text())
+
+			if len(query) == 0 {
+				fmt.Print(">> ")
+				continue
+			}
+
+			searchConf, err := suggest.NewSearchConfig(query, topK, metric.CosineMetric(), similarity)
 
 			if err != nil {
 				return err
 			}
 
+			start := time.Now()
 			result, err := suggestService.Suggest(dict, searchConf)
+			elapsed := time.Since(start).String()
 
 			if err != nil {
 				return err
 			}
-
-			fmt.Println()
 
 			for _, item := range result {
 				fmt.Printf("%s, score: %f\n", item.Value, item.Score)
 			}
 
+			fmt.Printf("\nElapsed: %s (%d candidates)\n", elapsed, len(result))
 			fmt.Print(">> ")
 		}
 
