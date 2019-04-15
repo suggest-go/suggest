@@ -35,7 +35,7 @@ of choosing a similarity, type of metric and topK.
 ## Index description format
 
 `IndexDescription` is a crucial part of the library. It tells how to configure and to build search indexes. You can define your index descriptions in `JSON` format, as following
-```json
+```
 [
   ...,
   {
@@ -157,7 +157,7 @@ Returns json data about a single user.
 
   * **Code:** 200 <br />
     **Content:**
-    ```json
+    ```
     [
         {Score: 1, Value: "test"},
         {Score: 0.8, Value: "tests"},
@@ -209,7 +209,7 @@ Returns a list of managed dictionaries
 
   * **Code:** 200 <br />
     **Content:**
-    ```json
+    ```
     [
   		"dict1",
   		"dict2",
