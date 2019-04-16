@@ -1,46 +1,34 @@
 package lm
 
-const bufferSize = 100
-
 // NGramBuilder is an entity that responsible for creating CountTrie
 type NGramBuilder struct {
-	indexer                    Indexer
-	startSymbolID, endSymbolID WordID
+	startSymbol, endSymbol Token
 }
 
 // NewNGramBuilder returns new instance of NGramBuilder
 func NewNGramBuilder(
-	indexer Indexer,
 	startSymbol, endSymbol string,
 ) *NGramBuilder {
 	return &NGramBuilder{
-		indexer:       indexer,
-		startSymbolID: indexer.GetOrCreate(startSymbol),
-		endSymbolID:   indexer.GetOrCreate(endSymbol),
+		startSymbol: startSymbol,
+		endSymbol:   endSymbol,
 	}
 }
 
 // Build builds CountTrie with nGrams
 func (nb *NGramBuilder) Build(retriever SentenceRetriever, nGramOrder uint8) CountTrie {
 	trie := NewCountTrie()
-	seq := make([]WordID, 0, bufferSize)
 	ch, quit := nb.produce(retriever)
 
 	for {
 		select {
 		case sentence := <-ch:
-			seq = seq[:0]
-			seq = append(seq, nb.startSymbolID)
-
-			for _, word := range sentence {
-				seq = append(seq, nb.indexer.GetOrCreate(word))
-			}
-
-			seq = append(seq, nb.endSymbolID)
+			sentence = append([]Token{nb.startSymbol}, sentence...)
+			sentence = append(sentence, nb.endSymbol)
 
 			for k := 1; k <= int(nGramOrder); k++ {
-				for i := 0; i <= len(seq)-k; i++ {
-					trie.Put(seq[i:i+k], 1)
+				for i := 0; i <= len(sentence)-k; i++ {
+					trie.Put(sentence[i:i+k], 1)
 				}
 			}
 
@@ -50,7 +38,7 @@ func (nb *NGramBuilder) Build(retriever SentenceRetriever, nGramOrder uint8) Cou
 	}
 }
 
-// Transfers retrieved sentences to channel
+// produce transfers retrieved sentences to the channel
 func (nb *NGramBuilder) produce(retriever SentenceRetriever) (chan Sentence, chan bool) {
 	ch := make(chan Sentence)
 	quit := make(chan bool)

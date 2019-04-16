@@ -15,19 +15,19 @@ type Tokenizer interface {
 	Tokenize(text string) []Token
 }
 
-// NewTokenizer creates tokenizer entity
-func NewTokenizer(alphabet alphabet.Alphabet) *tokenizer {
+// NewTokenizer creates a new instance of Tokenizer
+func NewTokenizer(alphabet alphabet.Alphabet) Tokenizer {
 	return &tokenizer{
 		alphabet: alphabet,
 	}
 }
 
-// dummy tokenizer
+// tokenizer implements Tokenizer interface
 type tokenizer struct {
 	alphabet alphabet.Alphabet
 }
 
-// Splits the given text on a sequence of tokens
+// Tokenize splits the given text on a sequence of tokens
 func (t *tokenizer) Tokenize(text string) []Token {
 	words := []Token{}
 	wordStart, wordLen := -1, 0

@@ -10,7 +10,7 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		NGramOrder:  3,
 		StartSymbol: "<S>",
 		EndSymbol:   "</S>",
-		OutputPath:  "fixtures",
+		OutputPath:  "testdata/fixtures",
 	}
 
 	indexer := NewIndexer()

@@ -20,9 +20,8 @@ type NGramWriter interface {
 
 // NewGoogleNGramWriter creates new instance of NGramWriter that persists the given NGram Count Trie with
 // Google NGram Format negotiations
-func NewGoogleNGramWriter(indexer Indexer, nGramOrder uint8, outputPath string) NGramWriter {
+func NewGoogleNGramWriter(nGramOrder uint8, outputPath string) NGramWriter {
 	return &googleNGramFormatWriter{
-		indexer:    indexer,
 		nGramOrder: nGramOrder,
 		outputPath: outputPath,
 	}
@@ -53,32 +52,17 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) (err error) {
 		defer buf.Flush()
 	}
 
-	grams := make([]string, 0, int(gw.nGramOrder))
-
-	defer func() {
-		if r := recover(); r != nil {
-			err, _ = r.(error)
-		}
-	}()
-
-	trie.Walk(func(path []WordID, count WordCount) {
-		if len(path) == 0 {
+	err = trie.Walk(func(nGrams []Token, count WordCount) {
+		if len(nGrams) == 0 {
 			return
 		}
 
-		grams = grams[:0]
-
-		for _, g := range path {
-			nGram, err := gw.indexer.Find(g)
-			if err != nil {
-				panic(err)
-			}
-
-			grams = append(grams, nGram)
-		}
-
-		fmt.Fprintf(bufs[len(path)-1], nGramFormat, strings.Join(grams, " "), count)
+		fmt.Fprintf(bufs[len(nGrams)-1], nGramFormat, strings.Join(nGrams, " "), count)
 	})
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

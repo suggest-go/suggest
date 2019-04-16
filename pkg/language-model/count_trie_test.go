@@ -12,18 +12,18 @@ import (
 func TestFlow(t *testing.T) {
 	trie := NewCountTrie()
 
-	trie.Put([]WordID{1, 2, 3}, 3)
-	trie.Put([]WordID{1, 2, 3}, 0)
-	trie.Put([]WordID{1, 2, 4}, 2)
-	trie.Put([]WordID{1, 2, 3}, 2)
-	trie.Put([]WordID{2, 3, 4, 5}, 7)
-	trie.Put([]WordID{1, 2}, 7)
-	trie.Put([]WordID{1}, 12)
-	trie.Put([]WordID{4}, 8)
-	trie.Put([]WordID{4}, 0)
-	trie.Put([]WordID{1, 2, 3, 4}, 7)
-	trie.Put([]WordID{3}, 2)
-	trie.Put([]WordID{3, 2}, 3)
+	trie.Put(Sentence{"1", "2", "3"}, 3)
+	trie.Put(Sentence{"1", "2", "3"}, 0)
+	trie.Put(Sentence{"1", "2", "4"}, 2)
+	trie.Put(Sentence{"1", "2", "3"}, 2)
+	trie.Put(Sentence{"2", "3", "4", "5"}, 7)
+	trie.Put(Sentence{"1", "2"}, 7)
+	trie.Put(Sentence{"1"}, 12)
+	trie.Put(Sentence{"4"}, 8)
+	trie.Put(Sentence{"4"}, 0)
+	trie.Put(Sentence{"1", "2", "3", "4"}, 7)
+	trie.Put(Sentence{"3"}, 2)
+	trie.Put(Sentence{"3", "2"}, 3)
 
 	type row struct {
 		path  string
@@ -44,7 +44,7 @@ func TestFlow(t *testing.T) {
 
 	actual := make([]row, 0)
 
-	trie.Walk(func(path []WordID, count WordCount) {
+	trie.Walk(func(path []Token, count WordCount) {
 		actual = append(
 			actual,
 			row{
@@ -65,11 +65,11 @@ func TestFlow(t *testing.T) {
 
 func BenchmarkWalk(b *testing.B) {
 	trie := NewCountTrie()
-	path := make([]WordID, 0, 4)
+	path := make(Sentence, 0, 4)
 
 	for i := 0; i < 10000; i++ {
 		for j := 0; j < rand.Intn(3)+1; j++ {
-			path = append(path, WordID(rand.Int31n(10000)))
+			path = append(path, Token(rand.Int31n(10000)))
 		}
 
 		trie.Put(path, 100)
@@ -80,7 +80,7 @@ func BenchmarkWalk(b *testing.B) {
 
 	j := 0
 	for i := 0; i < b.N; i++ {
-		trie.Walk(func(path []WordID, count WordCount) {
+		trie.Walk(func(path Sentence, count WordCount) {
 			j++
 		})
 	}

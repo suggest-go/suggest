@@ -1,54 +1,61 @@
 package lm
 
+import "errors"
+
 // WordCount is a count of a corresponding path
 type WordCount = uint32
 
-// TrieIterator is callback that
-type TrieIterator = func(path []WordID, count WordCount)
+// TrieIterator is a callback that is called for each path of the given trie
+type TrieIterator = func(path Sentence, count WordCount)
 
-// CountTrie represents data structure for counting ngrams.
+// CountTrie represents a data structure for counting ngrams.
 type CountTrie interface {
 	// Put increments WordCount for last element of given sequence.
-	Put(sentence []WordID, count WordCount) error
+	Put(sentence Sentence, count WordCount) error
 	// Walk iterates through trie and calls walker function on each element.
-	Walk(walker TrieIterator)
+	Walk(walker TrieIterator) error
 }
 
-// NewCountTrie creates new instance of CountTrie
+// NewCountTrie creates new a instance of CountTrie
 func NewCountTrie() CountTrie {
 	return &countTrie{
 		root: &node{
 			children: make(childrenTable),
 			count:    0,
 		},
-		depth: 0,
+		depth:  0,
+		table:  map[Token]uint32{},
+		holder: []Token{},
 	}
 }
 
-// countTrie implements Trie data structure
+// countTrie implements a Trie data structure
 type countTrie struct {
-	root  *node
-	depth int
+	root   *node
+	depth  int
+	table  map[Token]uint32
+	holder []Token
 }
 
-// node represents trie element
+// node represents a trie element
 type node struct {
 	children childrenTable
 	count    WordCount
 }
 
-// childrenTable represents map for children of given node
-type childrenTable map[WordID]*node
+// childrenTable represents a map for children of the given node
+type childrenTable map[uint32]*node
 
-// Put increments WordCount for last element of given sequence.
-func (t *countTrie) Put(sentence []WordID, count WordCount) error {
+// Put increments WordCount for the last element of the given sequence.
+func (t *countTrie) Put(sentence Sentence, count WordCount) error {
 	if len(sentence) > t.depth {
 		t.depth = len(sentence)
 	}
 
 	n := t.root
 
-	for _, w := range sentence {
+	for _, word := range sentence {
+		w := t.mapToUint32(word)
 		child := n.children[w]
 
 		if child == nil {
@@ -71,18 +78,48 @@ func (t *countTrie) Put(sentence []WordID, count WordCount) error {
 	return nil
 }
 
-// Walk iterates through trie and calls walker function on each element.
-func (t *countTrie) Walk(walker TrieIterator) {
+// Walk iterates through the trie and calls the walker function on each element.
+func (t *countTrie) Walk(walker TrieIterator) (err error) {
 	if t.depth == 0 {
-		return
+		return nil
 	}
 
-	path := make([]WordID, t.depth)
-	t.root.iterate(0, path, walker)
+	defer func() {
+		if r := recover(); r != nil {
+			err, _ = r.(error)
+		}
+	}()
+
+	path := make([]Token, t.depth)
+	t.root.iterate(t, 0, path, walker)
+
+	return err
 }
 
-// iterates through given depth and calls iterator on each path
-func (n *node) iterate(depth int, path []WordID, iterator TrieIterator) {
+// mapToUint32 maps the given token to a index value
+func (t *countTrie) mapToUint32(token Token) uint32 {
+	index, ok := t.table[token]
+
+	if !ok {
+		index = uint32(len(t.holder))
+		t.table[token] = index
+		t.holder = append(t.holder, token)
+	}
+
+	return index
+}
+
+// mapFromUint32 restores a token from the given index
+func (t *countTrie) mapFromUint32(index uint32) (Token, error) {
+	if uint32(len(t.holder)) <= index {
+		return "<UNK/>", errors.New("index is not exists")
+	}
+
+	return t.holder[int(index)], nil
+}
+
+// iterate iterates through the given depth and calls the iterator on each path
+func (n *node) iterate(trie *countTrie, depth int, path []Token, iterator TrieIterator) {
 	if n.count > 0 {
 		iterator(path[:depth], n.count)
 	}
@@ -92,7 +129,13 @@ func (n *node) iterate(depth int, path []WordID, iterator TrieIterator) {
 	}
 
 	for w, child := range n.children {
-		path[depth] = w
-		child.iterate(depth+1, path, iterator)
+		token, err := trie.mapFromUint32(w)
+
+		if err != nil {
+			panic(err)
+		}
+
+		path[depth] = token
+		child.iterate(trie, depth+1, path, iterator)
 	}
 }

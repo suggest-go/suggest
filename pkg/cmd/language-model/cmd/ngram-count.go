@@ -34,23 +34,23 @@ var countNGramsCmd = &cobra.Command{
 		defer configFile.Close()
 
 		config, err := lm.ReadConfig(configFile)
+
 		if err != nil {
 			return fmt.Errorf("could read config %s", err)
 		}
 
-		indexer := lm.NewIndexer()
-		trie, err := buildNGramsCount(config, indexer)
+		trie, err := buildNGramsCount(config)
 
 		if err != nil {
 			return err
 		}
 
-		return storeNGramsCount(config, trie, indexer)
+		return storeNGramsCount(config, trie)
 	},
 }
 
-//
-func buildNGramsCount(config *lm.Config, indexer lm.Indexer) (lm.CountTrie, error) {
+// buildNGramsCount builds a count trie
+func buildNGramsCount(config *lm.Config) (lm.CountTrie, error) {
 	sourceFile, err := os.Open(config.SourcePath)
 
 	if err != nil {
@@ -66,7 +66,6 @@ func buildNGramsCount(config *lm.Config, indexer lm.Indexer) (lm.CountTrie, erro
 	)
 
 	builder := lm.NewNGramBuilder(
-		indexer,
 		config.StartSymbol,
 		config.EndSymbol,
 	)
@@ -74,9 +73,9 @@ func buildNGramsCount(config *lm.Config, indexer lm.Indexer) (lm.CountTrie, erro
 	return builder.Build(retriever, config.NGramOrder), nil
 }
 
-//
-func storeNGramsCount(config *lm.Config, trie lm.CountTrie, indexer lm.Indexer) error {
-	writer := lm.NewGoogleNGramWriter(indexer, config.NGramOrder, config.OutputPath)
+// storeNGramsCount flushes the constructed count trie on FS
+func storeNGramsCount(config *lm.Config, trie lm.CountTrie) error {
+	writer := lm.NewGoogleNGramWriter(config.NGramOrder, config.OutputPath)
 
 	if err := writer.Write(trie); err != nil {
 		return fmt.Errorf("could save ngrams %s", err)

@@ -12,7 +12,7 @@ const tolerance = 0.0001
 
 func TestScoreFromFile(t *testing.T) {
 	indexer := NewIndexer()
-	reader := NewGoogleNGramReader(3, indexer, "fixtures")
+	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
 
 	model, err := reader.Read()
 	if err != nil {
@@ -24,7 +24,7 @@ func TestScoreFromFile(t *testing.T) {
 
 func TestPredict(t *testing.T) {
 	indexer := NewIndexer()
-	reader := NewGoogleNGramReader(3, indexer, "fixtures")
+	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
 	ids := make([]WordID, 0, 3)
 
 	model, err := reader.Read()
@@ -75,7 +75,7 @@ func TestPredict(t *testing.T) {
 
 func TestBinaryMarshalling(t *testing.T) {
 	indexer := NewIndexer()
-	reader := NewGoogleNGramReader(3, indexer, "fixtures")
+	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
 
 	expected, err := reader.Read()
 	if err != nil {

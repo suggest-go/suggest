@@ -30,10 +30,10 @@ type NGramVector interface {
 }
 
 const (
-	maxUint32        = uint32(0xffffffff)
-	maxContextOffset = maxUint32 - 1
 	// InvalidContextOffset is context id that represents invalid context offset
 	InvalidContextOffset = maxContextOffset - 1
+	maxUint32            = uint32(0xffffffff)
+	maxContextOffset     = maxUint32 - 1
 )
 
 type sortedArray struct {

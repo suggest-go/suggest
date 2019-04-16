@@ -3,7 +3,10 @@
 build-suggest:
 	go build -o build/suggest ./pkg/cmd/suggest/
 
-build: build-suggest
+build-lm:
+	go build -o build/lm ./pkg/cmd/language-model/
+
+build: build-suggest build-lm
 
 build-docker:
 	docker build --no-cache -t suggest:latest .

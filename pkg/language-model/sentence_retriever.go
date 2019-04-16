@@ -12,15 +12,15 @@ import (
 // Sentence is a sequence of tokens
 type Sentence = []Token
 
-// SentenceRetriever is an entity that responsible for retrieving
+// SentenceRetriever is an entity that is responsible for retrieving
 // sentences from the given source
 type SentenceRetriever interface {
 	// Retrieves and returns the next sentence from the source
 	Retrieve() Sentence
 }
 
-// NewSentenceRetriever
-func NewSentenceRetriever(tokenizer Tokenizer, reader io.Reader, alphabet alphabet.Alphabet) *retriever {
+// NewSentenceRetriever creates new instance of sentence retriever
+func NewSentenceRetriever(tokenizer Tokenizer, reader io.Reader, alphabet alphabet.Alphabet) SentenceRetriever {
 	scanner := bufio.NewScanner(reader)
 
 	r := &retriever{
@@ -33,7 +33,7 @@ func NewSentenceRetriever(tokenizer Tokenizer, reader io.Reader, alphabet alphab
 	return r
 }
 
-// retiever implements SentenceRetriever interface
+// retriever implements SentenceRetriever interface
 type retriever struct {
 	scanner   *bufio.Scanner
 	tokenizer Tokenizer
@@ -50,7 +50,8 @@ func (r *retriever) Retrieve() Sentence {
 	return nil
 }
 
-//
+// scanSentence is a split function for scanner.Split,
+// that returns each sentence of text
 func (r *retriever) scanSentence(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	start := 0
 	for width := 0; start < len(data); start += width {

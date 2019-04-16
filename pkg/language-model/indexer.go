@@ -9,8 +9,10 @@ import (
 type WordID = uint32
 
 const (
-	// UnknownWordID is an index of unregistered word
+	// UnknownWordID is an index of an unregistered word
 	UnknownWordID = uint32(0xffffffff)
+	// UnknownWordSymbol is a symbol that is returned on an unregistred word
+	UnknownWordSymbol = "<UNK>"
 )
 
 // Indexer enumerates words in the vocabulary of a language model. Stores a two-way
@@ -77,13 +79,12 @@ func (i *indexer) Get(token Token) WordID {
 }
 
 // Find a token by the given index
-// TODO replace error with <UNK> symbol
 func (i *indexer) Find(index WordID) (Token, error) {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 
 	if uint32(len(i.holder)) <= index {
-		return "", errors.New("index is not exists")
+		return UnknownWordSymbol, errors.New("index is not exists")
 	}
 
 	return i.holder[int(index)], nil

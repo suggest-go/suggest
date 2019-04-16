@@ -1,6 +1,6 @@
 {
     "nGramOrder": 3,
-    "source": "/tmp/queries",
+    "source": "test.txt",
     "output": "/tmp",
     "alphabet": ["english", "russian", "numbers", "-."],
     "separators": ["\n"],

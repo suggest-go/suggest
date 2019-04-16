@@ -28,7 +28,7 @@ type languageModel struct {
 	config  Config
 }
 
-// NewLanguageModel creates LanguageModel instance
+// NewLanguageModel creates a new instance of a LanguageModel
 func NewLanguageModel(
 	model NGramModel,
 	indexer Indexer,
