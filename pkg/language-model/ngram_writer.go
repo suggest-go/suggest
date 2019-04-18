@@ -39,7 +39,7 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) (err error) {
 	bufs := []*bufio.Writer{}
 
 	for i := 0; i < int(gw.nGramOrder); i++ {
-		f, err := os.OpenFile(fmt.Sprintf(fileFormat, gw.outputPath, i+1), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		f, err := openFile(fmt.Sprintf(fileFormat, gw.outputPath, i+1))
 
 		if err != nil {
 			return err
@@ -57,7 +57,8 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) (err error) {
 			return
 		}
 
-		fmt.Fprintf(bufs[len(nGrams)-1], nGramFormat, strings.Join(nGrams, " "), count)
+		joined := strings.Join(nGrams, " ")
+		fmt.Fprintf(bufs[len(nGrams)-1], nGramFormat, joined, count)
 	})
 
 	if err != nil {
@@ -65,4 +66,9 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) (err error) {
 	}
 
 	return nil
+}
+
+// openFile opens a file for writing with necessary flags
+func openFile(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 }

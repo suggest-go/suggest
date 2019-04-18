@@ -1,5 +1,11 @@
 package dictionary
 
+const (
+	// NilValue is a value, that returns when an entry with the given
+	// key doesn't exist
+	NilValue = "<nil/>"
+)
+
 type (
 	// Key represents a key of an item
 	Key = uint32

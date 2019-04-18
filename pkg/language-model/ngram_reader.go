@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/alldroll/suggest/pkg/dictionary"
 )
 
 // NGramReader is responsible for creating NGramModel from the files
@@ -56,7 +58,7 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 			tabIndex := strings.Index(line, "\t")
 
 			for _, word := range strings.Split(line[:tabIndex], " ") {
-				nGrams = append(nGrams, gr.indexer.GetOrCreate(word))
+				nGrams = append(nGrams, gr.indexer.Get(word))
 			}
 
 			count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)
@@ -76,4 +78,30 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 	}
 
 	return NewNGramModel(vectors), nil
+}
+
+// buildeIndexerWithInMemoryDictionary
+func buildIndexerWithInMemoryDictionary(googleFormatDictPath string) (Indexer, error) {
+	f, err := os.Open(googleFormatDictPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+
+	collection := []Token{}
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		tabIndex := strings.Index(line, "\t")
+		collection = append(collection, line[:tabIndex])
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return BuildIndexer(dictionary.NewInMemoryDictionary(collection))
 }

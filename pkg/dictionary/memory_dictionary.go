@@ -18,7 +18,7 @@ func NewInMemoryDictionary(words []string) Dictionary {
 // Get returns value associated with a particular key
 func (d *inMemoryDictionary) Get(key Key) (Value, error) {
 	if key < 0 || int(key) >= len(d.holder) {
-		return "<nil/>", nil
+		return NilValue, nil
 	}
 
 	return d.holder[key], nil

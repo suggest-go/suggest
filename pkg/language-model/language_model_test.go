@@ -13,7 +13,12 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		OutputPath:  "testdata/fixtures",
 	}
 
-	indexer := NewIndexer()
+	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	reader := NewGoogleNGramReader(config.NGramOrder, indexer, config.OutputPath)
 
 	model, err := reader.Read()

@@ -11,7 +11,12 @@ import (
 const tolerance = 0.0001
 
 func TestScoreFromFile(t *testing.T) {
-	indexer := NewIndexer()
+	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
 
 	model, err := reader.Read()
@@ -23,7 +28,12 @@ func TestScoreFromFile(t *testing.T) {
 }
 
 func TestPredict(t *testing.T) {
-	indexer := NewIndexer()
+	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
 	ids := make([]WordID, 0, 3)
 
@@ -74,7 +84,11 @@ func TestPredict(t *testing.T) {
 }
 
 func TestBinaryMarshalling(t *testing.T) {
-	indexer := NewIndexer()
+	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
 
 	expected, err := reader.Read()

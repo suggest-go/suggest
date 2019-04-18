@@ -34,7 +34,11 @@ func (d *cdbDictionary) Get(key Key) (Value, error) {
 	value, err := d.reader.Get(bs)
 
 	if err != nil {
-		return "<nil/>", err // Useful for debug
+		return NilValue, err
+	}
+
+	if value == nil {
+		return NilValue, nil
 	}
 
 	return Value(value), nil
