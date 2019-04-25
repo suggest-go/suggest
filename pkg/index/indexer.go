@@ -10,13 +10,10 @@ func BuildIndex(dict dictionary.Dictionary, writer *Writer, generator Generator,
 		}
 	}()
 
-	err = dict.Iterate(func(key dictionary.Key, value dictionary.Value) {
+	err = dict.Iterate(func(key dictionary.Key, value dictionary.Value) error {
 		word := cleaner.CleanAndWrap(value)
-		err = writer.AddDocument(key, generator.Generate(word))
 
-		if err != nil {
-			panic(err)
-		}
+		return writer.AddDocument(key, generator.Generate(word))
 	})
 
 	if err != nil {

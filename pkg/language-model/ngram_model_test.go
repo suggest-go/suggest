@@ -53,7 +53,8 @@ func TestPredict(t *testing.T) {
 
 	for _, c := range cases {
 		for _, nGram := range c.nGrams {
-			ids = append(ids, indexer.Get(nGram))
+			id, _ := indexer.Get(nGram)
+			ids = append(ids, id)
 		}
 
 		list, err := model.Next(ids)
@@ -136,7 +137,8 @@ func testModel(t *testing.T, model NGramModel, indexer Indexer) {
 
 	for _, c := range cases {
 		for _, nGram := range c.nGrams {
-			ids = append(ids, indexer.Get(nGram))
+			id, _ := indexer.Get(nGram)
+			ids = append(ids, id)
 		}
 
 		actual := model.Score(ids)

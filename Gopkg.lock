@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  branch = "master"
-  digest = "1:4c7120622aa221ef3cadc55e3c13f3528ae2f3b88960c4b0ae00c512ec2fafbb"
+  digest = "1:f1177c32fc508802942440f2d3a2cad882334d1c06e94337302063b8f31065f6"
   name = "github.com/alldroll/cdb"
   packages = ["."]
   pruneopts = "UT"
-  revision = "d8485ea14238359c72a7e3aac1b6c0368bd81156"
+  revision = "04c4788dcba14cd2ea4b2a88be0febee05c55e47"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -19,19 +19,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:67d0b50be0549e610017cb91e0b0b745ec0cad7c613bc8e18ff2d1c1fc8825a7"
+  digest = "1:ce158bf1d90596d74545c3dc3e1ec62b8d8778b368a88b74d4f6c61a1d1de4c8"
   name = "github.com/edsrzf/mmap-go"
   packages = ["."]
   pruneopts = "UT"
-  revision = "0bce6a6887123b67a60366d2c9fe2dfb74289d2e"
-
-[[projects]]
-  digest = "1:c79fb010be38a59d657c48c6ba1d003a8aa651fa56b579d959d74573b7dff8e1"
-  name = "github.com/gorilla/context"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
-  version = "v1.1.1"
+  revision = "904c4ced31cdffe19e971afa0b3d319ff06d9c72"
 
 [[projects]]
   digest = "1:664d37ea261f0fc73dd17f4a1f5f46d01fbb0b0d75f6375af064824424109b7d"
@@ -42,12 +34,12 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:e73f5b0152105f18bc131fba127d9949305c8693f8a762588a82a48f61756f5f"
+  digest = "1:d5f97fc268267ec1b61c3453058c738246fc3e746f14b1ae25161513b7367b0c"
   name = "github.com/gorilla/mux"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
-  version = "v1.6.2"
+  revision = "c5c6c98bc25355028a63748a498942a6398ccd22"
+  version = "v1.7.1"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
@@ -72,6 +64,17 @@
   pruneopts = "UT"
   revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
   version = "v1.0.3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:e18a5437c48ea1bd6dcd960efdd634d05ae5c2dd033d2d17f73cc20be92895ac"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = "UT"
+  revision = "f0ce4c0180bef7e9c51babed693a6e47fdd8962f"
 
 [solve-meta]
   analyzer-name = "dep"

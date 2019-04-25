@@ -2,6 +2,7 @@ package lm
 
 import (
 	"math"
+	"os"
 	"testing"
 )
 
@@ -26,8 +27,33 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	lm := NewLanguageModel(model, indexer, config)
+	lm := NewLanguageModel(model, indexer, &config)
+	testLM(lm, t)
+}
 
+func TestScoreSentenceFromBinary(t *testing.T) {
+	f, err := os.Open("testdata/config-example.json")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	config, err := ReadConfig(f)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	lm, err := RetrieveLMFromBinary(config)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	testLM(lm, t)
+}
+
+func testLM(lm LanguageModel, t *testing.T) {
 	cases := []struct {
 		sentence      Sentence
 		expectedScore float64
@@ -41,7 +67,7 @@ func TestScoreSentenceFromFile(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		actual := lm.ScoreSentence(c.sentence)
+		actual, _ := lm.ScoreSentence(c.sentence)
 
 		if diff := math.Abs(actual - c.expectedScore); diff >= tolerance {
 			t.Errorf(

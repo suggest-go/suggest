@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"math"
 )
 
@@ -18,6 +19,7 @@ type NGramModel interface {
 const (
 	alpha            = 0.4
 	unknownWordScore = -100.0
+	version          = "0.0.1"
 )
 
 // nGramModel implements NGramModel Stupid backoff
@@ -83,9 +85,12 @@ func (m *nGramModel) Next(nGrams []WordID) ([]WordID, error) {
 func (m *nGramModel) MarshalBinary() ([]byte, error) {
 	buf := bytes.Buffer{}
 	encoder := gob.NewEncoder(&buf)
-	err := encoder.Encode(m.nGramOrder)
 
-	if err != nil {
+	if err := encoder.Encode(version); err != nil {
+		return nil, err
+	}
+
+	if err := encoder.Encode(m.nGramOrder); err != nil {
 		return nil, err
 	}
 
@@ -103,17 +108,25 @@ func (m *nGramModel) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary decodes the binary form
 func (m *nGramModel) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	encoder := gob.NewDecoder(buf)
-	err := encoder.Decode(&m.nGramOrder)
+	decoder := gob.NewDecoder(buf)
+	binaryVersion := "NONE"
 
-	if err != nil {
+	if err := decoder.Decode(&binaryVersion); err != nil {
+		return err
+	}
+
+	if binaryVersion != version {
+		return fmt.Errorf("Version mismatch, expected: %s, got %s", version, binaryVersion)
+	}
+
+	if err := decoder.Decode(&m.nGramOrder); err != nil {
 		return err
 	}
 
 	m.indices = make([]NGramVector, int(m.nGramOrder))
 
 	for i := 0; i < len(m.indices); i++ {
-		err := encoder.Decode(&m.indices[i])
+		err := decoder.Decode(&m.indices[i])
 
 		if err != nil {
 			return err

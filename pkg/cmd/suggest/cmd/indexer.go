@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -109,7 +110,13 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("Building a dictionary...")
 	start := time.Now()
 
-	dictionary, err := dictionary.BuildCDBDictionary(config.SourcePath, config.GetDictionaryFile())
+	dictReader, err := newDictionaryReader(config)
+
+	if err != nil {
+		return err
+	}
+
+	dict, err := dictionary.BuildCDBDictionary(dictReader, config.GetDictionaryFile())
 
 	if err != nil {
 		return err
@@ -121,7 +128,7 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("Creating a search index...")
 	start = time.Now()
 
-	if err = buildIndex(dictionary, config); err != nil {
+	if err = buildIndex(dict, config); err != nil {
 		return err
 	}
 
@@ -129,6 +136,42 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("End process\n\n")
 
 	return nil
+}
+
+// dictionaryReader is an adapter, that implements dictionary.Iterable for bufio.Scanner
+type dictionaryReader struct {
+	lineScanner *bufio.Scanner
+}
+
+// Iterate iterates through each line of the corresponding dictionary
+func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
+	docID := dictionary.Key(0)
+
+	for dr.lineScanner.Scan() {
+		if err := iterator(docID, dr.lineScanner.Text()); err != nil {
+			return err
+		}
+
+		docID++
+	}
+
+	return dr.lineScanner.Err()
+}
+
+// newDictionaryReader creates an adapter to Iterable interface, that scans all lines
+// from the SourcePath and creates pairs of <DocID, Value>
+func newDictionaryReader(config suggest.IndexDescription) (dictionary.Iterable, error) {
+	f, err := os.Open(config.SourcePath)
+
+	if err != nil {
+		return nil, fmt.Errorf("Could not open a source file %s", err)
+	}
+
+	scanner := bufio.NewScanner(f)
+
+	return &dictionaryReader{
+		lineScanner: scanner,
+	}, nil
 }
 
 // buildIndex builds a search index by using the given config and the dictionary

@@ -44,6 +44,11 @@ func (d *cdbDictionary) Get(key Key) (Value, error) {
 	return Value(value), nil
 }
 
+// Size returns the size of the dictionary
+func (d *cdbDictionary) Size() int {
+	return d.reader.Size()
+}
+
 // Iterator returns an iterator over the elements in this dictionary
 func (d *cdbDictionary) Iterate(iterator Iterator) error {
 	cdbIterator, err := d.reader.Iterator()
@@ -52,11 +57,11 @@ func (d *cdbDictionary) Iterate(iterator Iterator) error {
 		return err
 	}
 
-	for cdbIterator.HasNext() {
-		if _, err := cdbIterator.Next(); err != nil {
-			return err
-		}
+	if cdbIterator == nil {
+		return nil
+	}
 
+	for {
 		record := cdbIterator.Record()
 		keyReader, keySize := record.Key()
 		key := make([]byte, keySize)
@@ -71,6 +76,15 @@ func (d *cdbDictionary) Iterate(iterator Iterator) error {
 		}
 
 		iterator(binary.LittleEndian.Uint32(key), Value(value))
+		ok, err := cdbIterator.Next()
+
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			break
+		}
 	}
 
 	return nil

@@ -5,21 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alldroll/suggest/pkg/alphabet"
 	lm "github.com/alldroll/suggest/pkg/language-model"
 	"github.com/spf13/cobra"
 )
-
-var (
-	configPath string
-)
-
-func init() {
-	countNGramsCmd.Flags().StringVarP(&configPath, "config-file", "c", "", "TODO describe usage")
-	countNGramsCmd.MarkFlagRequired("config-file")
-
-	rootCmd.AddCommand(countNGramsCmd)
-}
 
 var countNGramsCmd = &cobra.Command{
 	Use:   "ngram-count -c [config path]",
@@ -60,9 +48,9 @@ func buildNGramsCount(config *lm.Config) (lm.CountTrie, error) {
 	defer sourceFile.Close()
 
 	retriever := lm.NewSentenceRetriever(
-		lm.NewTokenizer(alphabet.CreateAlphabet(config.Alphabet)),
+		lm.NewTokenizer(config.GetWordsAlphabet()),
 		bufio.NewReader(sourceFile),
-		alphabet.CreateAlphabet(config.Separators),
+		config.GetSeparatorsAlphabet(),
 	)
 
 	builder := lm.NewNGramBuilder(

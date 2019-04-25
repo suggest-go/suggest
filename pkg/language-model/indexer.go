@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/alldroll/suggest/pkg/mph"
 )
 
 // WordID is an index of the corresponding word
@@ -20,26 +21,50 @@ const (
 // mapping between uint32 and strings.
 type Indexer interface {
 	// Returns the index for the word, otherwise returns UnknownWordID
-	Get(token Token) WordID
+	Get(token Token) (WordID, error)
 	// Find a token by the given index
 	Find(id WordID) (Token, error)
+}
+
+// BuildIndexer builds a indexer from the given dictionary
+func BuildIndexer(dict dictionary.Dictionary) (Indexer, error) {
+	mph, err := mph.BuildMPH(dict)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewIndexer(dict, mph), nil
+}
+
+// NewIndexer creates a new instance of indexer
+func NewIndexer(dict dictionary.Dictionary, mph mph.MPH) Indexer {
+	return &indexerImpl{
+		dictionary: dict,
+		table:      mph,
+	}
 }
 
 // indexerImpl implements Indexer interface
 type indexerImpl struct {
 	dictionary dictionary.Dictionary
-	table      map[Token]WordID
+	table      mph.MPH
 }
 
 // Returns the index for the word, otherwise returns UnknownWordID
-func (i *indexerImpl) Get(token Token) WordID {
-	index, ok := i.table[token]
+func (i *indexerImpl) Get(token Token) (WordID, error) {
+	index := i.table.Get(token)
+	stored, err := i.dictionary.Get(index)
 
-	if !ok {
+	if err != nil {
+		return UnknownWordID, fmt.Errorf("Failed to get index from the dictionary: %v", err)
+	}
+
+	if stored != token {
 		index = UnknownWordID
 	}
 
-	return index
+	return index, nil
 }
 
 // Find a token by the given index

@@ -7,6 +7,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	configPath string
+)
+
+func init() {
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "path to the config file")
+	rootCmd.MarkPersistentFlagFilename("config")
+	rootCmd.MarkPersistentFlagRequired("config")
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "lm",
 	Short: "cli to interact with a ngram language model",

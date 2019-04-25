@@ -58,7 +58,13 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 			tabIndex := strings.Index(line, "\t")
 
 			for _, word := range strings.Split(line[:tabIndex], " ") {
-				nGrams = append(nGrams, gr.indexer.Get(word))
+				index, err := gr.indexer.Get(word)
+
+				if err != nil {
+					return nil, err
+				}
+
+				nGrams = append(nGrams, index)
 			}
 
 			count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)

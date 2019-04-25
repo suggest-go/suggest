@@ -24,6 +24,11 @@ func (d *inMemoryDictionary) Get(key Key) (Value, error) {
 	return d.holder[key], nil
 }
 
+// Size returns the size of the dictionary
+func (d *inMemoryDictionary) Size() int {
+	return len(d.holder)
+}
+
 // Iterator returns an iterator over the elements in this dictionary
 func (d *inMemoryDictionary) Iterate(iterator Iterator) error {
 	for key, value := range d.holder {

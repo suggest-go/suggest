@@ -26,8 +26,8 @@
 
 
 [[constraint]]
-  branch = "master"
   name = "github.com/alldroll/cdb"
+  version = "1.0.0"
 
 [[constraint]]
   branch = "master"

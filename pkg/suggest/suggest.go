@@ -1,14 +1,10 @@
 package suggest
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"runtime"
 	"sync"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/utils"
 )
 
 // ResultItem represents element of top-k similar strings in dictionary for given query
@@ -45,7 +41,7 @@ func (s *Service) AddIndexByDescription(description IndexDescription) error {
 
 // AddRunTimeIndex adds a new RAM search index with the given description
 func (s *Service) AddRunTimeIndex(description IndexDescription) error {
-	dictionary, err := openRAMDictionary(description.SourcePath)
+	dictionary, err := dictionary.OpenRAMDictionary(description.SourcePath)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create RAMDriver builder: %v", err)
@@ -62,7 +58,7 @@ func (s *Service) AddRunTimeIndex(description IndexDescription) error {
 
 // AddOnDiscIndex adds a new DISC search index with the given description
 func (s *Service) AddOnDiscIndex(description IndexDescription) error {
-	dictionary, err := openCDBDictionary(description.GetDictionaryFile())
+	dictionary, err := dictionary.OpenCDBDictionary(description.GetDictionaryFile())
 
 	if err != nil {
 		return fmt.Errorf("Failed to create CDB dictionary: %v", err)
@@ -165,45 +161,4 @@ func (s *Service) AutoComplete(dict string, query string, limit int) ([]ResultIt
 	}
 
 	return result, nil
-}
-
-// openCDBDictionary opens a dictionary from cdb file
-func openCDBDictionary(path string) (dictionary.Dictionary, error) {
-	dictionaryFile, err := utils.NewMMapReader(path)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to open cdb dictionary file: %v", err)
-	}
-
-	dictionary, err := dictionary.NewCDBDictionary(dictionaryFile)
-
-	if err != nil {
-		return nil, err
-	}
-
-	runtime.SetFinalizer(dictionary, func(d interface{}) {
-		dictionaryFile.Close()
-	})
-
-	return dictionary, nil
-}
-
-// openRAMDictionary opens a dictionary from the given path and stores items in RAMDriver
-func openRAMDictionary(path string) (dictionary.Dictionary, error) {
-	dictionaryFile, err := os.Open(path)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to open dictionary file: %v", err)
-	}
-
-	defer dictionaryFile.Close()
-
-	scanner := bufio.NewScanner(dictionaryFile)
-	collection := make([]string, 0)
-
-	for scanner.Scan() {
-		collection = append(collection, scanner.Text())
-	}
-
-	return dictionary.NewInMemoryDictionary(collection), nil
 }

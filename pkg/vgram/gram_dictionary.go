@@ -21,10 +21,13 @@ func (b *VGramDictionaryBuilder) Build() FrequencyTrie {
 func (b *VGramDictionaryBuilder) buildFrequencyTrie() FrequencyTrie {
 	freqTrie := NewFrequencyTrie(b.qMin)
 
-	b.dictionary.Iterate(func(key dictionary.Key, value dictionary.Value) {
+	// omit error temporary
+	b.dictionary.Iterate(func(key dictionary.Key, value dictionary.Value) error {
 		if len(value) > 0 {
 			b.addWord(freqTrie, value)
 		}
+
+		return nil
 	})
 
 	return freqTrie

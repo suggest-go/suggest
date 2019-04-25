@@ -1,7 +1,8 @@
 {
+    "name": "test",
     "nGramOrder": 3,
-    "source": "test.txt",
-    "output": "/tmp",
+    "source": "testdata/test.txt",
+    "output": "testdata/fixtures",
     "alphabet": ["english", "russian", "numbers", "-."],
     "separators": ["\n"],
     "startSymbol": "<S>",
