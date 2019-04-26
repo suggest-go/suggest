@@ -21,7 +21,6 @@ type MPH interface {
 // Inspired by http://stevehanov.ca/blog/?id=119
 func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
 	size := dict.Size()
-
 	buckets := make([][]dictionary.Key, size, size)
 	auxiliary := make([]int32, size, size)
 	values := make([]dictionary.Key, 0, size)
@@ -95,6 +94,7 @@ func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
 	// placing them into a free slot. Use a negative value of d to indicate
 	// this.
 	freeslots := make([]int, 0, size)
+
 	for i, val := range values {
 		if val == math.MaxUint32 {
 			freeslots = append(freeslots, i)
@@ -180,7 +180,7 @@ func hash(d int32, value string) int {
 	}
 
 	for _, c := range []byte(value) {
-		h = (h ^ uint64(c)*16777619) & 0xffffffff
+		h = ((h * 16777619) ^ uint64(c)) & 0xffffffff
 	}
 
 	return int(h)
