@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  digest = "1:f1177c32fc508802942440f2d3a2cad882334d1c06e94337302063b8f31065f6"
+  digest = "1:352de569a064f9c455ae654fb801d22e6cd6d56e0935154118ef1c1f793356e1"
   name = "github.com/alldroll/cdb"
   packages = ["."]
   pruneopts = "UT"
-  revision = "04c4788dcba14cd2ea4b2a88be0febee05c55e47"
-  version = "v1.0.0"
+  revision = "c53ca9d1a621f33c503b4b22ad22b59b42d00564"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
@@ -67,14 +67,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e18a5437c48ea1bd6dcd960efdd634d05ae5c2dd033d2d17f73cc20be92895ac"
+  digest = "1:656ce95b4cdf841c00825f4cb94f6e0e1422d7d6faaf3094e94cd18884a32251"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "f0ce4c0180bef7e9c51babed693a6e47fdd8962f"
+  revision = "a129542de9ae0895210abff9c95d67a1f33cb93d"
 
 [solve-meta]
   analyzer-name = "dep"

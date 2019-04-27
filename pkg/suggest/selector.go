@@ -2,6 +2,7 @@ package suggest
 
 import (
 	"container/heap"
+	"math"
 	"sort"
 
 	"github.com/alldroll/suggest/pkg/index"
@@ -51,6 +52,7 @@ func (h *topKHeap) Pop() interface{} {
 	n := len(old)
 	x := old[n-1]
 	*h = old[:n-1]
+
 	return x
 }
 
@@ -98,7 +100,7 @@ func (c *topKSelector) GetLowestScore() float64 {
 		return c.h.top().Score
 	}
 
-	return 0
+	return math.Inf(-1)
 }
 
 // CanTakeWithScore returns true if a candidate with the given score can be accepted

@@ -6,7 +6,7 @@ import (
 	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/list_merger"
+	"github.com/alldroll/suggest/pkg/merger"
 )
 
 // Builder is the entity that is responsible for tuning and creating a NGramIndex
@@ -24,15 +24,19 @@ type builderImpl struct {
 
 // NewFSBuilder works with already indexed data
 func NewFSBuilder(description IndexDescription) (Builder, error) {
+	alphabet := description.CreateAlphabet()
+	cleaner, err := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create cleaner: %v", err)
+	}
+
+	generator := index.NewGenerator(description.NGramSize)
 	directory, err := index.NewFSDirectory(description.OutputPath)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create fs directory: %v", err)
 	}
-
-	alphabet := description.CreateAlphabet()
-	cleaner := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
-	generator := index.NewGenerator(description.NGramSize)
 
 	return &builderImpl{
 		indexReader: index.NewIndexReader(
@@ -48,13 +52,16 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 // NewRAMBuilder creates a search index by using the given dictionary and the index description
 // in a RAMDriver directory
 func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Builder, error) {
-	directory := index.NewRAMDirectory()
-
 	alphabet := description.CreateAlphabet()
-	cleaner := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
+	cleaner, err := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create cleaner: %v", err)
+	}
+
+	directory := index.NewRAMDirectory()
 	generator := index.NewGenerator(description.NGramSize)
 	writerConfig := description.CreateWriterConfig()
-
 	indexWriter := index.NewIndexWriter(
 		directory,
 		writerConfig,
@@ -88,7 +95,6 @@ func (b *builderImpl) Build() (NGramIndex, error) {
 		b.cleaner,
 		b.generator,
 		invertedIndices,
-		list_merger.CPMerge(),
-		list_merger.MergeSkipIntersect(),
+		merger.CPMerge(),
 	), nil
 }

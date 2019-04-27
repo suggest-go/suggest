@@ -1,4 +1,4 @@
-package list_merger
+package merger
 
 import (
 	"reflect"

@@ -1,8 +1,9 @@
 package index
 
 import (
-	"github.com/alldroll/suggest/pkg/alphabet"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/alphabet"
 )
 
 func TestPrepareString(t *testing.T) {
@@ -22,7 +23,12 @@ func TestPrepareString(t *testing.T) {
 		alphabet.NewSimpleAlphabet([]rune{'$', '*'}),
 	})
 
-	clean := NewCleaner(alphabet.Chars(), "*", [2]string{"$", "$"})
+	clean, err := NewCleaner(alphabet.Chars(), "*", [2]string{"$", "$"})
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	for _, c := range cases {
 		actual := clean.CleanAndWrap(c.word)
 		if actual != c.expected {

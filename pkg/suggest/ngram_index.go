@@ -4,19 +4,11 @@ import (
 	"fmt"
 
 	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/list_merger"
+	"github.com/alldroll/suggest/pkg/merger"
 )
 
 // NGramIndex is a structure that provides an access to
 // approximate string search and autocomplete
-//
-// Inspired by
-// http://www.chokkan.org/software/simstring/
-// http://www.aaai.org/ocs/index.php/AAAI/AAAI10/paper/viewFile/1939/2234
-// http://nlp.stanford.edu/IR-book/
-// http://bazhenov.me/blog/2012/08/04/autocomplete.html
-// http://www.aclweb.org/anthology/C10-1096
-//
 type NGramIndex interface {
 	// Suggest returns top-k similar candidates
 	Suggest(config *SearchConfig) ([]Candidate, error)
@@ -29,8 +21,7 @@ type nGramIndexImpl struct {
 	cleaner   index.Cleaner
 	indices   index.InvertedIndexIndices
 	generator index.Generator
-	merger    list_merger.ListMerger
-	intersect list_merger.ListIntersect
+	merger    merger.ListMerger
 }
 
 // NewNGramIndex returns a new NGramIndex object
@@ -38,15 +29,13 @@ func NewNGramIndex(
 	cleaner index.Cleaner,
 	generator index.Generator,
 	indices index.InvertedIndexIndices,
-	merger list_merger.ListMerger,
-	intersect list_merger.ListIntersect,
+	merger merger.ListMerger,
 ) NGramIndex {
 	return &nGramIndexImpl{
 		cleaner:   cleaner,
 		indices:   indices,
 		generator: generator,
 		merger:    merger,
-		intersect: intersect,
 	}
 }
 
@@ -61,7 +50,7 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) ([]Candidate, error) {
 func (n *nGramIndexImpl) AutoComplete(query string, limit int) ([]Candidate, error) {
 	preparedQuery := n.cleaner.CleanAndLeftWrap(query)
 
-	return n.autoComplete(preparedQuery, limit)
+	return n.autoComplete(preparedQuery, NewTopKSelector(limit))
 }
 
 // fuzzySearch performs approximate string search in the search index
@@ -193,7 +182,7 @@ func (n *nGramIndexImpl) fuzzySearch(
 }
 
 // autoComplete performs a completion of phrases that contain the given query
-func (n *nGramIndexImpl) autoComplete(query string, limit int) ([]Candidate, error) {
+func (n *nGramIndexImpl) autoComplete(query string, selector TopKSelector) ([]Candidate, error) {
 	set := n.generator.Generate(query)
 	rid := make([]index.PostingList, 0, len(set))
 	invertedIndex := n.indices.GetWholeIndex()
@@ -214,14 +203,9 @@ func (n *nGramIndexImpl) autoComplete(query string, limit int) ([]Candidate, err
 		rid = append(rid, postingList)
 	}
 
-	result := make([]Candidate, 0, limit)
-
-	for _, c := range n.intersect.Intersect(rid, limit) {
-		result = append(result, Candidate{
-			Key:   c.Position,
-			Score: 0, // TODO pass a scorer function
-		})
+	for i, c := range n.merger.Merge(rid, len(rid)) {
+		selector.Add(c.Position, float64(-i))
 	}
 
-	return result, nil
+	return selector.GetCandidates(), nil
 }

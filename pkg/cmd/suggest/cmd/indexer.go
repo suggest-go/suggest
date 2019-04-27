@@ -177,21 +177,25 @@ func newDictionaryReader(config suggest.IndexDescription) (dictionary.Iterable, 
 // buildIndex builds a search index by using the given config and the dictionary
 // and persists it on FS
 func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) error {
+	alphabet := config.CreateAlphabet()
+	cleaner, err := index.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
+
+	if err != nil {
+		return err
+	}
+
 	directory, err := index.NewFSDirectory(config.OutputPath)
 
 	if err != nil {
 		return err
 	}
 
+	generator := index.NewGenerator(config.NGramSize)
 	indexWriter := index.NewIndexWriter(
 		directory,
 		config.CreateWriterConfig(),
 		compression.VBEncoder(),
 	)
-
-	alphabet := config.CreateAlphabet()
-	cleaner := index.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
-	generator := index.NewGenerator(config.NGramSize)
 
 	if err = index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
 		return err

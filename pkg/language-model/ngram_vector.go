@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"sort"
 	"strconv"
 )
@@ -32,7 +33,7 @@ type NGramVector interface {
 const (
 	// InvalidContextOffset is context id that represents invalid context offset
 	InvalidContextOffset = maxContextOffset - 1
-	maxUint32            = uint32(0xffffffff)
+	maxUint32            = uint32(math.MaxUint32)
 	maxContextOffset     = maxUint32 - 1
 )
 

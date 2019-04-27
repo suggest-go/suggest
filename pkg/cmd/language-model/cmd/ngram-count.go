@@ -9,6 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	rootCmd.AddCommand(countNGramsCmd)
+}
+
 var countNGramsCmd = &cobra.Command{
 	Use:   "ngram-count -c [config path]",
 	Short: "builds ngram counts for the given config file using google ngram format",

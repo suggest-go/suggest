@@ -1,4 +1,4 @@
-package list_merger
+package merger
 
 import (
 	"math"
@@ -23,7 +23,7 @@ type divideSkip struct {
 
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (ds *divideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
-	sort.Reverse(rid)
+	sort.Sort(sort.Reverse(rid))
 
 	M := float64(len(rid[0]))
 	l := int(float64(threshold) / (ds.mu*math.Log(M) + 1))

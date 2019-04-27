@@ -1,4 +1,4 @@
-package list_merger
+package merger
 
 import "container/heap"
 
@@ -42,29 +42,19 @@ func MergeSkip() ListMerger {
 	return &mergeSkip{}
 }
 
-func MergeSkipIntersect() ListIntersect {
-	return &mergeSkip{}
-}
-
+// mergeSkip implements MergeSkip algorithm
 type mergeSkip struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (ms *mergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
-	return ms.merge(rid, threshold, -1)
-}
-
-// Intersect returns list of candidates, that appears at least `threshold` times.
-func (ms *mergeSkip) Intersect(rid Rid, max int) []*MergeCandidate {
-	return ms.merge(rid, len(rid), max)
-}
-
-func (ms *mergeSkip) merge(rid Rid, threshold int, max int) []*MergeCandidate {
-	lenRid := len(rid)
-	h := make(recordHeap, 0, lenRid)
-	poppedItems := make([]*record, 0, lenRid)
-	tops := make([]record, lenRid)
-	result := make([]*MergeCandidate, 0, lenRid)
-	var item *record
+	var (
+		lenRid      = len(rid)
+		h           = make(recordHeap, 0, lenRid)
+		poppedItems = make([]*record, 0, lenRid)
+		tops        = make([]record, lenRid)
+		result      = make([]*MergeCandidate, 0, lenRid)
+		item        *record
+	)
 
 	for i := 0; i < lenRid; i++ {
 		item = &tops[i]
@@ -79,21 +69,19 @@ func (ms *mergeSkip) merge(rid Rid, threshold int, max int) []*MergeCandidate {
 		// reset slice
 		poppedItems = poppedItems[:0]
 		t := h.top()
+
 		for h.Len() > 0 && t.position >= h.top().position {
 			item = heap.Pop(&h).(*record)
 			poppedItems = append(poppedItems, item)
 		}
 
 		n := len(poppedItems)
+
 		if n >= threshold {
 			result = append(result, &MergeCandidate{
 				Position: t.position,
 				Overlap:  n,
 			})
-
-			if max == len(result) {
-				return result
-			}
 
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
@@ -115,6 +103,7 @@ func (ms *mergeSkip) merge(rid Rid, threshold int, max int) []*MergeCandidate {
 			}
 
 			topPos := h.top().position
+
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
 				if len(cur) == 0 {
@@ -122,6 +111,7 @@ func (ms *mergeSkip) merge(rid Rid, threshold int, max int) []*MergeCandidate {
 				}
 
 				r := lowerBound(cur, topPos)
+
 				if r != -1 {
 					cur = cur[r:]
 					rid[item.ridID] = cur

@@ -1,4 +1,4 @@
-package list_merger
+package merger
 
 // ScanCount scan the N inverted lists one by one.
 // For each string id on each list, we increment the count
@@ -48,6 +48,5 @@ func (lm *scanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
 		}
 	}
 
-	candidates = tmp
-	return candidates
+	return tmp
 }

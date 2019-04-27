@@ -1,4 +1,4 @@
-package list_merger
+package merger
 
 import "sort"
 
@@ -10,11 +10,7 @@ type ListMerger interface {
 	Merge(rid Rid, threshold int) []*MergeCandidate
 }
 
-// ListIntersect
-type ListIntersect interface {
-	Intersect(rid Rid, max int) []*MergeCandidate
-}
-
+// RidItem represents a list of position
 type RidItem = []uint32
 
 // Rid represents inverted lists for ListMerger

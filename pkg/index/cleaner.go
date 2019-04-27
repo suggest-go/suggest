@@ -21,18 +21,19 @@ type cleanerImpl struct {
 }
 
 // NewCleaner returns new Cleaner object
-func NewCleaner(chars []rune, pad string, wrap [2]string) Cleaner {
+func NewCleaner(chars []rune, pad string, wrap [2]string) (Cleaner, error) {
 	str := string(chars)
 	reg, err := regexp.Compile("[^" + str + "]+")
+
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return &cleanerImpl{
 		reg:  reg,
 		pad:  pad,
 		wrap: wrap,
-	}
+	}, nil
 }
 
 // Clean returns prepared "cleaned" string
