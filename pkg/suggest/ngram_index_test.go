@@ -225,13 +225,7 @@ func buildNGramIndex(collection []string) NGramIndex {
 }
 
 func buildOnDiscNGramIndex() NGramIndex {
-	configFile, err := os.Open("testdata/config.json")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	description, err := ReadConfigs(configFile)
+	description, err := ReadConfigs("testdata/config.json")
 
 	if err != nil {
 		log.Fatal(err)

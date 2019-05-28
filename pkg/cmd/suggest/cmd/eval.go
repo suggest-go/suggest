@@ -79,14 +79,7 @@ var evalCmd = &cobra.Command{
 // configureService creates and configures suggest service for the given
 // config and the dictionary
 func configureService() (*suggest.Service, error) {
-	config, err := os.Open(configPath)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to open config file: %v", err)
-	}
-
-	defer config.Close()
-	description, err := suggest.ReadConfigs(config)
+	description, err := suggest.ReadConfigs(configPath)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read configs: %v", err)

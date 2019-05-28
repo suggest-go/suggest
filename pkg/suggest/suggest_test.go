@@ -1,7 +1,6 @@
 package suggest
 
 import (
-	"os"
 	"reflect"
 	"sync"
 	"testing"
@@ -18,12 +17,8 @@ func TestConcurrencyRAM(t *testing.T) {
 }
 
 func testConcurrency(t *testing.T, driver Driver) {
-	configFile, err := os.Open("testdata/config.json")
-	if err != nil {
-		t.Error(err)
-	}
+	descriptions, err := ReadConfigs("testdata/config.json")
 
-	descriptions, err := ReadConfigs(configFile)
 	if err != nil {
 		t.Error(err)
 	}

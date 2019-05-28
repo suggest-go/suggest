@@ -86,7 +86,7 @@ if err != nil {
     log.Fatalf("Unexpected error: %v", err)
 }
 
-// asking our service for adding a new search index with given configuration
+// asking our service for adding a new search index with the given configuration
 if err := service.AddIndex(indexDescription.Name, dictionary, builder); err != nil {
     log.Fatalf("Unexpected error: %v", err)
 }

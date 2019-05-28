@@ -1,18 +1,28 @@
 ## Makefile
 
+.PHONY: build
+
+GO_BUILD = go build -mod=vendor
+
+default: build
+
 build-suggest:
-	go build -o build/suggest ./pkg/cmd/suggest/
+	$(GO_BUILD) -o build/suggest ./pkg/cmd/suggest/
 
 build-lm:
-	go build -o build/lm ./pkg/cmd/language-model/
+	$(GO_BUILD) -o build/lm ./pkg/cmd/language-model/
 
-build: build-suggest build-lm
+build: download test build-suggest build-lm
 
 build-docker:
 	docker build --no-cache -t suggest:latest .
 
 test:
-	go test ./pkg/...
+	go test -v ./pkg/...
+
+download:
+	go mod download
+	go mod vendor
 
 clean:
 	rm -rf build

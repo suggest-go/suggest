@@ -86,14 +86,7 @@ var indexCmd = &cobra.Command{
 
 // readConfigs retrieves a list of index descriptions from the configPath
 func readConfigs() ([]suggest.IndexDescription, error) {
-	f, err := os.Open(configPath)
-
-	if err != nil {
-		return nil, fmt.Errorf("Could not open config file %s", err)
-	}
-
-	defer f.Close()
-	configs, err := suggest.ReadConfigs(f)
+	configs, err := suggest.ReadConfigs(configPath)
 
 	if err != nil {
 		return nil, fmt.Errorf("Invalid config file format %s", err)
@@ -161,7 +154,7 @@ func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
 // newDictionaryReader creates an adapter to Iterable interface, that scans all lines
 // from the SourcePath and creates pairs of <DocID, Value>
 func newDictionaryReader(config suggest.IndexDescription) (dictionary.Iterable, error) {
-	f, err := os.Open(config.SourcePath)
+	f, err := os.Open(config.GetSourcePath())
 
 	if err != nil {
 		return nil, fmt.Errorf("Could not open a source file %s", err)
@@ -184,7 +177,7 @@ func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) err
 		return err
 	}
 
-	directory, err := index.NewFSDirectory(config.OutputPath)
+	directory, err := index.NewFSDirectory(config.GetOutputPath())
 
 	if err != nil {
 		return err

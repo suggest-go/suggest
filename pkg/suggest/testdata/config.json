@@ -4,8 +4,8 @@
     "name": "cars",
     "nGramSize": 3,
     "alphabet": ["russian", "english", "numbers", "$"],
-    "source": "testdata/cars.dict",
-    "output": "testdata/db",
+    "source": "cars.dict",
+    "output": "db",
     "pad": "$",
     "wrap": ["$", "$"]
   }

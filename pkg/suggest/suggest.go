@@ -41,7 +41,7 @@ func (s *Service) AddIndexByDescription(description IndexDescription) error {
 
 // AddRunTimeIndex adds a new RAM search index with the given description
 func (s *Service) AddRunTimeIndex(description IndexDescription) error {
-	dictionary, err := dictionary.OpenRAMDictionary(description.SourcePath)
+	dictionary, err := dictionary.OpenRAMDictionary(description.GetSourcePath())
 
 	if err != nil {
 		return fmt.Errorf("Failed to create RAMDriver builder: %v", err)

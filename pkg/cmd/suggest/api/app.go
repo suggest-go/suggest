@@ -106,13 +106,7 @@ func (a App) writePIDFile() error {
 
 // configureService tries to retrieve index descriptions and to setup the suggest service
 func (a App) configureService(suggestService *suggest.Service) error {
-	config, err := os.Open(a.config.ConfigPath)
-	if err != nil {
-		return err
-	}
-
-	defer config.Close()
-	description, err := suggest.ReadConfigs(config)
+	description, err := suggest.ReadConfigs(a.config.ConfigPath)
 
 	if err != nil {
 		return err

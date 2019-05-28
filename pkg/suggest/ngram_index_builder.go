@@ -32,7 +32,7 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 	}
 
 	generator := index.NewGenerator(description.NGramSize)
-	directory, err := index.NewFSDirectory(description.OutputPath)
+	directory, err := index.NewFSDirectory(description.GetOutputPath())
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create fs directory: %v", err)
