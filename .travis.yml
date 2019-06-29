@@ -6,6 +6,7 @@ go:
 script:
   - env GO111MODULE=on make download
   - env GO111MODULE=on make test
+  - make vet
 
 notifications:
   email:
