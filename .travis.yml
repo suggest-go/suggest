@@ -4,8 +4,8 @@ go:
  - "1.12.x"
 
 script:
-  - make download
-  - make test
+  - env GO111MODULE=on make download
+  - env GO111MODULE=on make test
 
 notifications:
   email:
