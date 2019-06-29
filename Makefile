@@ -18,7 +18,8 @@ build-docker:
 	docker build --no-cache -t suggest:latest .
 
 test:
-	go test -v ./pkg/...
+	go test -race -v ./pkg/...
+	go vet ./pkg/...
 
 download:
 	go mod download

@@ -1,0 +1,12 @@
+language: go
+
+go:
+ - "1.12.x"
+
+script:
+  - make download
+  - make test
+
+notifications:
+  email:
+    - alldroll@gmail.com
