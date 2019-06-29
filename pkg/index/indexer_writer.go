@@ -10,6 +10,9 @@ import (
 	"github.com/alldroll/suggest/pkg/compression"
 )
 
+// IndexVersion tells that the inverted index structure has the provided below version
+const IndexVersion = "v1"
+
 // Writer creates and maintains an inverted index
 type Writer struct {
 	directory Directory
@@ -46,6 +49,7 @@ var (
 
 // header struct that store terms descriptions and indices count
 type header struct {
+	Version string
 	Indices uint32
 	Terms   []termDescription
 }
@@ -102,6 +106,7 @@ func (iw *Writer) Commit() error {
 
 	// header struct that should be loaded on Load
 	header := header{
+		Version: IndexVersion,
 		Terms:   []termDescription{},
 		Indices: uint32(len(iw.indices)),
 	}
