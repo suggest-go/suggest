@@ -15,28 +15,41 @@ func BinaryDecoder() Decoder {
 	return &binaryEnc{}
 }
 
-// Encode encodes given positing list in byte array
-func (b *binaryEnc) Encode(list []uint32) []byte {
-	bytes := make([]byte, len(list)*4)
+// Encode encodes the given positing list into the buf array
+// Returns number of elements encoded, number of bytes readed
+func (b *binaryEnc) Encode(list []uint32, buf io.Writer) (int, error) {
+	chunk := make([]byte, 4)
+	total := 0
 
-	for i, x := range list {
-		binary.LittleEndian.PutUint32(bytes[4*i:], uint32(x))
+	for _, v := range list {
+		binary.LittleEndian.PutUint32(chunk, v)
+		n, err := buf.Write(chunk)
+		total += n
+
+		if err != nil {
+			return total, err
+		}
 	}
 
-	return bytes
+	return total, nil
 }
 
-// Decode decodes given byte array to posting list
-func (b *binaryEnc) Decode(bytes []byte) []uint32 {
-	if len(bytes) < 4 {
-		return nil
+// Decode decodes the given byte array to the buf list
+// Returns a number of elements encoded
+func (b *binaryEnc) Decode(in io.Reader, buf []uint32) (n int, err error) {
+	total := 0
+	chunk := make([]byte, 4)
+
+	for {
+		n, err := in.Read(chunk)
+		total += n
+
+		if err != nil {
+			return total, err
+		}
+
+		list[i] = binary.LittleEndian.Uint32(chunk)
 	}
 
-	list := make([]uint32, len(bytes)/4)
-
-	for i := range list {
-		list[i] = binary.LittleEndian.Uint32(bytes[4*i:])
-	}
-
-	return list
+	return total, nil
 }
