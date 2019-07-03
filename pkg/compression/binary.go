@@ -43,15 +43,14 @@ func (b *binaryEnc) Decode(in io.Reader, buf []uint32) (n int, err error) {
 	total := 0
 	chunk := make([]byte, 4)
 
-	for i := 0; i < len(buf); i++ {
-		n, err := in.Read(chunk)
-		total += n
+	for ; total < len(buf); total++ {
+		_, err := in.Read(chunk)
 
 		if err != nil {
 			return total, err
 		}
 
-		buf[i] = binary.LittleEndian.Uint32(chunk)
+		buf[total] = binary.LittleEndian.Uint32(chunk)
 	}
 
 	return total, nil
