@@ -13,9 +13,7 @@ type Directory interface {
 
 // Input is a wrap for methods Read and retrieving underlying data
 type Input interface {
-	io.Reader
-	// Data returns stored bytes from the reader
-	Data() ([]byte, error)
+	io.ReaderAt
 }
 
 // Output is a wrap for method Write

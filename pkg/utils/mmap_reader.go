@@ -34,8 +34,7 @@ func NewMMapReader(filename string) (*MMapReader, error) {
 	}
 
 	r := &MMapReader{
-		data:    data,
-		readPos: 0,
+		data: data,
 	}
 
 	runtime.SetFinalizer(r, (*MMapReader).Close)
@@ -44,8 +43,7 @@ func NewMMapReader(filename string) (*MMapReader, error) {
 
 // MMapReader wraps Read methods by using mmap
 type MMapReader struct {
-	data    mmap.MMap
-	readPos int
+	data mmap.MMap
 }
 
 // Close releases unmap of the choosen region
@@ -59,22 +57,6 @@ func (r *MMapReader) Close() error {
 
 	runtime.SetFinalizer(r, nil)
 	return data.Unmap()
-}
-
-// Read reads and copies data to p
-func (r *MMapReader) Read(p []byte) (int, error) {
-	if r.data == nil {
-		return 0, ErrMMapIsClosed
-	}
-
-	if r.readPos == len(r.data) {
-		return 0, io.EOF
-	}
-
-	n, err := r.ReadAt(p, int64(r.readPos))
-	r.readPos += n
-
-	return n, err
 }
 
 // ReadAt reads and copies data to p from the offset off
@@ -93,9 +75,4 @@ func (r *MMapReader) ReadAt(p []byte, off int64) (int, error) {
 	}
 
 	return n, nil
-}
-
-// Data returns the mapped object
-func (r *MMapReader) Data() ([]byte, error) {
-	return r.data, nil
 }

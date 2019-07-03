@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/alldroll/suggest/pkg/compression"
 )
@@ -49,6 +50,8 @@ type invertedIndexStructure map[Term]struct {
 	size uint32
 	// position - is file position, where positing list is stored
 	position uint32
+	// length - posting list length
+	length uint32
 }
 
 // NewInvertedIndex returns new instance of InvertedIndex that is stored on disc
@@ -70,17 +73,20 @@ type invertedIndexImpl struct {
 // Get returns corresponding posting list for given term
 func (i *invertedIndexImpl) Get(term Term) (PostingList, error) {
 	s, ok := i.m[term]
+
 	if !ok {
 		return nil, nil
 	}
 
-	buf, err := i.reader.Data()
+	postingList := make(PostingList, s.length)
+	reader := io.NewSectionReader(i.reader, int64(s.position), int64(s.size))
+	n, err := i.decoder.Decode(reader, postingList)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read data from index.Input: %v", err)
+		return nil, fmt.Errorf("Failed to decode posting list: %v", err)
 	}
 
-	return i.decoder.Decode(buf[s.position : s.position+s.size]), nil
+	return postingList[:n], nil
 }
 
 // Has checks is there is given term in inverted index

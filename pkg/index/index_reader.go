@@ -3,6 +3,8 @@ package index
 import (
 	"encoding/gob"
 	"fmt"
+	"io"
+	"math"
 	"runtime"
 
 	"github.com/alldroll/suggest/pkg/compression"
@@ -65,7 +67,7 @@ func (ir *Reader) readHeader() (*header, error) {
 	}
 
 	header := &header{}
-	decoder := gob.NewDecoder(headerReader)
+	decoder := gob.NewDecoder(io.NewSectionReader(headerReader, 0, math.MaxInt64))
 
 	if err = decoder.Decode(header); err != nil {
 		return nil, fmt.Errorf("Failed to retrieve header: %v", err)
@@ -90,7 +92,7 @@ func (ir *Reader) createInvertedIndexIndices(header *header, documentReader Inpu
 
 	// here we create list of invertedIndexStructure
 	for _, description := range header.Terms {
-		if description.PostingListSize == 0 {
+		if description.PostingListBytesSize == 0 {
 			invertedIndexStructureIndices[description.Indice] = nil
 			continue
 		}
@@ -102,7 +104,12 @@ func (ir *Reader) createInvertedIndexIndices(header *header, documentReader Inpu
 		invertedIndexStructureIndices[description.Indice][description.Term] = struct {
 			size     uint32
 			position uint32
-		}{size: description.PostingListSize, position: description.PostingListPosition}
+			length   uint32
+		}{
+			size:     description.PostingListBytesSize,
+			position: description.PostingListPosition,
+			length:   description.PostingListLen,
+		}
 	}
 
 	// create NewInvertedIndex for given indice

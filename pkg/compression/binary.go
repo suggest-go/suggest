@@ -1,6 +1,9 @@
 package compression
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"io"
+)
 
 // binaryEnc encode each position in 4 bytes, decode 4 byte to 1 position
 type binaryEnc struct{}
@@ -40,7 +43,7 @@ func (b *binaryEnc) Decode(in io.Reader, buf []uint32) (n int, err error) {
 	total := 0
 	chunk := make([]byte, 4)
 
-	for {
+	for i := 0; i < len(buf); i++ {
 		n, err := in.Read(chunk)
 		total += n
 
@@ -48,7 +51,7 @@ func (b *binaryEnc) Decode(in io.Reader, buf []uint32) (n int, err error) {
 			return total, err
 		}
 
-		list[i] = binary.LittleEndian.Uint32(chunk)
+		buf[i] = binary.LittleEndian.Uint32(chunk)
 	}
 
 	return total, nil

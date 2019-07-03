@@ -1,6 +1,10 @@
 package compression
 
-import "encoding/binary"
+import (
+	"bufio"
+	"io"
+	"sync"
+)
 
 // VBEncoder returns new instance of vbEnc that encodes posting list using
 // delta encoding
@@ -20,18 +24,16 @@ type vbEnc struct{}
 // Encode encodes the given positing list into the buf array
 // Returns number of elements encoded, number of bytes readed
 func (b *vbEnc) Encode(list []uint32, buf io.Writer) (int, error) {
-	chunk := make([]uint32, 5)
 
-	binary.LittleEndian.PutUint32(chunk, uint32(len(list)))
-	n, err := buf.Write(chunk)
+	var (
+		prev  = uint32(0)
+		delta = uint32(0)
+		total = 0
+	)
 
-	if err != nil {
-		return n, err
-	}
+	chunk := make([]byte, 5)
 
-	total := n
-
-	for i, v := range list {
+	for _, v := range list {
 		j := 0
 		delta = v - prev
 		prev = v
@@ -45,122 +47,60 @@ func (b *vbEnc) Encode(list []uint32, buf io.Writer) (int, error) {
 		j++
 
 		n, err := buf.Write(chunk[:j])
+		total += n
 
 		if err != nil {
-			return n, err
-		}
+			if err == io.EOF {
+				return total, nil
+			}
 
-		total += n
+			return total, err
+		}
 	}
 
-	i, j, prev, delta := 0, 4, uint32(0), uint32(0)
-	binary.LittleEndian.PutUint32(buf, uint32(len(list)))
+	return total, nil
+}
 
-	for i < len(list) && j < len(buf); i++
-		v := list[i]
-		delta = v - prev
-		prev = v
-
-		for ; delta > 0x7F; j++ {
-			buf[j] = 0x80 | uint8(delta&0x7F)
-			delta >>= 7
-		}
-
-		buf[j] = uint8(delta)
-		j++
-	}
-
-	return i, j
+var blackHolePool = sync.Pool{
+	New: func() interface{} {
+		return bufio.NewReader(nil)
+	},
 }
 
 // inspired by protobuf/master/proto/decode.go
 //
 // Decode decodes the given byte array to the buf list
-// Returns number of bytes readed, number of elements encoded
-func (b *vbEnc) Decode(list []byte, buf []uint32) (int, int)
-	if len(list) < 4 {
-		return 0, 0
-	}
-
+// Returns a number of elements encoded
+func (b *vbEnc) Decode(in io.Reader, buf []uint32) (int, error) {
 	var (
-		v    = uint32(0)
-		prev = uint32(0)
-		s    = uint32(0)
-		i    = 4
-		j    = 0
+		v      = uint32(0)
+		prev   = uint32(0)
+		s      = uint32(0)
+		total  = 0
+		reader = blackHolePool.Get().(*bufio.Reader)
 	)
 
-	listLen := int(binary.LittleEndian.Uint32(list))
+	defer blackHolePool.Put(reader)
+	reader.Reset(in)
 
-	if listLen < 10 {
-		return b.vbDecodeSlow(list[4:], buf)
-	}
+	for {
+		b, err := reader.ReadByte()
 
-	for i < len(list) && j < len(buf) {
-		if list[i] < 0x80 {
-			v = uint32(list[i])
-			j++
-			goto done
+		if err != nil {
+			if err == io.EOF {
+				return total, nil
+			}
+
+			return total, err
 		}
 
-		// we already checked the first byte
-		v = uint32(list[i]) - 0x80
-		i++
-
-		s = uint32(list[i])
-		i++
-		v += s << 7
-		if s&0x80 == 0 {
-			goto done
-		}
-		v -= 0x80 << 7
-
-		s = uint32(list[i])
-		i++
-		v += s << 14
-		if s&0x80 == 0 {
-			goto done
-		}
-		v -= 0x80 << 14
-
-		s = uint32(list[i])
-		i++
-		v += s << 21
-		if s&0x80 == 0 {
-			goto done
-		}
-		v -= 0x80 << 21
-
-		s = uint32(list[i])
-		i++
-		v += s << 28
-
-	done:
-		prev = v + prev
-		list[j] = prev
-		j++
-	}
-
-	return j, i
-}
-
-// vbDecodeSlow decodes given byte array to posting list
-func (b *vbEnc) vbDecodeSlow(list []byte, buf []uint32) (int, int) {
-	var (
-		v    = uint32(0)
-		prev = uint32(0)
-		s    = uint32(0)
-		i    = 0
-	)
-
-	for _, b := range bytes {
 		v |= uint32(b&0x7f) << s
 
 		if b < 0x80 {
 			prev = v + prev
-			buf[i] = prev
+			buf[total] = prev
 			s, v = 0, 0
-			i++
+			total++
 		} else {
 			s += 7
 		}

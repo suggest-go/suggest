@@ -11,7 +11,7 @@ import (
 )
 
 // IndexVersion tells that the inverted index structure has the provided below version
-const IndexVersion = "v1"
+const IndexVersion = "v2"
 
 // Writer creates and maintains an inverted index
 type Writer struct {
@@ -56,10 +56,11 @@ type header struct {
 
 // termDescription stores term, indice, postingList size and postingList file position
 type termDescription struct {
-	Term                Term
-	Indice              uint32
-	PostingListSize     uint32
-	PostingListPosition uint32
+	Term                 Term
+	Indice               uint32
+	PostingListBytesSize uint32
+	PostingListPosition  uint32
+	PostingListLen       uint32
 }
 
 // AddDocument adds a new documents with the given fields
@@ -123,20 +124,21 @@ func (iw *Writer) Commit() error {
 			}
 
 			// Encode the given posting list into a byte slice
-			value := iw.encoder.Encode(postingList)
+			n, err := iw.encoder.Encode(postingList, documentListBuf)
 
-			header.Terms = append(header.Terms, termDescription{
-				Term:                term,
-				Indice:              uint32(indice),
-				PostingListSize:     uint32(len(value)),
-				PostingListPosition: uint32(mapValueOffset),
-			})
-
-			if _, err = documentListBuf.Write(value); err != nil {
+			if err != nil {
 				return err
 			}
 
-			mapValueOffset += int64(len(value))
+			header.Terms = append(header.Terms, termDescription{
+				Term:                 term,
+				Indice:               uint32(indice),
+				PostingListBytesSize: uint32(n),
+				PostingListPosition:  uint32(mapValueOffset),
+				PostingListLen:       uint32(len(postingList)),
+			})
+
+			mapValueOffset += int64(n)
 		}
 	}
 
