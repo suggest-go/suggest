@@ -24,17 +24,16 @@ type vbEnc struct{}
 // Encode encodes the given positing list into the buf array
 // Returns number of elements encoded, number of bytes readed
 func (b *vbEnc) Encode(list []uint32, buf io.Writer) (int, error) {
-
 	var (
 		prev  = uint32(0)
 		delta = uint32(0)
 		total = 0
+		chunk = make([]byte, 5)
+		j     = 0
 	)
 
-	chunk := make([]byte, 5)
-
 	for _, v := range list {
-		j := 0
+		j = 0
 		delta = v - prev
 		prev = v
 
@@ -61,9 +60,10 @@ func (b *vbEnc) Encode(list []uint32, buf io.Writer) (int, error) {
 	return total, nil
 }
 
-var blackHolePool = sync.Pool{
+// readerPool reduces allocation of bufio.Reader object
+var readerPool = sync.Pool{
 	New: func() interface{} {
-		return bufio.NewReader(nil)
+		return bufio.NewReaderSize(nil, 128)
 	},
 }
 
@@ -76,14 +76,14 @@ func (b *vbEnc) Decode(in io.Reader, buf []uint32) (int, error) {
 		v      = uint32(0)
 		prev   = uint32(0)
 		s      = uint32(0)
+		reader = readerPool.Get().(*bufio.Reader)
 		total  = 0
-		reader = blackHolePool.Get().(*bufio.Reader)
 	)
 
-	defer blackHolePool.Put(reader)
+	defer readerPool.Put(reader)
 	reader.Reset(in)
 
-	for {
+	for total < len(buf) {
 		b, err := reader.ReadByte()
 
 		if err != nil {
@@ -105,4 +105,6 @@ func (b *vbEnc) Decode(in io.Reader, buf []uint32) (int, error) {
 			s += 7
 		}
 	}
+
+	return total, nil
 }
