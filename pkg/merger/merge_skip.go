@@ -46,19 +46,25 @@ func MergeSkip() ListMerger {
 type mergeSkip struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (ms *mergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	var (
 		lenRid      = len(rid)
 		h           = make(recordHeap, 0, lenRid)
 		poppedItems = make([]*record, 0, lenRid)
 		tops        = make([]record, lenRid)
-		result      = make([]*MergeCandidate, 0, lenRid)
+		result      = make([]MergeCandidate, 0, lenRid)
 		item        *record
 	)
 
 	for i := 0; i < lenRid; i++ {
 		item = &tops[i]
-		item.ridID, item.position = i, rid[i][0]
+		r, err := rid[i].Get()
+
+		if err != nil && err != ErrIteratorIsNotDereferencable {
+			return nil, err
+		}
+
+		item.ridID, item.position = i, r
 		h.Push(item)
 	}
 
@@ -78,17 +84,22 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		n := len(poppedItems)
 
 		if n >= threshold {
-			result = append(result, &MergeCandidate{
+			result = append(result, MergeCandidate{
 				Position: t.position,
 				Overlap:  n,
 			})
 
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
-				if len(cur) > 1 {
-					cur = cur[1:]
-					rid[item.ridID] = cur
-					item.position = cur[0]
+
+				if cur.HasNext() {
+					r, err := cur.Next()
+
+					if err != nil {
+						return nil, err
+					}
+
+					item.position = r
 					heap.Push(&h, item)
 				}
 			}
@@ -106,21 +117,24 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
-				if len(cur) == 0 {
+
+				if cur.Len() == 0 {
 					continue
 				}
 
-				r := lowerBound(cur, topPos)
+				r, err := cur.LowerBound(topPos)
 
-				if r != -1 {
-					cur = cur[r:]
-					rid[item.ridID] = cur
-					item.position = cur[0]
+				if err != nil && err != ErrIteratorIsNotDereferencable {
+					return nil, err
+				}
+
+				if err == nil {
+					item.position = r
 					heap.Push(&h, item)
 				}
 			}
 		}
 	}
 
-	return result
+	return result, nil
 }

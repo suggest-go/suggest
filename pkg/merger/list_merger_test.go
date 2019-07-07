@@ -15,12 +15,21 @@ func TestMerge(t *testing.T) {
 
 	for _, merger := range mergers {
 		for _, c := range dataProvider() {
-			actual := make(map[int]RidItem, len(c.rid))
+			actual := make(map[int][]uint32, len(c.rid))
+			rid := make(Rid, 0, len(c.rid))
 
-			for _, candidate := range merger.Merge(c.rid, c.t) {
-				if candidate.Overlap >= c.t {
-					actual[candidate.Overlap] = append(actual[candidate.Overlap], candidate.Position)
-				}
+			for _, slice := range c.rid {
+				rid = append(rid, NewSliceIterator(slice))
+			}
+
+			candidates, err := merger.Merge(rid, c.t)
+
+			if err != nil {
+				t.Errorf("Unexpected error occurs: %v", err)
+			}
+
+			for _, candidate := range candidates {
+				actual[candidate.Overlap] = append(actual[candidate.Overlap], candidate.Position)
 			}
 
 			if !reflect.DeepEqual(actual, c.expected) {
@@ -31,52 +40,52 @@ func TestMerge(t *testing.T) {
 }
 
 type oneCase struct {
-	rid      Rid
+	rid      [][]uint32
 	t        int
-	expected map[int]RidItem
+	expected map[int][]uint32
 }
 
 func dataProvider() []oneCase {
 	return []oneCase{
 		{
-			Rid{
+			[][]uint32{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
 				{2},
 			},
 			2,
-			map[int]RidItem{
+			map[int][]uint32{
 				2: {1, 3},
 				4: {2},
 			},
 		},
 		{
-			Rid{
+			[][]uint32{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
 				{2},
 			},
 			3,
-			map[int]RidItem{
+			map[int][]uint32{
 				4: {2},
 			},
 		},
 		{
-			Rid{
+			[][]uint32{
 				{1, 2, 3},
 				{1, 2},
 				{2, 3},
 				{2},
 			},
 			4,
-			map[int]RidItem{
+			map[int][]uint32{
 				4: {2},
 			},
 		},
 		{
-			Rid{
+			[][]uint32{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -84,12 +93,12 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			4,
-			map[int]RidItem{
+			map[int][]uint32{
 				4: {50},
 			},
 		},
 		{
-			Rid{
+			[][]uint32{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -97,12 +106,12 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			3,
-			map[int]RidItem{
+			map[int][]uint32{
 				4: {50},
 			},
 		},
 		{
-			Rid{
+			[][]uint32{
 				{1, 2, 3, 5, 7, 10, 30, 50},
 				{10, 11, 13, 16, 50, 60, 131},
 				{40, 50, 60},
@@ -110,7 +119,7 @@ func dataProvider() []oneCase {
 				{100, 200},
 			},
 			2,
-			map[int]RidItem{
+			map[int][]uint32{
 				2: {10, 60, 100},
 				4: {50},
 			},

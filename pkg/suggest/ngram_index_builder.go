@@ -95,6 +95,6 @@ func (b *builderImpl) Build() (NGramIndex, error) {
 		b.cleaner,
 		b.generator,
 		invertedIndices,
-		merger.CPMerge(),
+		index.NewSearcher(merger.CPMerge()),
 	), nil
 }

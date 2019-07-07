@@ -22,10 +22,10 @@ type divideSkip struct {
 }
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (ds *divideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (ds *divideSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	sort.Sort(sort.Reverse(rid))
 
-	M := float64(len(rid[0]))
+	M := float64(rid[0].Len())
 	l := int(float64(threshold) / (ds.mu*math.Log(M) + 1))
 
 	lLong := rid[:l]
@@ -35,18 +35,28 @@ func (ds *divideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		return ds.merger.Merge(rid, threshold)
 	}
 
+	candidates, err := ds.merger.Merge(lShort, threshold-l)
+
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		position   uint32
-		candidates = ds.merger.Merge(lShort, threshold-l)
-		result     = make([]*MergeCandidate, 0, len(candidates))
+		result     = make([]MergeCandidate, 0, len(candidates))
 	)
 
 	for _, c := range candidates {
 		position = c.Position
 
 		for _, longList := range lLong {
-			idx := lowerBound(longList, position)
-			if idx != -1 && longList[idx] == position {
+			r, err := longList.LowerBound(position)
+
+			if err != nil && err != ErrIteratorIsNotDereferencable {
+				return nil, err
+			}
+
+			if err == nil && r == position {
 				c.Overlap++
 			}
 		}
@@ -56,5 +66,5 @@ func (ds *divideSkip) Merge(rid Rid, threshold int) []*MergeCandidate {
 		}
 	}
 
-	return result
+	return result, nil
 }

@@ -37,13 +37,13 @@ func TestSuggestAuto(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	actual := make(index.PostingList, 0, len(candidates))
+	actual := make([]index.Position, 0, len(candidates))
 
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
 	}
 
-	expected := index.PostingList{
+	expected := []index.Position{
 		2,
 		0,
 	}
@@ -158,12 +158,13 @@ func TestAutoComplete(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	actual := make(index.PostingList, 0, len(candidates))
+	actual := make([]index.Position, 0, len(candidates))
+
 	for _, candidate := range candidates {
 		actual = append(actual, candidate.Key)
 	}
 
-	expected := index.PostingList{
+	expected := []index.Position{
 		0, 1, 2, 3, 4,
 	}
 

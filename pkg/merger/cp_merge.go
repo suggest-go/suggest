@@ -12,37 +12,65 @@ func CPMerge() ListMerger {
 type cpMerge struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	lenRid := len(rid)
-	minQueries := lenRid - threshold + 1
-	candidates := make([]*MergeCandidate, 0, lenRid)
 
 	if threshold > lenRid {
-		return candidates
+		return []MergeCandidate{}, nil
 	}
+
+	minQueries := lenRid - threshold + 1
+	candidates := make([]MergeCandidate, 0, lenRid)
+	tmp := make([]MergeCandidate, 0, lenRid)
+	j, endMergeCandidate := 0, 0
 
 	sort.Sort(rid)
 
-	tmp := make([]*MergeCandidate, 0, lenRid)
-	j, k, endMergeCandidate, endRid := 0, 0, 0, 0
-
 	for _, list := range rid[:minQueries] {
-		j, k = 0, 0
-		tmp = tmp[:0]
-		endMergeCandidate, endRid = len(candidates), len(list)
+		isValid := true
+		current, err := list.Get()
 
-		for j < endMergeCandidate || k < endRid {
-			if j >= endMergeCandidate || (k < endRid && candidates[j].Position > list[k]) {
-				tmp = append(tmp, &MergeCandidate{list[k], 1})
-				k++
-			} else if k >= endRid || (j < endMergeCandidate && candidates[j].Position < list[k]) {
+		if err != nil {
+			if err == ErrIteratorIsNotDereferencable {
+				isValid = false
+			} else {
+				return nil, err
+			}
+		}
+
+		tmp = tmp[:0]
+		j, endMergeCandidate = 0, len(candidates)
+
+		for j < endMergeCandidate || isValid {
+			if j >= endMergeCandidate || (isValid && candidates[j].Position > current) {
+				tmp = append(tmp, MergeCandidate{current, 1})
+
+				if list.HasNext() {
+					current, err = list.Next()
+
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					isValid = false
+				}
+			} else if !isValid || (j < endMergeCandidate && candidates[j].Position < current) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {
 				candidates[j].Overlap++
 				tmp = append(tmp, candidates[j])
 				j++
-				k++
+
+				if list.HasNext() {
+					current, err = list.Next()
+
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					isValid = false
+				}
 			}
 		}
 
@@ -50,21 +78,23 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 	}
 
 	if len(candidates) == 0 {
-		return candidates
+		return candidates, nil
 	}
 
 	for i := minQueries; i < lenRid; i++ {
 		tmp = tmp[:0]
 
 		for _, c := range candidates {
-			j := lowerBound(rid[i], c.Position)
+			current, err := rid[i].LowerBound(c.Position)
 
-			if j != -1 {
-				if rid[i][j] == c.Position {
+			if err != nil && err != ErrIteratorIsNotDereferencable {
+				return nil, nil
+			}
+
+			if err != ErrIteratorIsNotDereferencable {
+				if current == c.Position {
 					c.Overlap++
 				}
-
-				rid[i] = rid[i][j:]
 			}
 
 			if c.Overlap+(lenRid-i-1) >= threshold {
@@ -79,5 +109,5 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) []*MergeCandidate {
 		}
 	}
 
-	return candidates
+	return candidates, nil
 }

@@ -11,29 +11,57 @@ func ScanCount() ListMerger {
 type scanCount struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (lm *scanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
+func (lm *scanCount) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	size := len(rid)
-	candidates := make([]*MergeCandidate, 0, size)
-	tmp := make([]*MergeCandidate, 0, size)
-	j, k, endMergeCandidate, endRid := 0, 0, 0, 0
+	candidates := make([]MergeCandidate, 0, size)
+	tmp := make([]MergeCandidate, 0, size)
+	j, endMergeCandidate := 0, 0
 
 	for _, list := range rid {
-		j, k = 0, 0
-		tmp = tmp[:0]
-		endMergeCandidate, endRid = len(candidates), len(list)
+		isValid := true
+		current, err := list.Get()
 
-		for j < endMergeCandidate || k < endRid {
-			if j >= endMergeCandidate || (k < endRid && candidates[j].Position > list[k]) {
-				tmp = append(tmp, &MergeCandidate{list[k], 1})
-				k++
-			} else if k >= endRid || (j < endMergeCandidate && candidates[j].Position < list[k]) {
+		if err != nil {
+			if err == ErrIteratorIsNotDereferencable {
+				isValid = false
+			} else {
+				return nil, err
+			}
+		}
+
+		tmp = tmp[:0]
+		j, endMergeCandidate = 0, len(candidates)
+
+		for j < endMergeCandidate || isValid {
+			if j >= endMergeCandidate || (isValid && candidates[j].Position > current) {
+				tmp = append(tmp, MergeCandidate{current, 1})
+
+				if list.HasNext() {
+					current, err = list.Next()
+
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					isValid = false
+				}
+			} else if !isValid || (j < endMergeCandidate && candidates[j].Position < current) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {
 				candidates[j].Overlap++
 				tmp = append(tmp, candidates[j])
 				j++
-				k++
+
+				if list.HasNext() {
+					current, err = list.Next()
+
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					isValid = false
+				}
 			}
 		}
 
@@ -48,5 +76,5 @@ func (lm *scanCount) Merge(rid Rid, threshold int) []*MergeCandidate {
 		}
 	}
 
-	return tmp
+	return tmp, nil
 }
