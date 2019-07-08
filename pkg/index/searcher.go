@@ -26,34 +26,53 @@ func NewSearcher(merger merger.ListMerger) Searcher {
 	}
 }
 
-// readerPool reduces allocation of bufio.Reader object
-var ridPool = sync.Pool{
+// iteratorPool reduces allocation of iterator object
+var iteratorPool = sync.Pool{
 	New: func() interface{} {
-		rid := make([]merger.ListIterator, 30)
-
-		return &rid
+		return &postingListIterator{}
 	},
 }
 
 // Search performs search for the given index with the terms and threshold
 func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold int) ([]merger.MergeCandidate, error) {
-	rid := *(ridPool.Get().(*[]merger.ListIterator))
-	rid = rid[:0]
+	if threshold > len(terms) {
+		return []merger.MergeCandidate{}, nil
+	}
 
-	defer ridPool.Put(&rid)
+	allowedSkips := len(terms) - threshold + 1
 
-	// maybe run it concurrent?
-	// go func() { buildRid, mergeCandidates, ch <- {candidates, sizeA, sizeB}
-	// in main goroutine just collect it
 	for _, term := range terms {
-		postingList, err := invertedIndex.Get(term)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to retrieve a posting list: %v", err)
+		if allowedSkips == 0 {
+			break
 		}
 
-		if postingList != nil && postingList.Len() > 0 {
-			rid = append(rid, postingList)
+		if !invertedIndex.Has(term) {
+			allowedSkips--
+		}
+	}
+
+	if allowedSkips == 0 {
+		return []merger.MergeCandidate{}, nil
+	}
+
+	rid := make([]merger.ListIterator, 0, len(terms))
+
+	for _, term := range terms {
+		postingListContext, err := invertedIndex.Get(term)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve a posting list context: %v", err)
+		}
+
+		if postingListContext != nil && postingListContext.GetListSize() > 0 {
+			iterator := iteratorPool.Get().(*postingListIterator)
+			defer iteratorPool.Put(iterator)
+
+			if err := iterator.init(postingListContext); err != nil {
+				return nil, fmt.Errorf("failed to initialize a posting list iterator: %v", err)
+			}
+
+			rid = append(rid, iterator)
 		}
 	}
 

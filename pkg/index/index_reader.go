@@ -8,18 +8,19 @@ import (
 	"runtime"
 
 	"github.com/alldroll/suggest/pkg/compression"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // Reader is an entity, providing access to a search index
 type Reader struct {
-	directory Directory
+	directory store.Directory
 	config    WriterConfig
 	decoder   compression.Decoder
 }
 
 // NewIndexReader returns a new instance of a search index reader
 func NewIndexReader(
-	directory Directory,
+	directory store.Directory,
 	config WriterConfig,
 	decoder compression.Decoder,
 ) *Reader {
@@ -85,7 +86,7 @@ func (ir *Reader) readHeader() (*header, error) {
 }
 
 // createInvertedIndexIndices creates new instance of InvertedIndexIndices from the given header
-func (ir *Reader) createInvertedIndexIndices(header *header, documentReader Input) (InvertedIndexIndices, error) {
+func (ir *Reader) createInvertedIndexIndices(header *header, documentReader store.Input) (InvertedIndexIndices, error) {
 	// create inverted index structure slice
 	indices := make([]InvertedIndex, int(header.Indices))
 	invertedIndexStructureIndices := make([]invertedIndexStructure, len(indices))

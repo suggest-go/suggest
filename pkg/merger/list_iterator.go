@@ -27,22 +27,22 @@ type ListIterator interface {
 	Len() int
 }
 
-// sliceIterator represents the ListIterator interface for a slice of uint32
-type sliceIterator struct {
+// SliceIterator represents the ListIterator interface for a slice of uint32
+type SliceIterator struct {
 	slice []uint32
 	index int
 }
 
 // NewSliceIterator returns a new instance of a slice iterator
-func NewSliceIterator(slice []uint32) ListIterator {
-	return &sliceIterator{
+func NewSliceIterator(slice []uint32) *SliceIterator {
+	return &SliceIterator{
 		slice: slice,
 		index: 0,
 	}
 }
 
 // Get returns the current pointed element of the list
-func (i *sliceIterator) Get() (uint32, error) {
+func (i *SliceIterator) Get() (uint32, error) {
 	if !i.IsValid() {
 		return 0, ErrIteratorIsNotDereferencable
 	}
@@ -51,17 +51,17 @@ func (i *sliceIterator) Get() (uint32, error) {
 }
 
 // IsValid returns true if the given iterator is dereferencable, otherwise returns false
-func (i* sliceIterator) IsValid() bool {
+func (i *SliceIterator) IsValid() bool {
 	return i.index < len(i.slice)
 }
 
 // HasNext tells if the given iterator can be moved to the next record
-func (i *sliceIterator) HasNext() bool {
+func (i *SliceIterator) HasNext() bool {
 	return i.index+1 < len(i.slice)
 }
 
 // Next moves the given iterator to the next record
-func (i *sliceIterator) Next() (uint32, error) {
+func (i *SliceIterator) Next() (uint32, error) {
 	if !i.HasNext() {
 		return 0, ErrIteratorIsNotDereferencable
 	}
@@ -73,7 +73,7 @@ func (i *sliceIterator) Next() (uint32, error) {
 
 // LowerBound moves the given iterator to the smallest record x
 // in corresponding list such that x >= to
-func (i *sliceIterator) LowerBound(to uint32) (uint32, error) {
+func (i *SliceIterator) LowerBound(to uint32) (uint32, error) {
 	if !i.IsValid() {
 		return 0, ErrIteratorIsNotDereferencable
 	}
@@ -92,6 +92,12 @@ func (i *sliceIterator) LowerBound(to uint32) (uint32, error) {
 }
 
 // Len returns the actual size of the list
-func (i *sliceIterator) Len() int {
+func (i *SliceIterator) Len() int {
 	return len(i.slice)
+}
+
+// Reset performs reset operation with the provided slice
+func (i *SliceIterator) Reset(slice []uint32) {
+	i.slice = slice
+	i.index = 0
 }

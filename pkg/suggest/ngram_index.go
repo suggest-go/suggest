@@ -132,24 +132,6 @@ func (n *nGramIndexImpl) fuzzySearch(
 				continue
 			}
 
-			// maximum allowable nGram miss count
-			allowedSkips := sizeA - threshold + 1
-
-			for _, term := range set {
-				if allowedSkips == 0 {
-					break
-				}
-
-				if !invertedIndex.Has(term) {
-					allowedSkips--
-				}
-			}
-
-			// no reason to continue, we have already reached all allowed skips
-			if allowedSkips == 0 {
-				continue
-			}
-
 			candidates, err := n.searcher.Search(invertedIndex, set, threshold)
 
 			if err != nil {
@@ -170,13 +152,6 @@ func (n *nGramIndexImpl) fuzzySearch(
 func (n *nGramIndexImpl) autoComplete(query string, selector TopKSelector) ([]Candidate, error) {
 	set := n.generator.Generate(query)
 	invertedIndex := n.indices.GetWholeIndex()
-
-	for _, term := range set {
-		if !invertedIndex.Has(term) {
-			return []Candidate{}, nil
-		}
-	}
-
 	candidates, err := n.searcher.Search(invertedIndex, set, len(set))
 
 	if err != nil {

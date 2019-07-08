@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"github.com/alldroll/suggest/pkg/compression"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // IndexVersion tells that the inverted index structure has the provided below version
@@ -15,7 +16,7 @@ const IndexVersion = "v2"
 
 // Writer creates and maintains an inverted index
 type Writer struct {
-	directory Directory
+	directory store.Directory
 	config    WriterConfig
 	encoder   compression.Encoder
 	indices   Indices
@@ -30,7 +31,7 @@ type WriterConfig struct {
 
 // NewIndexWriter returns new instance of a index writer
 func NewIndexWriter(
-	directory Directory,
+	directory store.Directory,
 	config WriterConfig,
 	encoder compression.Encoder,
 ) *Writer {

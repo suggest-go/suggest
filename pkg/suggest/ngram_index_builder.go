@@ -7,6 +7,7 @@ import (
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
 	"github.com/alldroll/suggest/pkg/merger"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // Builder is the entity that is responsible for tuning and creating a NGramIndex
@@ -32,7 +33,7 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 	}
 
 	generator := index.NewGenerator(description.NGramSize)
-	directory, err := index.NewFSDirectory(description.GetOutputPath())
+	directory, err := store.NewFSDirectory(description.GetOutputPath())
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create fs directory: %v", err)
@@ -59,7 +60,7 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 		return nil, fmt.Errorf("Failed to create cleaner: %v", err)
 	}
 
-	directory := index.NewRAMDirectory()
+	directory := store.NewRAMDirectory()
 	generator := index.NewGenerator(description.NGramSize)
 	writerConfig := description.CreateWriterConfig()
 	indexWriter := index.NewIndexWriter(

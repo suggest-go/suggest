@@ -17,6 +17,7 @@ import (
 	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
+	"github.com/alldroll/suggest/pkg/store"
 	"github.com/alldroll/suggest/pkg/suggest"
 )
 
@@ -177,7 +178,7 @@ func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) err
 		return err
 	}
 
-	directory, err := index.NewFSDirectory(config.GetOutputPath())
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
 
 	if err != nil {
 		return err

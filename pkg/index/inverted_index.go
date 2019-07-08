@@ -1,10 +1,8 @@
 package index
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/alldroll/suggest/pkg/compression"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 type (
@@ -22,7 +20,7 @@ type (
 // references to documents for each term
 type InvertedIndex interface {
 	// Get returns corresponding posting list for given term
-	Get(term Term) (PostingListIterator, error)
+	Get(term Term) (PostingListContext, error)
 	// Has checks is there is given term in inverted index
 	Has(term Term) bool
 }
@@ -40,7 +38,7 @@ type invertedIndexStructure map[Term]struct {
 
 // NewInvertedIndex returns new instance of InvertedIndex that is stored on disc
 func NewInvertedIndex(
-	reader Input,
+	reader store.Input,
 	decoder compression.Decoder,
 	table invertedIndexStructure,
 ) InvertedIndex {
@@ -53,28 +51,30 @@ func NewInvertedIndex(
 
 // invertedIndex implements InvertedIndex interface
 type invertedIndex struct {
-	reader  Input
+	reader  store.Input
 	decoder compression.Decoder
 	table   invertedIndexStructure
 }
 
 // Get returns corresponding posting list for given term
-func (i *invertedIndex) Get(term Term) (PostingListIterator, error) {
+func (i *invertedIndex) Get(term Term) (PostingListContext, error) {
 	s, ok := i.table[term]
 
 	if !ok {
 		return nil, nil
 	}
 
-	postingList := make([]Position, s.length)
-	reader := io.NewSectionReader(i.reader, int64(s.position), int64(s.size))
-	n, err := i.decoder.Decode(reader, postingList)
+	reader, err := i.reader.Slice(int64(s.position), int64(s.size))
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to decode posting list: %v", err)
+		return nil, err
 	}
 
-	return NewPostingListIterator(postingList[:n]), nil
+	return &postingListContext{
+		listSize: int(s.length),
+		reader:   reader,
+		decoder:  i.decoder,
+	}, nil
 }
 
 // Has checks is there is given term in inverted index

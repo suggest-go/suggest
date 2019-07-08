@@ -76,12 +76,18 @@ func (b *vbEnc) Decode(in io.Reader, buf []uint32) (int, error) {
 		v      = uint32(0)
 		prev   = uint32(0)
 		s      = uint32(0)
-		reader = readerPool.Get().(*bufio.Reader)
 		total  = 0
+		reader io.ByteReader
 	)
 
-	defer readerPool.Put(reader)
-	reader.Reset(in)
+	if byteReader, ok := in.(io.ByteReader); ok {
+		reader = byteReader
+	} else {
+		r := readerPool.Get().(*bufio.Reader)
+		defer readerPool.Put(r)
+		r.Reset(in)
+		reader = r
+	}
 
 	for total < len(buf) {
 		b, err := reader.ReadByte()

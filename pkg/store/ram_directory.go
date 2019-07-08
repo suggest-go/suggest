@@ -1,4 +1,4 @@
-package index
+package store
 
 import (
 	"bytes"
@@ -33,6 +33,10 @@ func (rd *ramDirectory) OpenInput(name string) (Input, error) {
 		return nil, fmt.Errorf("Failed to open input reader: there is no such input with the name %v", name)
 	}
 
-	buf := rd.files[name].Bytes()
-	return bytes.NewReader(buf), nil
+	data := rd.files[name].Bytes()
+
+	return &byteInput{
+		buf:    data,
+		Reader: bytes.NewReader(data),
+	}, nil
 }

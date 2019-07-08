@@ -29,6 +29,7 @@ func NewMMapReader(filename string) (*MMapReader, error) {
 	defer file.Close()
 
 	data, err := mmap.Map(file, mmap.RDONLY, 0)
+
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +39,7 @@ func NewMMapReader(filename string) (*MMapReader, error) {
 	}
 
 	runtime.SetFinalizer(r, (*MMapReader).Close)
+
 	return r, nil
 }
 
@@ -56,6 +58,7 @@ func (r *MMapReader) Close() error {
 	r.data = nil
 
 	runtime.SetFinalizer(r, nil)
+
 	return data.Unmap()
 }
 
@@ -70,9 +73,19 @@ func (r *MMapReader) ReadAt(p []byte, off int64) (int, error) {
 	}
 
 	n := copy(p, r.data[off:])
+
 	if n < len(p) {
 		return n, io.EOF
 	}
 
 	return n, nil
+}
+
+// Bytes returns a mapped region of data
+func (r *MMapReader) Bytes() ([]byte, error) {
+	if r.data == nil {
+		return nil, ErrMMapIsClosed
+	}
+
+	return r.data, nil
 }

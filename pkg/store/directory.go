@@ -1,6 +1,4 @@
-package index
-
-import "io"
+package store
 
 // Directory is a flat list of files.
 // Inspired by org.apache.lucene.store.Directory
@@ -9,14 +7,4 @@ type Directory interface {
 	CreateOutput(name string) (Output, error)
 	// OpenInput returns a reader for the given name
 	OpenInput(name string) (Input, error)
-}
-
-// Input is a wrap for methods Read and retrieving underlying data
-type Input interface {
-	io.ReaderAt
-}
-
-// Output is a wrap for method Write
-type Output interface {
-	io.Writer
 }
