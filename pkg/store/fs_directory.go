@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"runtime"
@@ -66,8 +65,7 @@ func (fs *fsDirectory) OpenInput(name string) (Input, error) {
 	}
 
 	input := &byteInput{
-		buf:    data,
-		Reader: bytes.NewReader(data),
+		buf: data,
 	}
 
 	runtime.SetFinalizer(input, func(d interface{}) {

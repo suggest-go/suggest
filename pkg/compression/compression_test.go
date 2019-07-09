@@ -6,15 +6,18 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 func TestEncodeDecode(t *testing.T) {
 	instances := []struct {
+		name    string
 		encoder Encoder
 		decoder Decoder
 	}{
-		{BinaryEncoder(), BinaryDecoder()},
-		{VBEncoder(), VBDecoder()},
+		{"binary", BinaryEncoder(), BinaryDecoder()},
+		{"varint", VBEncoder(), VBDecoder()},
 	}
 
 	cases := []struct {
@@ -33,15 +36,17 @@ func TestEncodeDecode(t *testing.T) {
 			list := make([]uint32, len(c.p))
 
 			if _, err := encoder.Encode(c.p, buf); err != nil {
-				t.Errorf("Unexpected error occurs: %v", err)
+				t.Errorf("[%s] Unexpected error occurs: %v", ins.name, err)
 			}
 
-			if _, err := decoder.Decode(buf, list); err != nil {
-				t.Errorf("Unexpected error occurs: %v", err)
+			in := store.NewBytesInput(buf.Bytes())
+
+			if _, err := decoder.Decode(in, list); err != nil {
+				t.Errorf("[%s] Unexpected error occurs: %v", ins.name, err)
 			}
 
 			if !reflect.DeepEqual(list, c.p) {
-				t.Errorf("Fail, expected posting list: %v, got: %v", c.p, list)
+				t.Errorf("Fail [%s], expected posting list: %v, got: %v", ins.name, c.p, list)
 			}
 		}
 	}
@@ -72,7 +77,8 @@ func benchmarkDecode(encoder Encoder, decoder Decoder, b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		decoder.Decode(buf, list)
+		in := store.NewBytesInput(buf.Bytes())
+		decoder.Decode(in, list)
 		buf.Reset()
 	}
 }

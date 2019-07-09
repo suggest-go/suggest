@@ -137,21 +137,6 @@ func benchmarkRealExample(b *testing.B, index NGramIndex) {
 		conf.query = queries[i%qLen]
 		index.Suggest(conf)
 	}
-
-	// b.RunParallel(func(pb *testing.PB) {
-	// 	i := 0
-	// 	conf, err := NewSearchConfig("Nissan mar", 5, metric.CosineMetric(), 0.3)
-
-	// 	if err != nil {
-	// 		b.Errorf("Unexpected error: %v", err)
-	// 	}
-
-	// 	for pb.Next() {
-	// 		i++
-	// 		conf.query = queries[i%qLen]
-	// 		index.Suggest(conf)
-	// 	}
-	// })
 }
 
 func TestAutoComplete(t *testing.T) {

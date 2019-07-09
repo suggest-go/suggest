@@ -1,9 +1,8 @@
 package compression
 
 import (
-	"bufio"
+	"github.com/alldroll/suggest/pkg/store"
 	"io"
-	"sync"
 )
 
 // VBEncoder returns new instance of vbEnc that encodes posting list using
@@ -23,7 +22,7 @@ type vbEnc struct{}
 
 // Encode encodes the given positing list into the buf array
 // Returns number of elements encoded, number of bytes readed
-func (b *vbEnc) Encode(list []uint32, buf io.Writer) (int, error) {
+func (b *vbEnc) Encode(list []uint32, out store.Output) (int, error) {
 	var (
 		prev  = uint32(0)
 		delta = uint32(0)
@@ -45,7 +44,7 @@ func (b *vbEnc) Encode(list []uint32, buf io.Writer) (int, error) {
 		chunk[j] = uint8(delta)
 		j++
 
-		n, err := buf.Write(chunk[:j])
+		n, err := out.Write(chunk[:j])
 		total += n
 
 		if err != nil {
@@ -60,56 +59,30 @@ func (b *vbEnc) Encode(list []uint32, buf io.Writer) (int, error) {
 	return total, nil
 }
 
-// readerPool reduces allocation of bufio.Reader object
-var readerPool = sync.Pool{
-	New: func() interface{} {
-		return bufio.NewReaderSize(nil, 128)
-	},
-}
-
 // inspired by protobuf/master/proto/decode.go
 //
 // Decode decodes the given byte array to the buf list
 // Returns a number of elements encoded
-func (b *vbEnc) Decode(in io.Reader, buf []uint32) (int, error) {
+func (b *vbEnc) Decode(in store.Input, buf []uint32) (int, error) {
 	var (
-		v      = uint32(0)
-		prev   = uint32(0)
-		s      = uint32(0)
-		total  = 0
-		reader io.ByteReader
+		prev  = uint32(0)
+		total = 0
 	)
 
-	if byteReader, ok := in.(io.ByteReader); ok {
-		reader = byteReader
-	} else {
-		r := readerPool.Get().(*bufio.Reader)
-		defer readerPool.Put(r)
-		r.Reset(in)
-		reader = r
-	}
-
 	for total < len(buf) {
-		b, err := reader.ReadByte()
+		v, err := in.ReadVUInt32()
 
 		if err != nil {
-			if err == io.EOF {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				return total, nil
 			}
 
 			return total, err
 		}
 
-		v |= uint32(b&0x7f) << s
-
-		if b < 0x80 {
-			prev = v + prev
-			buf[total] = prev
-			s, v = 0, 0
-			total++
-		} else {
-			s += 7
-		}
+		prev += v
+		buf[total] = prev
+		total++
 	}
 
 	return total, nil

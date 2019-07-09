@@ -2,6 +2,7 @@ package compression
 
 import (
 	"encoding/binary"
+	"github.com/alldroll/suggest/pkg/store"
 	"io"
 )
 
@@ -20,13 +21,13 @@ func BinaryDecoder() Decoder {
 
 // Encode encodes the given positing list into the buf array
 // Returns number of elements encoded, number of bytes readed
-func (b *binaryEnc) Encode(list []uint32, buf io.Writer) (int, error) {
+func (b *binaryEnc) Encode(list []uint32, out store.Output) (int, error) {
 	chunk := make([]byte, 4)
 	total := 0
 
 	for _, v := range list {
 		binary.LittleEndian.PutUint32(chunk, v)
-		n, err := buf.Write(chunk)
+		n, err := out.Write(chunk)
 		total += n
 
 		if err != nil {
@@ -39,19 +40,20 @@ func (b *binaryEnc) Encode(list []uint32, buf io.Writer) (int, error) {
 
 // Decode decodes the given byte array to the buf list
 // Returns a number of elements encoded
-func (b *binaryEnc) Decode(in io.Reader, buf []uint32) (n int, err error) {
-	total := 0
-	chunk := make([]byte, 4)
-
-	for ; total < len(buf); total++ {
-		_, err := in.Read(chunk)
+func (b *binaryEnc) Decode(in store.Input, buf []uint32) (n int, err error) {
+	for ; n < len(buf); n++ {
+		v, err := in.ReadUInt32()
 
 		if err != nil {
-			return total, err
+			if err == io.EOF {
+				err = nil
+			}
+
+			return n, err
 		}
 
-		buf[total] = binary.LittleEndian.Uint32(chunk)
+		buf[n] = v
 	}
 
-	return total, nil
+	return
 }
