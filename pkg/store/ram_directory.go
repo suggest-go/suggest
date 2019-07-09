@@ -35,7 +35,5 @@ func (rd *ramDirectory) OpenInput(name string) (Input, error) {
 
 	data := rd.files[name].Bytes()
 
-	return &byteInput{
-		buf: data,
-	}, nil
+	return NewBytesInput(data), nil
 }

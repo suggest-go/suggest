@@ -22,6 +22,7 @@ var (
 // NewMMapReader returns new instance of MMapReader
 func NewMMapReader(filename string) (*MMapReader, error) {
 	file, err := os.Open(filename)
+
 	if err != nil {
 		return nil, err
 	}

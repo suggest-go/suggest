@@ -64,9 +64,7 @@ func (fs *fsDirectory) OpenInput(name string) (Input, error) {
 		return nil, fmt.Errorf("Failed to fetch content: %v", err)
 	}
 
-	input := &byteInput{
-		buf: data,
-	}
+	input := NewBytesInput(data)
 
 	runtime.SetFinalizer(input, func(d interface{}) {
 		file.Close()

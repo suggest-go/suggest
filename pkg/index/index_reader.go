@@ -3,8 +3,6 @@ package index
 import (
 	"encoding/gob"
 	"fmt"
-	"io"
-	"math"
 	"runtime"
 
 	"github.com/alldroll/suggest/pkg/compression"
@@ -68,7 +66,7 @@ func (ir *Reader) readHeader() (*header, error) {
 	}
 
 	header := &header{}
-	decoder := gob.NewDecoder(io.NewSectionReader(headerReader, 0, math.MaxInt64))
+	decoder := gob.NewDecoder(headerReader)
 
 	if err = decoder.Decode(header); err != nil {
 		return nil, fmt.Errorf("Failed to retrieve header: %v", err)
