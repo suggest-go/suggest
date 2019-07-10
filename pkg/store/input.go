@@ -7,6 +7,7 @@ type Input interface {
 	io.Reader
 	io.ReaderAt
 	io.ByteReader
+	io.Seeker
 
 	// Slice returns a slice of the given Input
 	Slice(off int64, n int64) (Input, error)

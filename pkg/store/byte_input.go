@@ -10,11 +10,15 @@ import (
 
 var (
 	// ErrUInt32Overflow is returned when an integer is too large to be represented
-	ErrUInt32Overflow = errors.New("bytesBuffer: uint32 overflow")
+	ErrUInt32Overflow = errors.New("bytesInput: uint32 overflow")
 	// ErrNegativeOffset tells that it was an attempt to get access with a negative offset
-	ErrNegativeOffset = errors.New("bytesBuffer: negative offset")
+	ErrNegativeOffset = errors.New("bytesInput: negative offset")
 	// ErrOutOfRange tells that it was an attemot to get access out of range
-	ErrOutOfRange = errors.New("bytesBuffer: try to get access out of range")
+	ErrOutOfRange = errors.New("bytesInput: try to get access out of range")
+	// TODO describe me
+	ErrInvalidWhence = errors.New("bytesInput: invalid whence")
+	// TODO describe me
+	ErrNegativePosition = errors.New("bytesInput: negative position")
 )
 
 // NewBytesInput creates a new instance of byteInput
@@ -72,6 +76,29 @@ func (r *byteInput) ReadByte() (byte, error) {
 	r.i++
 
 	return b, nil
+}
+
+func (r *byteInput) Seek(offset int64, whence int) (int64, error) {
+	var abs int64
+
+	switch whence {
+	case io.SeekStart:
+		abs = offset
+	case io.SeekCurrent:
+		abs = r.i + offset
+	case io.SeekEnd:
+		abs = int64(len(r.buf)) + offset
+	default:
+		return 0, ErrInvalidWhence
+	}
+
+	if abs < 0 {
+		return 0, ErrNegativeOffset
+	}
+
+	r.i = abs
+
+	return abs, nil
 }
 
 // Slice returns a slice of the given Input
