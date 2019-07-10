@@ -14,8 +14,6 @@ var (
 type ListIterator interface {
 	// Get returns the current pointed element of the list
 	Get() (uint32, error)
-	// IsValid returns true if the given iterator is dereferencable, otherwise returns false
-	IsValid() bool
 	// HasNext tells if the given iterator can be moved to the next record
 	HasNext() bool
 	// Next moves the given iterator to the next record
