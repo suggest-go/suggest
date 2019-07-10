@@ -30,10 +30,9 @@ func NewSearcher(merger merger.ListMerger) Searcher {
 var iteratorPool = sync.Pool{
 	New: func() interface{} {
 		return &postingListIterator{
-			sliceIterator: merger.NewSliceIterator([]Position{}),
-			index:         0,
-			size:          0,
-			current:       uint32(0),
+			index:   0,
+			size:    0,
+			current: uint32(0),
 		}
 	},
 }
