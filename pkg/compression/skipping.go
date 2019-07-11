@@ -3,7 +3,6 @@ package compression
 import (
 	"bytes"
 	"encoding/binary"
-
 	"github.com/alldroll/suggest/pkg/store"
 )
 
@@ -17,12 +16,12 @@ import (
 // gap 3
 
 //
-// size - 1  1  1  1   3    3  2   3     3   3
-// gap  - 2  0  0  0   2    0  0   0     2   0
-// star - 0  3  4  5   6   15 18  20    23  28
+// size - 1  1  1  1   2    2  1   2     2   2
+// gap  - 2  0  0  0   2    0  0   0     2   2
+// star - 0  3  4  5   6   10 12  13    15  19
 // vari - 1 12 16 72 505 9497 1 1996 11494 901
 
-// SkippingEncoder TODO describe me
+// SkippingEncoder creates a new instance of skipping encoder
 func SkippingEncoder(gap int) Encoder {
 	return &skippingEnc{
 		enc: &vbEnc{},
@@ -30,7 +29,7 @@ func SkippingEncoder(gap int) Encoder {
 	}
 }
 
-// SkippingDecoder TODO describe me
+// SkippingDecoder creates a new instance of skipping decoder
 func SkippingDecoder(gap int) Decoder {
 	return &skippingEnc{
 		gap: gap,
@@ -47,11 +46,12 @@ type skippingEnc struct {
 // Returns number of elements encoded, number of bytes readed
 func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 	var (
-		buf     = &bytes.Buffer{}
+		buf     = &bytes.Buffer{} // TODO use estimateByteNum
 		prev    = uint32(0)
 		pos     = 0
 		total   = 0
 		listLen = len(list)
+		chunk   = make([]uint32, b.gap)
 	)
 
 	for i := 0; i < listLen; i += b.gap {
@@ -61,10 +61,12 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 			j = listLen
 		}
 
-		list[i] = list[i] - prev
-		prev = list[i]
+		copy(chunk, list[i:j])
 
-		n, err := b.enc.Encode(list[i:j], buf) // 0, 3
+		chunk[0] = chunk[0] - prev
+		prev = chunk[0]
+
+		n, err := b.enc.Encode(chunk[:j-i], buf)
 
 		if err != nil {
 			return 0, err
@@ -77,12 +79,9 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 			return 0, err
 		}
 
-		_, err = buf.WriteTo(out)
-
-		if err != nil {
+		if _, err := buf.WriteTo(out); err != nil {
 			return 0, err
 		}
-
 	}
 
 	return total, nil
@@ -92,13 +91,15 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 // Returns a number of elements encoded
 func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 	var (
-		prevV = uint32(0)
-		total = 0
-		pos   = uint16(0)
+		prevV    = uint32(0)
+		total    = 0
+		prevSkip = uint32(0)
 	)
 
 	for total < len(buf) {
-		if err := binary.Read(in, binary.LittleEndian, &pos); err != nil {
+		_, err := in.ReadUInt16()
+
+		if err != nil {
 			return 0, err
 		}
 
@@ -109,12 +110,10 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 				return 0, err
 			}
 
-			if total == 0 {
-				buf[total] = v
+			if i == 0 {
+				buf[total] = prevSkip + v
 				prevV = v
-			} else if i == 0 {
-				buf[total] = buf[total-b.gap] + v
-				prevV = v
+				prevSkip = v
 			} else {
 				buf[total] = prevV + v
 				prevV = buf[total]
@@ -125,4 +124,25 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 	}
 
 	return total, nil
+}
+
+// estimateByteNum returns bytes num required for encoding given uint32
+func estimateByteNum(v uint32) int {
+	if (1 << 7) > v {
+		return 1
+	}
+
+	if (1 << 14) > v {
+		return 2
+	}
+
+	if (1 << 21) > v {
+		return 3
+	}
+
+	if (1 << 28) > v {
+		return 4
+	}
+
+	return 5
 }

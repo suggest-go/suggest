@@ -15,10 +15,8 @@ var (
 	ErrNegativeOffset = errors.New("bytesInput: negative offset")
 	// ErrOutOfRange tells that it was an attemot to get access out of range
 	ErrOutOfRange = errors.New("bytesInput: try to get access out of range")
-	// TODO describe me
+	// ErrInvalidWhence tells that the whence has invalid value
 	ErrInvalidWhence = errors.New("bytesInput: invalid whence")
-	// TODO describe me
-	ErrNegativePosition = errors.New("bytesInput: negative position")
 )
 
 // NewBytesInput creates a new instance of byteInput
@@ -78,6 +76,8 @@ func (r *byteInput) ReadByte() (byte, error) {
 	return b, nil
 }
 
+// Seek sets the offset for the next Read to offset,
+// interpreted according to whence: io.SeekStart, io.SeekEnd, io.SeekCurrent
 func (r *byteInput) Seek(offset int64, whence int) (int64, error) {
 	var abs int64
 
@@ -150,6 +150,18 @@ func (r *byteInput) ReadUInt32() (uint32, error) {
 
 	v := binary.LittleEndian.Uint32(r.buf[r.i:])
 	r.i += 4
+
+	return v, nil
+}
+
+// ReadUInt16 reads a binary decoded uint16 number
+func (r *byteInput) ReadUInt16() (uint16, error) {
+	if r.i+2 > int64(len(r.buf)) {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	v := binary.LittleEndian.Uint16(r.buf[r.i:])
+	r.i += 2
 
 	return v, nil
 }
