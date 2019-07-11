@@ -3,6 +3,8 @@ package compression
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
+
 	"github.com/alldroll/suggest/pkg/store"
 )
 
@@ -22,24 +24,20 @@ import (
 // vari - 1 12 16 72 505 9497 1 1996 11494 901
 
 // SkippingEncoder creates a new instance of skipping encoder
-func SkippingEncoder(gap int) Encoder {
+func SkippingEncoder() Encoder {
 	return &skippingEnc{
 		enc: &vbEnc{},
-		gap: gap,
 	}
 }
 
 // SkippingDecoder creates a new instance of skipping decoder
-func SkippingDecoder(gap int) Decoder {
-	return &skippingEnc{
-		gap: gap,
-	}
+func SkippingDecoder() Decoder {
+	return &skippingEnc{}
 }
 
 // skippingEnc implements skippingEnc
 type skippingEnc struct {
 	enc *vbEnc
-	gap int
 }
 
 // Encode encodes the given positing list into the buf array
@@ -51,11 +49,12 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 		pos     = 0
 		total   = 0
 		listLen = len(list)
-		chunk   = make([]uint32, b.gap)
+		gap     = GetSkippingGap(uint32(listLen))
+		chunk   = make([]uint32, gap)
 	)
 
-	for i := 0; i < listLen; i += b.gap {
-		j := i + b.gap
+	for i := 0; i < listLen; i += gap {
+		j := i + gap
 
 		if j > listLen {
 			j = listLen
@@ -94,6 +93,7 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 		prevV    = uint32(0)
 		total    = 0
 		prevSkip = uint32(0)
+		gap      = GetSkippingGap(uint32(len(buf)))
 	)
 
 	for total < len(buf) {
@@ -103,7 +103,7 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 			return 0, err
 		}
 
-		for i := 0; i < b.gap && total < len(buf); i++ {
+		for i := 0; i < gap && total < len(buf); i++ {
 			v, err := in.ReadVUInt32()
 
 			if err != nil {
@@ -124,6 +124,13 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 	}
 
 	return total, nil
+}
+
+// GetSkipping TODO declare
+func GetSkippingGap(size uint32) int {
+	k := math.Sqrt(float64(size))
+
+	return int(math.Round(k))
 }
 
 // estimateByteNum returns bytes num required for encoding given uint32

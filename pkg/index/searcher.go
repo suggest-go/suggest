@@ -2,7 +2,6 @@ package index
 
 import (
 	"fmt"
-
 	"sync"
 
 	"github.com/alldroll/suggest/pkg/merger"
@@ -29,11 +28,7 @@ func NewSearcher(merger merger.ListMerger) Searcher {
 // iteratorPool reduces allocation of iterator object
 var iteratorPool = sync.Pool{
 	New: func() interface{} {
-		return &postingListIterator{
-			index:   0,
-			size:    0,
-			current: uint32(0),
-		}
+		return &skippingPostingList{}
 	},
 }
 
@@ -69,7 +64,7 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 		}
 
 		if postingListContext != nil && postingListContext.GetListSize() > 0 {
-			iterator := iteratorPool.Get().(*postingListIterator)
+			iterator := iteratorPool.Get().(*skippingPostingList)
 			defer iteratorPool.Put(iterator)
 
 			if err := iterator.init(postingListContext); err != nil {

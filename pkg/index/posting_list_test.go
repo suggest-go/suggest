@@ -1,18 +1,17 @@
-// +build ignore
-
 package index
 
 import (
 	"bytes"
+	"reflect"
+	"testing"
+
 	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/store"
-	"log"
-	"testing"
 )
 
 func TestSkipping(t *testing.T) {
 	list := []uint32{1, 13, 29, 101, 506, 10003, 10004, 12000, 12001}
-	encoder := compression.SkippingEncoder(4)
+	encoder := compression.SkippingEncoder()
 	buf := &bytes.Buffer{}
 
 	if _, err := encoder.Encode(list, buf); err != nil {
@@ -27,28 +26,33 @@ func TestSkipping(t *testing.T) {
 		decoder:  nil,
 	})
 
-	t.Error("Fail")
-	/*
-		for i := 0; i < 100; i++ {
-			v, err := posting.Get()
+	actual := []uint32{}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
+	for {
+		v, err := posting.Get()
 
-			log.Printf("Parse %v\n", v)
-
-			if !posting.HasNext() {
-				break
-			}
-
-			v, err = posting.Next()
-
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
 		}
-	*/
+
+		actual = append(actual, v)
+
+		if !posting.HasNext() {
+			break
+		}
+
+		v, err = posting.Next()
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	}
+
+	if !reflect.DeepEqual(list, actual) {
+		t.Errorf("Test fail, expected posting list: %v, got: %v", list, actual)
+	}
+
+	actual = actual[:0]
 
 	posting.init(&postingListContext{
 		listSize: len(list),
@@ -62,16 +66,18 @@ func TestSkipping(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	log.Printf("LowerBound %v\n", v)
+	if v != 506 {
+		t.Errorf("Test fail, expected 506, got %v", v)
+	}
 
-	for i := 0; i < 10; i++ {
+	for {
 		v, err := posting.Get()
 
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
 
-		log.Printf("Parse %v\n", v)
+		actual = append(actual, v)
 
 		if !posting.HasNext() {
 			break
@@ -82,5 +88,9 @@ func TestSkipping(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
+	}
+
+	if !reflect.DeepEqual(list[4:], actual) {
+		t.Errorf("Test fail, expected posting list: %v, got: %v", list[4:], actual)
 	}
 }

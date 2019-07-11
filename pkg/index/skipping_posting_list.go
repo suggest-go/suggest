@@ -1,13 +1,13 @@
 package index
 
 import (
+	"errors"
+	"io"
+
+	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/merger"
 	"github.com/alldroll/suggest/pkg/store"
-	"io"
-	"log"
 )
-
-const skippingGap = 4
 
 // skippingPostingList TODO describe me
 type skippingPostingList struct {
@@ -19,6 +19,7 @@ type skippingPostingList struct {
 	currentSkipValue    uint32
 	currentSkipPosition int
 	nextSkipPosition    int
+	skippingGap         int
 }
 
 // Get returns the current pointed element of the list
@@ -41,40 +42,11 @@ func (i *skippingPostingList) Next() (uint32, error) {
 		return 0, merger.ErrIteratorIsNotDereferencable
 	}
 
-	if (i.index+1)%skippingGap == 0 || (i.index+1) == i.size {
-		log.Printf("Index1: %v\n", i.index)
-		nextPosition, err := i.input.ReadUInt16()
-
-		if err != nil {
-			log.Printf("Err1: %v %v\n", nextPosition, err)
+	if (i.index+1)%i.skippingGap == 0 || (i.index+1) == i.size {
+		if err := i.readSkipping(); err != nil {
 			return 0, err
 		}
-
-		current, err := i.input.ReadVUInt32()
-
-		if err != nil {
-			log.Printf("Err2: %v %v\n", current, err)
-			return 0, err
-		}
-
-		log.Printf("Next1: %v, %v", nextPosition, current)
-
-		currentSkipPosition, err := i.input.Seek(0, io.SeekCurrent)
-
-		if err != nil {
-			log.Printf("Err3: %v %v\n", current, err)
-			return 0, err
-		}
-
-		i.current = i.currentSkipValue + current
-		i.currentSkipPosition = int(currentSkipPosition)
-		i.currentSkipValue = current
-		i.prev = current
-		i.nextSkipPosition += int(nextPosition)
-
-		log.Printf("Next2: %v, %v", i.currentSkipPosition, i.current)
 	} else {
-		log.Printf("Index2: %v\n", i.index)
 		cur, err := i.input.ReadVUInt32()
 
 		if err != nil {
@@ -104,15 +76,11 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 	for i.HasNext() {
 		prev := *i
 
-		log.Printf("STEP1: %v\n", i)
-
-		_, err := i.input.Seek(int64(i.nextSkipPosition), io.SeekStart)
-
-		if err != nil {
+		if err := i.moveToPosition(i.nextSkipPosition); err != nil {
 			return 0, err
 		}
 
-		i.index += skippingGap - 1
+		i.index += i.skippingGap - 1
 
 		if i.index >= i.size {
 			i.index = i.size - 2
@@ -124,15 +92,12 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 			return 0, err
 		}
 
-		log.Printf("STEP1: %v\n", i)
-
 		if cur >= to {
-			log.Printf("prev: %v\n", prev)
+			if err := i.moveToPosition(prev.currentSkipPosition); err != nil {
+				return 0, err
+			}
 
-			_, err := i.input.Seek(int64(prev.currentSkipPosition), io.SeekStart)
-			i = &prev
-
-			log.Printf("STEP2: %#v\n", i)
+			*i = prev
 
 			if err != nil {
 				return 0, err
@@ -144,8 +109,6 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 				if err != nil {
 					return 0, err
 				}
-
-				log.Printf("CURR: %v\n", cur)
 
 				if cur >= to {
 					return cur, nil
@@ -171,15 +134,40 @@ func (i *skippingPostingList) isValid() bool {
 	return i.index < i.size
 }
 
+// moveToPosition moves the given input cursor to the given offset
+func (i *skippingPostingList) moveToPosition(position int) error {
+	offset := int64(position)
+	n, err := i.input.Seek(offset, io.SeekStart)
+
+	if err != nil {
+		return err
+	}
+
+	if n != offset {
+		return errors.New("failed to move to the given position")
+	}
+
+	return nil
+}
+
 // init initialize the iterator by the given PostingList context
 func (i *skippingPostingList) init(context PostingListContext) error {
 	i.input = context.GetReader()
 	i.size = context.GetListSize()
+	i.index = 0
+	i.currentSkipValue = 0
+	i.nextSkipPosition = 0
+	i.skippingGap = compression.GetSkippingGap(uint32(i.size))
 
-	nextSkipPosition, err := i.input.ReadUInt16()
+	return i.readSkipping()
+}
+
+// readSkipping reads a skip pointer and a value
+func (i *skippingPostingList) readSkipping() error {
+	nextPosition, err := i.input.ReadUInt16()
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	current, err := i.input.ReadVUInt32()
@@ -191,16 +179,14 @@ func (i *skippingPostingList) init(context PostingListContext) error {
 	currentSkipPosition, err := i.input.Seek(0, io.SeekCurrent)
 
 	if err != nil {
-		log.Printf("Err3: %v %v\n", current, err)
 		return err
 	}
 
-	i.index = 0
-	i.current = current
+	i.current = i.currentSkipValue + current
 	i.currentSkipPosition = int(currentSkipPosition)
 	i.currentSkipValue = current
 	i.prev = current
-	i.nextSkipPosition = int(nextSkipPosition)
+	i.nextSkipPosition += int(nextPosition)
 
 	return nil
 }
