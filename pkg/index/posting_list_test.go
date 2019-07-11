@@ -56,7 +56,7 @@ func TestSkipping(t *testing.T) {
 		decoder:  nil,
 	})
 
-	v, err := posting.LowerBound(9001)
+	v, err := posting.LowerBound(400)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -64,7 +64,7 @@ func TestSkipping(t *testing.T) {
 
 	log.Printf("LowerBound %v\n", v)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		v, err := posting.Get()
 
 		if err != nil {

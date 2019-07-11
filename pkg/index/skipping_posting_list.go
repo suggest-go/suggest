@@ -59,11 +59,18 @@ func (i *skippingPostingList) Next() (uint32, error) {
 
 		log.Printf("Next1: %v, %v", nextPosition, current)
 
+		currentSkipPosition, err := i.input.Seek(0, io.SeekCurrent)
+
+		if err != nil {
+			log.Printf("Err3: %v %v\n", current, err)
+			return 0, err
+		}
+
 		i.current = i.currentSkipValue + current
-		i.currentSkipPosition = i.nextSkipPosition
+		i.currentSkipPosition = int(currentSkipPosition)
 		i.currentSkipValue = current
 		i.prev = current
-		i.nextSkipPosition = i.currentSkipPosition + int(nextPosition)
+		i.nextSkipPosition += int(nextPosition)
 
 		log.Printf("Next2: %v, %v", i.currentSkipPosition, i.current)
 	} else {
@@ -95,29 +102,37 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 	}
 
 	for i.HasNext() {
-		prev := i.currentSkipPosition
-		_, err := i.input.Seek(int64(i.nextSkipPosition), io.SeekStart)
+		prev := *i
 
-		log.Printf("curPos: %v, nextPos: %v\n", i.currentSkipPosition, i.nextSkipPosition)
+		log.Printf("STEP1: %v\n", i)
+
+		_, err := i.input.Seek(int64(i.nextSkipPosition), io.SeekStart)
 
 		if err != nil {
 			return 0, err
 		}
 
-		i.index += (skippingGap - 1) // TODO compare with length
+		i.index += skippingGap - 1
+
+		if i.index >= i.size {
+			i.index = i.size - 2
+		}
+
 		cur, err := i.Next()
 
 		if err != nil {
 			return 0, err
 		}
 
-		log.Printf("1 curVal: %v\n", cur)
+		log.Printf("STEP1: %v\n", i)
 
 		if cur >= to {
-			_, err := i.input.Seek(int64(prev), io.SeekStart)
-			i.index -= (skippingGap - 1)
+			log.Printf("prev: %v\n", prev)
 
-			log.Printf("curPos: %v, nextSkipPosition: %v\n", i.currentSkipPosition, i.nextSkipPosition)
+			_, err := i.input.Seek(int64(prev.currentSkipPosition), io.SeekStart)
+			i = &prev
+
+			log.Printf("STEP2: %#v\n", i)
 
 			if err != nil {
 				return 0, err
@@ -129,6 +144,8 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 				if err != nil {
 					return 0, err
 				}
+
+				log.Printf("CURR: %v\n", cur)
 
 				if cur >= to {
 					return cur, nil
@@ -171,9 +188,16 @@ func (i *skippingPostingList) init(context PostingListContext) error {
 		return err
 	}
 
+	currentSkipPosition, err := i.input.Seek(0, io.SeekCurrent)
+
+	if err != nil {
+		log.Printf("Err3: %v %v\n", current, err)
+		return err
+	}
+
 	i.index = 0
 	i.current = current
-	i.currentSkipPosition = 0
+	i.currentSkipPosition = int(currentSkipPosition)
 	i.currentSkipValue = current
 	i.prev = current
 	i.nextSkipPosition = int(nextSkipPosition)
