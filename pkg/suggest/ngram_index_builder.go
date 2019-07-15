@@ -43,7 +43,7 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 		indexReader: index.NewIndexReader(
 			directory,
 			description.CreateWriterConfig(),
-			compression.SkippingDecoder(),
+			compression.VBDecoder(),
 		),
 		generator: generator,
 		cleaner:   cleaner,
@@ -66,7 +66,7 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 	indexWriter := index.NewIndexWriter(
 		directory,
 		writerConfig,
-		compression.SkippingEncoder(),
+		compression.VBEncoder(),
 	)
 
 	if err := index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
@@ -77,7 +77,7 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 		indexReader: index.NewIndexReader(
 			directory,
 			writerConfig,
-			compression.SkippingDecoder(),
+			compression.VBDecoder(),
 		),
 		generator: generator,
 		cleaner:   cleaner,

@@ -28,7 +28,7 @@ func NewSearcher(merger merger.ListMerger) Searcher {
 // iteratorPool reduces allocation of iterator object
 var iteratorPool = sync.Pool{
 	New: func() interface{} {
-		return &skippingPostingList{}
+		return &postingListIterator{}
 	},
 }
 
@@ -64,7 +64,7 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 		}
 
 		if postingListContext != nil && postingListContext.GetListSize() > 0 {
-			iterator := iteratorPool.Get().(*skippingPostingList)
+			iterator := iteratorPool.Get().(*postingListIterator)
 			defer iteratorPool.Put(iterator)
 
 			if err := iterator.init(postingListContext); err != nil {

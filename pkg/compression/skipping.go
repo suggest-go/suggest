@@ -3,9 +3,23 @@ package compression
 import (
 	"bytes"
 	"encoding/binary"
-	"math"
+	"errors"
 
 	"github.com/alldroll/suggest/pkg/store"
+)
+
+var (
+	// ErrGapShouldBeGreaterThanListLen tells that the list length is less or equal to
+	// the skipping gap
+	ErrGapShouldBeGreaterThanListLen = errors.New("gap should be greater than the list length")
+	// ErrGapOverflow tells that it was at attempt to create
+	// encoder/decoder skipping gap more than maxSkippingGap
+	ErrGapOverflow = errors.New("gap value overflow")
+)
+
+const (
+	lastBlockFlag  = 1 << 15
+	maxSkippingGap = (1 << 14) / 5
 )
 
 // max 5 byte for var uint32
@@ -24,37 +38,52 @@ import (
 // vari - 1 12 16 72 505 9497 1 1996 11494 901
 
 // SkippingEncoder creates a new instance of skipping encoder
-func SkippingEncoder() Encoder {
+func SkippingEncoder(gap int) (Encoder, error) {
+	if gap >= maxSkippingGap {
+		return nil, ErrGapOverflow
+	}
+
 	return &skippingEnc{
 		enc: &vbEnc{},
-	}
+		gap: gap,
+	}, nil
 }
 
 // SkippingDecoder creates a new instance of skipping decoder
-func SkippingDecoder() Decoder {
-	return &skippingEnc{}
+func SkippingDecoder(gap int) (Decoder, error) {
+	if gap >= maxSkippingGap {
+		return nil, ErrGapOverflow
+	}
+
+	return &skippingEnc{
+		gap: gap,
+	}, nil
 }
 
 // skippingEnc implements skippingEnc
 type skippingEnc struct {
 	enc *vbEnc
+	gap int
 }
 
 // Encode encodes the given positing list into the buf array
 // Returns number of elements encoded, number of bytes readed
 func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
+	if len(list) < b.gap {
+		return 0, ErrGapShouldBeGreaterThanListLen
+	}
+
 	var (
-		buf     = &bytes.Buffer{} // TODO use estimateByteNum
+		// TODO use estimateByteNum instead of buffer
+		buf     = &bytes.Buffer{}
 		prev    = uint32(0)
-		pos     = 0
 		total   = 0
+		chunk   = make([]uint32, b.gap)
 		listLen = len(list)
-		gap     = GetSkippingGap(uint32(listLen))
-		chunk   = make([]uint32, gap)
 	)
 
-	for i := 0; i < listLen; i += gap {
-		j := i + gap
+	for i := 0; i < listLen; i += b.gap {
+		j := i + b.gap
 
 		if j > listLen {
 			j = listLen
@@ -64,15 +93,18 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 
 		chunk[0] = chunk[0] - prev
 		prev = chunk[0]
-
 		n, err := b.enc.Encode(chunk[:j-i], buf)
 
 		if err != nil {
 			return 0, err
 		}
 
-		total += n + 2
-		pos = total - pos
+		pos := n + 2
+		total += pos
+
+		if j == listLen {
+			pos = pos | lastBlockFlag
+		}
 
 		if err := binary.Write(out, binary.LittleEndian, uint16(pos)); err != nil {
 			return 0, err
@@ -93,7 +125,6 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 		prevV    = uint32(0)
 		total    = 0
 		prevSkip = uint32(0)
-		gap      = GetSkippingGap(uint32(len(buf)))
 	)
 
 	for total < len(buf) {
@@ -103,7 +134,7 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 			return 0, err
 		}
 
-		for i := 0; i < gap && total < len(buf); i++ {
+		for i := 0; i < b.gap && total < len(buf); i++ {
 			v, err := in.ReadVUInt32()
 
 			if err != nil {
@@ -126,30 +157,7 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 	return total, nil
 }
 
-// GetSkipping TODO declare
-func GetSkippingGap(size uint32) int {
-	k := math.Sqrt(float64(size))
-
-	return int(math.Round(k))
-}
-
-// estimateByteNum returns bytes num required for encoding given uint32
-func estimateByteNum(v uint32) int {
-	if (1 << 7) > v {
-		return 1
-	}
-
-	if (1 << 14) > v {
-		return 2
-	}
-
-	if (1 << 21) > v {
-		return 3
-	}
-
-	if (1 << 28) > v {
-		return 4
-	}
-
-	return 5
+// UnpackPos describe me!!
+func UnpackPos(packed uint16) (int, bool) {
+	return int(packed & uint16(lastBlockFlag-1)), (packed & lastBlockFlag) == lastBlockFlag
 }

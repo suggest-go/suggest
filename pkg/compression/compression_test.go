@@ -11,6 +11,9 @@ import (
 )
 
 func TestEncodeDecode(t *testing.T) {
+	skipEnc, _ := SkippingEncoder(3)
+	skipDec, _ := SkippingDecoder(3)
+
 	instances := []struct {
 		name    string
 		encoder Encoder
@@ -18,7 +21,7 @@ func TestEncodeDecode(t *testing.T) {
 	}{
 		{"binary", BinaryEncoder(), BinaryDecoder()},
 		{"varint", VBEncoder(), VBDecoder()},
-		{"varint", SkippingEncoder(), SkippingDecoder()},
+		{"skipping", skipEnc, skipDec},
 	}
 
 	cases := []struct {
@@ -63,7 +66,10 @@ func BenchmarkVBDecode(b *testing.B) {
 }
 
 func BenchmarkSkippingDecode(b *testing.B) {
-	benchmarkDecode(SkippingEncoder(), SkippingDecoder(), b)
+	enc, _ := SkippingEncoder(64)
+	dec, _ := SkippingDecoder(64)
+
+	benchmarkDecode(enc, dec, b)
 }
 
 func benchmarkDecode(encoder Encoder, decoder Decoder, b *testing.B) {

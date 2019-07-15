@@ -188,7 +188,7 @@ func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) err
 	indexWriter := index.NewIndexWriter(
 		directory,
 		config.CreateWriterConfig(),
-		compression.SkippingEncoder(),
+		compression.VBEncoder(),
 	)
 
 	if err = index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {

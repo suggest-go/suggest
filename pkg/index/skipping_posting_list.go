@@ -20,6 +20,7 @@ type skippingPostingList struct {
 	currentSkipPosition int
 	nextSkipPosition    int
 	skippingGap         int
+	isLastBlock         bool
 }
 
 // Get returns the current pointed element of the list
@@ -42,7 +43,7 @@ func (i *skippingPostingList) Next() (uint32, error) {
 		return 0, merger.ErrIteratorIsNotDereferencable
 	}
 
-	if (i.index+1)%i.skippingGap == 0 || (i.index+1) == i.size {
+	if (i.index+1)%i.skippingGap == 0 {
 		if err := i.readSkipping(); err != nil {
 			return 0, err
 		}
@@ -92,30 +93,33 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 			return 0, err
 		}
 
+		if cur < to && !i.isLastBlock {
+			continue
+		}
+
+		// rollback to previus block
 		if cur >= to {
 			if err := i.moveToPosition(prev.currentSkipPosition); err != nil {
 				return 0, err
 			}
 
+			if err != nil {
+				return 0, err
+			}
+
 			*i = prev
+		}
+
+		for i.HasNext() {
+			cur, err := i.Next()
 
 			if err != nil {
 				return 0, err
 			}
 
-			for i.HasNext() {
-				cur, err := i.Next()
-
-				if err != nil {
-					return 0, err
-				}
-
-				if cur >= to {
-					return cur, nil
-				}
+			if cur >= to {
+				return cur, nil
 			}
-
-			return cur, nil
 		}
 	}
 
@@ -157,19 +161,21 @@ func (i *skippingPostingList) init(context PostingListContext) error {
 	i.index = 0
 	i.currentSkipValue = 0
 	i.nextSkipPosition = 0
-	i.skippingGap = compression.GetSkippingGap(uint32(i.size))
+	i.isLastBlock = false
+	i.skippingGap = 3 // todo replace me
 
 	return i.readSkipping()
 }
 
 // readSkipping reads a skip pointer and a value
 func (i *skippingPostingList) readSkipping() error {
-	nextPosition, err := i.input.ReadUInt16()
+	decodedPosition, err := i.input.ReadUInt16()
 
 	if err != nil {
 		return err
 	}
 
+	position, isLastBlock := compression.UnpackPos(decodedPosition)
 	current, err := i.input.ReadVUInt32()
 
 	if err != nil {
@@ -186,7 +192,8 @@ func (i *skippingPostingList) readSkipping() error {
 	i.currentSkipPosition = int(currentSkipPosition)
 	i.currentSkipValue = current
 	i.prev = current
-	i.nextSkipPosition += int(nextPosition)
+	i.nextSkipPosition += int(position)
+	i.isLastBlock = isLastBlock
 
 	return nil
 }
