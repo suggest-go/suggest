@@ -2,7 +2,6 @@ package index
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/alldroll/suggest/pkg/merger"
 )
@@ -23,13 +22,6 @@ func NewSearcher(merger merger.ListMerger) Searcher {
 	return &searcher{
 		merger: merger,
 	}
-}
-
-// iteratorPool reduces allocation of iterator object
-var iteratorPool = sync.Pool{
-	New: func() interface{} {
-		return &postingListIterator{}
-	},
 }
 
 // Search performs search for the given index with the terms and threshold
@@ -64,14 +56,14 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 		}
 
 		if postingListContext != nil && postingListContext.GetListSize() > 0 {
-			iterator := iteratorPool.Get().(*postingListIterator)
-			defer iteratorPool.Put(iterator)
+			postingList := resolvePostingList(postingListContext)
+			defer releasePostingList(postingList)
 
-			if err := iterator.init(postingListContext); err != nil {
+			if err := postingList.init(postingListContext); err != nil {
 				return nil, fmt.Errorf("failed to initialize a posting list iterator: %v", err)
 			}
 
-			rid = append(rid, iterator)
+			rid = append(rid, postingList)
 		}
 	}
 

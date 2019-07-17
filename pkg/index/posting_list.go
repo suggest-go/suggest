@@ -5,6 +5,13 @@ import (
 	"github.com/alldroll/suggest/pkg/store"
 )
 
+//
+type PostingList interface {
+	merger.ListIterator
+
+	init(context PostingListContext) error
+}
+
 // postingListIterator is a dummy implementation of merger.ListIterator
 type postingListIterator struct {
 	input   store.Input

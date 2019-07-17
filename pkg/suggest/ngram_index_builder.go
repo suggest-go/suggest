@@ -3,7 +3,6 @@ package suggest
 import (
 	"fmt"
 
-	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
 	"github.com/alldroll/suggest/pkg/merger"
@@ -43,7 +42,6 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 		indexReader: index.NewIndexReader(
 			directory,
 			description.CreateWriterConfig(),
-			compression.VBDecoder(),
 		),
 		generator: generator,
 		cleaner:   cleaner,
@@ -66,7 +64,7 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 	indexWriter := index.NewIndexWriter(
 		directory,
 		writerConfig,
-		compression.VBEncoder(),
+		index.NewEncoder(),
 	)
 
 	if err := index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
@@ -77,7 +75,6 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 		indexReader: index.NewIndexReader(
 			directory,
 			writerConfig,
-			compression.VBDecoder(),
 		),
 		generator: generator,
 		cleaner:   cleaner,

@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/store"
 )
 
@@ -39,21 +38,18 @@ type invertedIndexStructure map[Term]struct {
 // NewInvertedIndex returns new instance of InvertedIndex that is stored on disc
 func NewInvertedIndex(
 	reader store.Input,
-	decoder compression.Decoder,
 	table invertedIndexStructure,
 ) InvertedIndex {
 	return &invertedIndex{
-		reader:  reader,
-		decoder: decoder,
-		table:   table,
+		reader: reader,
+		table:  table,
 	}
 }
 
 // invertedIndex implements InvertedIndex interface
 type invertedIndex struct {
-	reader  store.Input
-	decoder compression.Decoder
-	table   invertedIndexStructure
+	reader store.Input
+	table  invertedIndexStructure
 }
 
 // Get returns corresponding posting list for given term
@@ -73,7 +69,6 @@ func (i *invertedIndex) Get(term Term) (PostingListContext, error) {
 	return &postingListContext{
 		listSize: int(s.length),
 		reader:   reader,
-		decoder:  i.decoder,
 	}, nil
 }
 

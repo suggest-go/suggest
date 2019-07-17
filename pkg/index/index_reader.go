@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/store"
 )
 
@@ -13,19 +12,16 @@ import (
 type Reader struct {
 	directory store.Directory
 	config    WriterConfig
-	decoder   compression.Decoder
 }
 
 // NewIndexReader returns a new instance of a search index reader
 func NewIndexReader(
 	directory store.Directory,
 	config WriterConfig,
-	decoder compression.Decoder,
 ) *Reader {
 	return &Reader{
 		directory: directory,
 		config:    config,
-		decoder:   decoder,
 	}
 }
 
@@ -116,7 +112,7 @@ func (ir *Reader) createInvertedIndexIndices(header *header, documentReader stor
 		if invertedIndexStructure == nil {
 			indices[i] = nil
 		} else {
-			indices[i] = NewInvertedIndex(documentReader, ir.decoder, invertedIndexStructure)
+			indices[i] = NewInvertedIndex(documentReader, invertedIndexStructure)
 		}
 	}
 

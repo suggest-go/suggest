@@ -14,7 +14,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
 	"github.com/alldroll/suggest/pkg/store"
@@ -188,7 +187,7 @@ func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) err
 	indexWriter := index.NewIndexWriter(
 		directory,
 		config.CreateWriterConfig(),
-		compression.VBEncoder(),
+		index.NewEncoder(),
 	)
 
 	if err = index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {

@@ -11,11 +11,12 @@ import (
 
 func TestSkipping(t *testing.T) {
 	cases := []struct {
-		name       string
-		list       []uint32
-		to         uint32
-		lowerBound uint32
-		tail       []uint32
+		name          string
+		list          []uint32
+		to            uint32
+		lowerBound    uint32
+		tail          []uint32
+		expectedError bool
 	}{
 		{
 			name:       "#1",
@@ -52,9 +53,17 @@ func TestSkipping(t *testing.T) {
 			lowerBound: 1,
 			tail:       []uint32{1, 13, 29, 101, 506, 10003, 10004, 12000, 12001},
 		},
+		{
+			name:          "#6",
+			list:          []uint32{1, 13, 29, 101, 506, 10003, 10004, 12000, 12001},
+			to:            12002,
+			lowerBound:    0,
+			tail:          []uint32{},
+			expectedError: true,
+		},
 	}
 
-	posting := &skippingPostingList{}
+	posting := &skippingPostingList{skippingGap: 3}
 
 	for _, c := range cases {
 		encoder, _ := compression.SkippingEncoder(3)
@@ -67,21 +76,20 @@ func TestSkipping(t *testing.T) {
 		posting.init(&postingListContext{
 			listSize: len(c.list),
 			reader:   store.NewBytesInput(buf.Bytes()),
-			decoder:  nil,
 		})
 
 		actual := []uint32{}
 		v, err := posting.LowerBound(c.to)
 
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-
 		if v != c.lowerBound {
 			t.Errorf("Test %s fail, expected %v, got %v", c.name, c.lowerBound, v)
 		}
 
-		for i := 0; i < 30; i++ {
+		if err != nil && !c.expectedError {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		for !c.expectedError {
 			v, err := posting.Get()
 
 			if err != nil {

@@ -161,8 +161,6 @@ func (i *skippingPostingList) init(context PostingListContext) error {
 	i.index = 0
 	i.currentSkipValue = 0
 	i.nextSkipPosition = 0
-	i.isLastBlock = false
-	i.skippingGap = 3 // todo replace me
 
 	return i.readSkipping()
 }

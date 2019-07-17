@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/store"
 )
 
@@ -12,15 +11,12 @@ type PostingListContext interface {
 	GetListSize() int
 	// GetReader returns a configured reader for the posting list
 	GetReader() store.Input
-	// GetDecoder returns a decoder which should be used to decode the posting list
-	GetDecoder() compression.Decoder
 }
 
 // postingListContext implements the PostingListContext interface
 type postingListContext struct {
 	listSize int
 	reader   store.Input
-	decoder  compression.Decoder
 }
 
 // GetListSize returns a size of the posting list
@@ -31,9 +27,4 @@ func (c *postingListContext) GetListSize() int {
 // GetReader returns a configured reader for the posting list
 func (c *postingListContext) GetReader() store.Input {
 	return c.reader
-}
-
-// GetDecoder returns a decoder which should be used to decode the posting list
-func (c *postingListContext) GetDecoder() compression.Decoder {
-	return c.decoder
 }

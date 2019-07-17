@@ -12,7 +12,7 @@ import (
 )
 
 // IndexVersion tells that the inverted index structure has the provided below version
-const IndexVersion = "v2"
+const IndexVersion = "v3"
 
 // Writer creates and maintains an inverted index
 type Writer struct {
