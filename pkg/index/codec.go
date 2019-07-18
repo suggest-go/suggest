@@ -29,7 +29,7 @@ type encoder struct {
 // Encode encodes the given positing list into the buf array
 // Returns number of elements encoded, number of bytes readed
 func (e *encoder) Encode(list []uint32, out store.Output) (int, error) {
-	if len(list) <= skippingGapSize {
+	if len(list) <= (skippingGapSize + 1) {
 		return e.vbEnc.Encode(list, out)
 	}
 
@@ -53,18 +53,17 @@ var (
 )
 
 // resolvePostingList
-func resolvePostingList(context PostingListContext) PostingList {
-
-	if context.GetListSize() <= skippingGapSize {
-		return vbEncPostingListPool.Get().(PostingList)
+func resolvePostingList(context PostingListContext) postingList {
+	if context.GetListSize() <= (skippingGapSize + 1) {
+		return vbEncPostingListPool.Get().(postingList)
 	}
 
-	return skippingPostingListPool.Get().(PostingList)
+	return skippingPostingListPool.Get().(postingList)
 }
 
 // releasePostingList
-func releasePostingList(list PostingList) {
-	// TODO handle error
+func releasePostingList(list postingList) {
+	// TODO handle default case
 
 	switch v := list.(type) {
 	case *postingListIterator:

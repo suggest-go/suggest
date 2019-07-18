@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"io"
 	"reflect"
 	"testing"
 
@@ -111,6 +112,90 @@ func TestSkipping(t *testing.T) {
 
 		if !reflect.DeepEqual(c.tail, actual) {
 			t.Errorf("Test %s fail, expected posting list: %v, got: %v", c.name, c.tail, actual)
+		}
+	}
+}
+
+func BenchmarkDummyNext(b *testing.B) {
+	benchmarkNext(b, &postingListIterator{}, compression.VBEncoder())
+}
+
+func BenchmarkSkippingNext(b *testing.B) {
+	encoder, _ := compression.SkippingEncoder(64)
+	benchmarkNext(b, &skippingPostingList{skippingGap: 64}, encoder)
+}
+
+func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encoder) {
+	list := make([]uint32, 0, 1000)
+
+	for i := 0; i < cap(list); i++ {
+		list = append(list, uint32(i))
+	}
+
+	buf := &bytes.Buffer{}
+
+	if _, err := encoder.Encode(list, buf); err != nil {
+		b.Errorf("Unexpected error occurs: %v", err)
+	}
+
+	in := store.NewBytesInput(buf.Bytes())
+
+	for i := 0; i < b.N; i++ {
+		in.Seek(0, io.SeekStart)
+
+		posting.init(&postingListContext{
+			listSize: len(list),
+			reader:   in,
+		})
+
+		for posting.HasNext() {
+			posting.Next()
+		}
+	}
+}
+
+func BenchmarkDummyLowerBound(b *testing.B) {
+	benchmarkLowerBound(b, &postingListIterator{}, compression.VBEncoder())
+}
+
+func BenchmarkSkippingLowerBound(b *testing.B) {
+	encoder, _ := compression.SkippingEncoder(64)
+	benchmarkLowerBound(b, &skippingPostingList{skippingGap: 64}, encoder)
+}
+
+func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.Encoder) {
+	n := 10000
+	list := make([]uint32, 0, n)
+
+	for i := 0; i < cap(list); i++ {
+		list = append(list, uint32(i))
+	}
+
+	buf := &bytes.Buffer{}
+
+	if _, err := encoder.Encode(list, buf); err != nil {
+		b.Errorf("Unexpected error occurs: %v", err)
+	}
+
+	in := store.NewBytesInput(buf.Bytes())
+
+	for i := 0; i < b.N; i++ {
+		in.Seek(0, io.SeekStart)
+
+		posting.init(&postingListContext{
+			listSize: n,
+			reader:   in,
+		})
+
+		to := uint32(i % n)
+		v, err := posting.LowerBound(to)
+
+		if err != nil {
+			b.Fatalf("Unexpected error %v", err)
+		}
+
+		if v != to {
+			b.Fatalf("Test fail, expected %v, got %v", to, v)
 		}
 	}
 }

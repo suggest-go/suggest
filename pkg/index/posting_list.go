@@ -6,9 +6,9 @@ import (
 )
 
 //
-type PostingList interface {
+type postingList interface {
 	merger.ListIterator
-
+	// init initialize the given posting list with the provided context
 	init(context PostingListContext) error
 }
 

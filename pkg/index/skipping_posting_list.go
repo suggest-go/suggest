@@ -43,7 +43,13 @@ func (i *skippingPostingList) Next() (uint32, error) {
 		return 0, merger.ErrIteratorIsNotDereferencable
 	}
 
-	if (i.index+1)%i.skippingGap == 0 {
+	currentSkipPosition, err := i.input.Seek(0, io.SeekCurrent)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if int(currentSkipPosition) == i.nextSkipPosition {
 		if err := i.readSkipping(); err != nil {
 			return 0, err
 		}
@@ -147,6 +153,7 @@ func (i *skippingPostingList) moveToPosition(position int) error {
 		return err
 	}
 
+	// TODO declare an error
 	if n != offset {
 		return errors.New("failed to move to the given position")
 	}
