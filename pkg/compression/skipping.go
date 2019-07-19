@@ -78,7 +78,6 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 		buf     = &bytes.Buffer{}
 		prev    = uint32(0)
 		total   = 0
-		chunk   = make([]uint32, b.gap)
 		listLen = len(list)
 	)
 
@@ -89,11 +88,8 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 			j = listLen
 		}
 
-		copy(chunk, list[i:j])
-
-		chunk[0] = chunk[0] - prev
-		prev = chunk[0]
-		n, err := b.enc.Encode(chunk[:j-i], buf)
+		n, err := varIntEncode(list[i:j], buf, prev)
+		prev = list[i]
 
 		if err != nil {
 			return 0, err
@@ -122,39 +118,31 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 // Returns a number of elements encoded
 func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 	var (
-		prevV    = uint32(0)
-		total    = 0
-		prevSkip = uint32(0)
+		prev    = uint32(0)
+		i       = 0
+		listLen = len(buf)
 	)
 
-	for total < len(buf) {
-		_, err := in.ReadUInt16()
+	for ; i < listLen; i += b.gap {
+		if _, err := in.ReadUInt16(); err != nil {
+			return 0, err
+		}
+
+		j := i + b.gap
+
+		if j > listLen {
+			j = listLen
+		}
+
+		_, err := varIntDecode(in, buf[i:j], prev)
+		prev = buf[i]
 
 		if err != nil {
 			return 0, err
 		}
-
-		for i := 0; i < b.gap && total < len(buf); i++ {
-			v, err := in.ReadVUInt32()
-
-			if err != nil {
-				return 0, err
-			}
-
-			if i == 0 {
-				buf[total] = prevSkip + v
-				prevV = v
-				prevSkip = v
-			} else {
-				buf[total] = prevV + v
-				prevV = buf[total]
-			}
-
-			total++
-		}
 	}
 
-	return total, nil
+	return i, nil
 }
 
 // UnpackPos describe me!!

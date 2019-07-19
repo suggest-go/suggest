@@ -23,8 +23,19 @@ type vbEnc struct{}
 // Encode encodes the given positing list into the buf array
 // Returns number of elements encoded, number of bytes readed
 func (b *vbEnc) Encode(list []uint32, out store.Output) (int, error) {
+	return varIntEncode(list, out, 0)
+}
+
+// inspired by protobuf/master/proto/decode.go
+//
+// Decode decodes the given byte array to the buf list
+// Returns a number of elements encoded
+func (b *vbEnc) Decode(in store.Input, buf []uint32) (int, error) {
+	return varIntDecode(in, buf, 0)
+}
+
+func varIntEncode(list []uint32, out store.Output, prev uint32) (int, error) {
 	var (
-		prev  = uint32(0)
 		delta = uint32(0)
 		total = 0
 		chunk = make([]byte, 5)
@@ -59,15 +70,8 @@ func (b *vbEnc) Encode(list []uint32, out store.Output) (int, error) {
 	return total, nil
 }
 
-// inspired by protobuf/master/proto/decode.go
-//
-// Decode decodes the given byte array to the buf list
-// Returns a number of elements encoded
-func (b *vbEnc) Decode(in store.Input, buf []uint32) (int, error) {
-	var (
-		prev  = uint32(0)
-		total = 0
-	)
+func varIntDecode(in store.Input, buf []uint32, prev uint32) (int, error) {
+	total := 0
 
 	for total < len(buf) {
 		v, err := in.ReadVUInt32()

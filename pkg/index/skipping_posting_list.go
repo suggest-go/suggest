@@ -9,15 +9,13 @@ import (
 	"github.com/alldroll/suggest/pkg/store"
 )
 
-// skippingPostingList TODO describe me
+// skippingPostingList is a posting list which has the ability to use skip pointers for faster intersection
 type skippingPostingList struct {
 	input               store.Input
 	index               int
 	size                int
-	prev                uint32
 	current             uint32
 	currentSkipValue    uint32
-	currentSkipPosition int
 	nextSkipPosition    int
 	skippingGap         int
 	isLastBlock         bool
@@ -60,8 +58,7 @@ func (i *skippingPostingList) Next() (uint32, error) {
 			return 0, err
 		}
 
-		i.current = cur + i.prev
-		i.prev = i.current
+		i.current += cur
 	}
 
 	i.index++
@@ -80,14 +77,29 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 		return i.current, nil
 	}
 
-	for i.HasNext() {
+	// calculate how many skips have already been done
+	skips := 0
+
+	if i.index > 0 {
+		skips = i.index / i.skippingGap
+	}
+
+	// try to use skip pointers to find the corresponding block
+	for !i.isLastBlock && i.HasNext() {
+		// remember the current state, maybe we will have to restore the state
 		prev := *i
+		prevPosition, err := i.input.Seek(0, io.SeekCurrent)
+
+		if err != nil {
+			return 0, err
+		}
 
 		if err := i.moveToPosition(i.nextSkipPosition); err != nil {
 			return 0, err
 		}
 
-		i.index += i.skippingGap - 1
+		skips++
+		i.index = (skips * i.skippingGap) - 1
 
 		if i.index >= i.size {
 			i.index = i.size - 2
@@ -103,29 +115,27 @@ func (i *skippingPostingList) LowerBound(to uint32) (uint32, error) {
 			continue
 		}
 
-		// rollback to previus block
+		// rollback to the previous block
 		if cur >= to {
-			if err := i.moveToPosition(prev.currentSkipPosition); err != nil {
-				return 0, err
-			}
-
-			if err != nil {
+			if err := i.moveToPosition(int(prevPosition)); err != nil {
 				return 0, err
 			}
 
 			*i = prev
+			break
+		}
+	}
+
+	// here we just should iterate sequentially through the list
+	for i.HasNext() {
+		cur, err := i.Next()
+
+		if err != nil {
+			return 0, err
 		}
 
-		for i.HasNext() {
-			cur, err := i.Next()
-
-			if err != nil {
-				return 0, err
-			}
-
-			if cur >= to {
-				return cur, nil
-			}
+		if cur >= to {
+			return cur, nil
 		}
 	}
 
@@ -187,16 +197,8 @@ func (i *skippingPostingList) readSkipping() error {
 		return err
 	}
 
-	currentSkipPosition, err := i.input.Seek(0, io.SeekCurrent)
-
-	if err != nil {
-		return err
-	}
-
 	i.current = i.currentSkipValue + current
-	i.currentSkipPosition = int(currentSkipPosition)
-	i.currentSkipValue = current
-	i.prev = current
+	i.currentSkipValue = i.current
 	i.nextSkipPosition += int(position)
 	i.isLastBlock = isLastBlock
 

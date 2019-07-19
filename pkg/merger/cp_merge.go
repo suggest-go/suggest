@@ -1,6 +1,8 @@
 package merger
 
-import "sort"
+import (
+	"sort"
+)
 
 // CPMerge was described in paper
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
@@ -88,7 +90,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 			current, err := rid[i].LowerBound(c.Position)
 
 			if err != nil && err != ErrIteratorIsNotDereferencable {
-				return nil, nil
+				return nil, err
 			}
 
 			if err != ErrIteratorIsNotDereferencable {
