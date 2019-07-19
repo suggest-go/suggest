@@ -14,9 +14,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
+	"github.com/alldroll/suggest/pkg/store"
 	"github.com/alldroll/suggest/pkg/suggest"
 )
 
@@ -177,17 +177,23 @@ func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) err
 		return err
 	}
 
-	directory, err := index.NewFSDirectory(config.GetOutputPath())
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
 
 	if err != nil {
 		return err
+	}
+
+	encoder, err := index.NewEncoder()
+
+	if err != nil {
+		return fmt.Errorf("Failed to create Encoder: %v", err)
 	}
 
 	generator := index.NewGenerator(config.NGramSize)
 	indexWriter := index.NewIndexWriter(
 		directory,
 		config.CreateWriterConfig(),
-		compression.VBEncoder(),
+		encoder,
 	)
 
 	if err = index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {

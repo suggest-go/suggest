@@ -1,8 +1,9 @@
-package index
+package store
 
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/alldroll/suggest/pkg/utils"
 )
@@ -57,5 +58,17 @@ func (fs *fsDirectory) OpenInput(name string) (Input, error) {
 		return nil, fmt.Errorf("Failed to open input: %v", err)
 	}
 
-	return file, nil
+	data, err := file.Bytes()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch content: %v", err)
+	}
+
+	input := NewBytesInput(data)
+
+	runtime.SetFinalizer(input, func(d interface{}) {
+		file.Close()
+	})
+
+	return input, nil
 }

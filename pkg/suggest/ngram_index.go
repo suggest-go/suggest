@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/merger"
 )
 
 // NGramIndex is a structure that provides an access to
@@ -21,7 +20,7 @@ type nGramIndexImpl struct {
 	cleaner   index.Cleaner
 	indices   index.InvertedIndexIndices
 	generator index.Generator
-	merger    merger.ListMerger
+	searcher  index.Searcher
 }
 
 // NewNGramIndex returns a new NGramIndex object
@@ -29,13 +28,13 @@ func NewNGramIndex(
 	cleaner index.Cleaner,
 	generator index.Generator,
 	indices index.InvertedIndexIndices,
-	merger merger.ListMerger,
+	searcher index.Searcher,
 ) NGramIndex {
 	return &nGramIndexImpl{
 		cleaner:   cleaner,
 		indices:   indices,
 		generator: generator,
-		merger:    merger,
+		searcher:  searcher,
 	}
 }
 
@@ -65,7 +64,6 @@ func (n *nGramIndexImpl) fuzzySearch(
 		return []Candidate{}, nil
 	}
 
-	rid := make([]index.PostingList, 0, len(set))
 	sizeA := len(set)
 	metric := config.metric
 	similarity := config.similarity
@@ -134,42 +132,11 @@ func (n *nGramIndexImpl) fuzzySearch(
 				continue
 			}
 
-			// maximum allowable nGram miss count
-			allowedSkips := sizeA - threshold + 1
+			candidates, err := n.searcher.Search(invertedIndex, set, threshold)
 
-			for _, term := range set {
-				if allowedSkips == 0 {
-					break
-				}
-
-				if !invertedIndex.Has(term) {
-					allowedSkips--
-				}
+			if err != nil {
+				return nil, fmt.Errorf("failed to search posting lists: %v", err)
 			}
-
-			// no reason to continue, we have already reached all allowed skips
-			if allowedSkips == 0 {
-				continue
-			}
-
-			rid = rid[:0]
-
-			// maybe run it concurrent?
-			// go func() { buildRid, mergeCandidates, ch <- {candidates, sizeA, sizeB}
-			// in main goroutine just collect it
-			for _, term := range set {
-				postingList, err := invertedIndex.Get(term)
-
-				if err != nil {
-					return nil, fmt.Errorf("Failed to retrieve a posting list: %v", err)
-				}
-
-				if len(postingList) > 0 {
-					rid = append(rid, postingList)
-				}
-			}
-
-			candidates := n.merger.Merge(rid, threshold)
 
 			for _, c := range candidates {
 				score := 1 - metric.Distance(c.Overlap, sizeA, sizeB)
@@ -184,26 +151,14 @@ func (n *nGramIndexImpl) fuzzySearch(
 // autoComplete performs a completion of phrases that contain the given query
 func (n *nGramIndexImpl) autoComplete(query string, selector TopKSelector) ([]Candidate, error) {
 	set := n.generator.Generate(query)
-	rid := make([]index.PostingList, 0, len(set))
 	invertedIndex := n.indices.GetWholeIndex()
+	candidates, err := n.searcher.Search(invertedIndex, set, len(set))
 
-	for _, term := range set {
-		if !invertedIndex.Has(term) {
-			return []Candidate{}, nil
-		}
+	if err != nil {
+		return nil, fmt.Errorf("failed to search posting lists: %v", err)
 	}
 
-	for _, term := range set {
-		postingList, err := invertedIndex.Get(term)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to retrieve a posting list: %v", err)
-		}
-
-		rid = append(rid, postingList)
-	}
-
-	for i, c := range n.merger.Merge(rid, len(rid)) {
+	for i, c := range candidates {
 		selector.Add(c.Position, float64(-i))
 	}
 

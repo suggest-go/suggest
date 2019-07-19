@@ -5,26 +5,23 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/alldroll/suggest/pkg/compression"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // Reader is an entity, providing access to a search index
 type Reader struct {
-	directory Directory
+	directory store.Directory
 	config    WriterConfig
-	decoder   compression.Decoder
 }
 
 // NewIndexReader returns a new instance of a search index reader
 func NewIndexReader(
-	directory Directory,
+	directory store.Directory,
 	config WriterConfig,
-	decoder compression.Decoder,
 ) *Reader {
 	return &Reader{
 		directory: directory,
 		config:    config,
-		decoder:   decoder,
 	}
 }
 
@@ -83,14 +80,14 @@ func (ir *Reader) readHeader() (*header, error) {
 }
 
 // createInvertedIndexIndices creates new instance of InvertedIndexIndices from the given header
-func (ir *Reader) createInvertedIndexIndices(header *header, documentReader Input) (InvertedIndexIndices, error) {
+func (ir *Reader) createInvertedIndexIndices(header *header, documentReader store.Input) (InvertedIndexIndices, error) {
 	// create inverted index structure slice
 	indices := make([]InvertedIndex, int(header.Indices))
 	invertedIndexStructureIndices := make([]invertedIndexStructure, len(indices))
 
 	// here we create list of invertedIndexStructure
 	for _, description := range header.Terms {
-		if description.PostingListSize == 0 {
+		if description.PostingListBytesSize == 0 {
 			invertedIndexStructureIndices[description.Indice] = nil
 			continue
 		}
@@ -102,7 +99,12 @@ func (ir *Reader) createInvertedIndexIndices(header *header, documentReader Inpu
 		invertedIndexStructureIndices[description.Indice][description.Term] = struct {
 			size     uint32
 			position uint32
-		}{size: description.PostingListSize, position: description.PostingListPosition}
+			length   uint32
+		}{
+			size:     description.PostingListBytesSize,
+			position: description.PostingListPosition,
+			length:   description.PostingListLen,
+		}
 	}
 
 	// create NewInvertedIndex for given indice
@@ -110,7 +112,7 @@ func (ir *Reader) createInvertedIndexIndices(header *header, documentReader Inpu
 		if invertedIndexStructure == nil {
 			indices[i] = nil
 		} else {
-			indices[i] = NewInvertedIndex(documentReader, ir.decoder, invertedIndexStructure)
+			indices[i] = NewInvertedIndex(documentReader, invertedIndexStructure)
 		}
 	}
 

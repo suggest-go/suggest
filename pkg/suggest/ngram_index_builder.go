@@ -3,10 +3,10 @@ package suggest
 import (
 	"fmt"
 
-	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/index"
 	"github.com/alldroll/suggest/pkg/merger"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // Builder is the entity that is responsible for tuning and creating a NGramIndex
@@ -32,7 +32,7 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 	}
 
 	generator := index.NewGenerator(description.NGramSize)
-	directory, err := index.NewFSDirectory(description.GetOutputPath())
+	directory, err := store.NewFSDirectory(description.GetOutputPath())
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create fs directory: %v", err)
@@ -42,7 +42,6 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 		indexReader: index.NewIndexReader(
 			directory,
 			description.CreateWriterConfig(),
-			compression.VBDecoder(),
 		),
 		generator: generator,
 		cleaner:   cleaner,
@@ -59,13 +58,21 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 		return nil, fmt.Errorf("Failed to create cleaner: %v", err)
 	}
 
-	directory := index.NewRAMDirectory()
+	encoder, err := index.NewEncoder()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create Encoder: %v", err)
+	}
+
+	directory := store.NewRAMDirectory()
 	generator := index.NewGenerator(description.NGramSize)
 	writerConfig := description.CreateWriterConfig()
+
+
 	indexWriter := index.NewIndexWriter(
 		directory,
 		writerConfig,
-		compression.VBEncoder(),
+		encoder,
 	)
 
 	if err := index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
@@ -76,7 +83,6 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 		indexReader: index.NewIndexReader(
 			directory,
 			writerConfig,
-			compression.VBDecoder(),
 		),
 		generator: generator,
 		cleaner:   cleaner,
@@ -95,6 +101,6 @@ func (b *builderImpl) Build() (NGramIndex, error) {
 		b.cleaner,
 		b.generator,
 		invertedIndices,
-		merger.CPMerge(),
+		index.NewSearcher(merger.CPMerge()),
 	), nil
 }
