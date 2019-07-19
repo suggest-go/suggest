@@ -18,24 +18,21 @@ var (
 )
 
 const (
+	// we are keeping the 16th bit as a marker of the last block
 	lastBlockFlag  = 1 << 15
+	// as the max size of var uint32 is 5 bytes, the maxSkippingGap will be 2^15 / 5
 	maxSkippingGap = (1 << 14) / 5
 )
 
-// max 5 byte for var uint32
-// gap - max 128, 128 * 5 = 640, uint16 for position
-// var uint32 for diff
-
+// let's imagine we have the next sequence:
 // 1 13 29 101 506 10003 10004 12000 12901
 //
-// 1 12 16 72 405 9497 1 1996 901 (just var uint32)
-// gap 3
-
+// with the gap size = 3, we will have the next:
 //
-// size - 1  1  1  1   2    2  1   2     2   2
-// gap  - 2  0  0  0   2    0  0   0     2   2
-// star - 0  3  4  5   6   10 12  13    15  19
-// vari - 1 12 16 72 505 9497 1 1996 11494 901
+//  1  1  1   1   2    2    2    2   2   - the bytes length of var int
+//  2  0  0   2   0    0    2    0   0   - the additional 2 bytes for the indicating of block start
+//  1 12 16 100 405 9497 9903 1996 901   - delta encoded values of the sequence
+// (1 - 0) (101 - 1)    (10004 - 101)..  - deltas for block starts
 
 // SkippingEncoder creates a new instance of skipping encoder
 func SkippingEncoder(gap int) (Encoder, error) {
@@ -74,8 +71,7 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 	}
 
 	var (
-		// TODO use estimateByteNum instead of buffer
-		buf     = &bytes.Buffer{}
+		buf     = bytes.NewBuffer(make([]byte, 0, b.gap * 5)) // max var int * 5
 		prev    = uint32(0)
 		total   = 0
 		listLen = len(list)
@@ -88,6 +84,7 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 			j = listLen
 		}
 
+		// write encoded value into buffer (we should know the encoded size first)
 		n, err := varIntEncode(list[i:j], buf, prev)
 		prev = list[i]
 
@@ -98,14 +95,17 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 		pos := n + 2
 		total += pos
 
+		// marks the 16 bit with flag, if it the last block
 		if j == listLen {
 			pos = pos | lastBlockFlag
 		}
 
+		// write the start position and the indicator of the last block at the first stage
 		if err := binary.Write(out, binary.LittleEndian, uint16(pos)); err != nil {
 			return 0, err
 		}
 
+		// flush the buffer with the encoded slice at the second stage
 		if _, err := buf.WriteTo(out); err != nil {
 			return 0, err
 		}
@@ -145,7 +145,7 @@ func (b *skippingEnc) Decode(in store.Input, buf []uint32) (int, error) {
 	return i, nil
 }
 
-// UnpackPos describe me!!
+// UnpackPos splits the given uint16 packed value on a pair (delta position, is last block flag)
 func UnpackPos(packed uint16) (int, bool) {
 	return int(packed & uint16(lastBlockFlag-1)), (packed & lastBlockFlag) == lastBlockFlag
 }

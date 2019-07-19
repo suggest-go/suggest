@@ -58,13 +58,21 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 		return nil, fmt.Errorf("Failed to create cleaner: %v", err)
 	}
 
+	encoder, err := index.NewEncoder()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create Encoder: %v", err)
+	}
+
 	directory := store.NewRAMDirectory()
 	generator := index.NewGenerator(description.NGramSize)
 	writerConfig := description.CreateWriterConfig()
+
+
 	indexWriter := index.NewIndexWriter(
 		directory,
 		writerConfig,
-		index.NewEncoder(),
+		encoder,
 	)
 
 	if err := index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {

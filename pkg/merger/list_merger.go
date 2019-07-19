@@ -8,11 +8,8 @@ type ListMerger interface {
 	Merge(rid Rid, threshold int) ([]MergeCandidate, error)
 }
 
-// RidItem represents a list of position
-type RidItem = ListIterator
-
 // Rid represents inverted lists for ListMerger
-type Rid []RidItem
+type Rid []ListIterator
 
 // Len is the number of elements in the collection.
 func (p Rid) Len() int { return len(p) }

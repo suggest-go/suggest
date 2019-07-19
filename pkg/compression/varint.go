@@ -26,8 +26,6 @@ func (b *vbEnc) Encode(list []uint32, out store.Output) (int, error) {
 	return varIntEncode(list, out, 0)
 }
 
-// inspired by protobuf/master/proto/decode.go
-//
 // Decode decodes the given byte array to the buf list
 // Returns a number of elements encoded
 func (b *vbEnc) Decode(in store.Input, buf []uint32) (int, error) {

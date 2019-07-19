@@ -183,11 +183,17 @@ func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) err
 		return err
 	}
 
+	encoder, err := index.NewEncoder()
+
+	if err != nil {
+		return fmt.Errorf("Failed to create Encoder: %v", err)
+	}
+
 	generator := index.NewGenerator(config.NGramSize)
 	indexWriter := index.NewIndexWriter(
 		directory,
 		config.CreateWriterConfig(),
-		index.NewEncoder(),
+		encoder,
 	)
 
 	if err = index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {

@@ -1,24 +1,28 @@
 package index
 
 import (
+	"errors"
 	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/store"
 	"sync"
 )
 
-const (
-	skippingGapSize = 64
-)
+const skippingGapSize = 64
+
+var errUnknownPostingListImplementation = errors.New("unknown posting list implementation")
 
 // NewEncoder returns a new instance of Encoder
-func NewEncoder() compression.Encoder {
-	// TODO handle error
-	skippingEnc, _ := compression.SkippingEncoder(skippingGapSize)
+func NewEncoder() (compression.Encoder, error) {
+	skippingEnc, err := compression.SkippingEncoder(skippingGapSize)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &encoder{
 		vbEnc:       compression.VBEncoder(),
 		skippingEnc: skippingEnc,
-	}
+	}, nil
 }
 
 type encoder struct {
@@ -52,7 +56,7 @@ var (
 	}
 )
 
-// resolvePostingList
+// resolvePostingList returns the appropriate posting list for the provided context
 func resolvePostingList(context PostingListContext) postingList {
 	if context.GetListSize() <= (skippingGapSize + 1) {
 		return vbEncPostingListPool.Get().(postingList)
@@ -61,14 +65,16 @@ func resolvePostingList(context PostingListContext) postingList {
 	return skippingPostingListPool.Get().(postingList)
 }
 
-// releasePostingList
-func releasePostingList(list postingList) {
-	// TODO handle default case
-
+// releasePostingList puts the given postingList to the corresponding pool
+func releasePostingList(list postingList) (err error) {
 	switch v := list.(type) {
 	case *postingListIterator:
 		vbEncPostingListPool.Put(v)
 	case *skippingPostingList:
 		skippingPostingListPool.Put(v)
+	default:
+		err = errUnknownPostingListImplementation
 	}
+
+	return
 }

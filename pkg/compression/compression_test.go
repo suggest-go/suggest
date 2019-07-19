@@ -66,8 +66,17 @@ func BenchmarkVBDecode(b *testing.B) {
 }
 
 func BenchmarkSkippingDecode(b *testing.B) {
-	enc, _ := SkippingEncoder(64)
-	dec, _ := SkippingDecoder(64)
+	enc, err := SkippingEncoder(64)
+
+	if err != nil {
+		b.Errorf("Unexpected error: %v", err)
+	}
+
+	dec, err := SkippingDecoder(64)
+
+	if err != nil {
+		b.Errorf("Unexpected error: %v", err)
+	}
 
 	benchmarkDecode(enc, dec, b)
 }
@@ -84,13 +93,21 @@ func benchmarkDecode(encoder Encoder, decoder Decoder, b *testing.B) {
 	})
 
 	buf := &bytes.Buffer{}
-	encoder.Encode(list, buf)
 
+	if _, err := encoder.Encode(list, buf); err != nil {
+		b.Errorf("Unexpected error: %v", err)
+	}
+
+	encoded := buf.Bytes()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		in := store.NewBytesInput(buf.Bytes())
-		decoder.Decode(in, list)
+		in := store.NewBytesInput(encoded)
+
+		if _, err := decoder.Decode(in, list); err != nil {
+			b.Errorf("Unexpected error: %v", err)
+		}
+
 		buf.Reset()
 	}
 }

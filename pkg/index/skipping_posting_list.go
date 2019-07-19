@@ -1,7 +1,6 @@
 package index
 
 import (
-	"errors"
 	"io"
 
 	"github.com/alldroll/suggest/pkg/compression"
@@ -157,15 +156,10 @@ func (i *skippingPostingList) isValid() bool {
 // moveToPosition moves the given input cursor to the given offset
 func (i *skippingPostingList) moveToPosition(position int) error {
 	offset := int64(position)
-	n, err := i.input.Seek(offset, io.SeekStart)
+	_, err := i.input.Seek(offset, io.SeekStart)
 
 	if err != nil {
 		return err
-	}
-
-	// TODO declare an error
-	if n != offset {
-		return errors.New("failed to move to the given position")
 	}
 
 	return nil
