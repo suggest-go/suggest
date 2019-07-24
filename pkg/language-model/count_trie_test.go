@@ -44,7 +44,7 @@ func TestFlow(t *testing.T) {
 
 	actual := make([]row, 0)
 
-	trie.Walk(func(path []Token, count WordCount) {
+	err := trie.Walk(func(path []Token, count WordCount) error {
 		actual = append(
 			actual,
 			row{
@@ -52,7 +52,13 @@ func TestFlow(t *testing.T) {
 				count: count,
 			},
 		)
+
+		return nil
 	})
+
+	if err != nil {
+		t.Errorf("Unexpected error occurs: %v", err)
+	}
 
 	sort.Slice(actual, func(i, j int) bool {
 		return actual[i].path < actual[j].path
@@ -80,8 +86,13 @@ func BenchmarkWalk(b *testing.B) {
 
 	j := 0
 	for i := 0; i < b.N; i++ {
-		trie.Walk(func(path Sentence, count WordCount) {
+		err := trie.Walk(func(path Sentence, count WordCount) error {
 			j++
+			return nil
 		})
+
+		if err != nil {
+			b.Errorf("Unexpected error occurs: %v", err)
+		}
 	}
 }

@@ -19,17 +19,17 @@ func StoreBinaryLMFromGoogleFormat(config *Config) error {
 		return err
 	}
 
-	mph, err := buildMPH(dict)
+	table, err := buildMPH(dict)
 
 	if err != nil {
 		return err
 	}
 
-	reader := NewGoogleNGramReader(config.NGramOrder, NewIndexer(dict, mph), config.OutputPath)
+	reader := NewGoogleNGramReader(config.NGramOrder, NewIndexer(dict, table), config.OutputPath)
 	model, err := reader.Read()
 
 	if err != nil {
-		return fmt.Errorf("Couldn't read ngrams: %v", err)
+		return fmt.Errorf("couldn't read ngrams: %v", err)
 	}
 
 	binaryFile, err := os.OpenFile(
@@ -39,23 +39,23 @@ func StoreBinaryLMFromGoogleFormat(config *Config) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create a binary file: %v", err)
+		return fmt.Errorf("failed to create a binary file: %v", err)
 	}
 
 	enc := gob.NewEncoder(binaryFile)
 
 	if err := enc.Encode(&model); err != nil {
-		return fmt.Errorf("Failed to encode NGramModel in the binary format: %v", err)
+		return fmt.Errorf("failed to encode NGramModel in the binary format: %v", err)
 	}
 
-	if err := enc.Encode(&mph); err != nil {
-		return fmt.Errorf("Failed to encode MPH in the binary format: %v", err)
+	if err := enc.Encode(&table); err != nil {
+		return fmt.Errorf("failed to encode MPH in the binary format: %v", err)
 	}
 
 	return nil
 }
 
-// RetrieveLMFromBinary retrives a language model from the binary format
+// RetrieveLMFromBinary retrieves a language model from the binary format
 func RetrieveLMFromBinary(config *Config) (LanguageModel, error) {
 	dict, err := dictionary.OpenCDBDictionary(config.GetDictionaryPath())
 
@@ -71,7 +71,7 @@ func RetrieveLMFromBinary(config *Config) (LanguageModel, error) {
 
 	var (
 		model NGramModel
-		mph   mph.MPH
+		table   mph.MPH
 		dec   = gob.NewDecoder(binaryFile)
 	)
 
@@ -79,11 +79,11 @@ func RetrieveLMFromBinary(config *Config) (LanguageModel, error) {
 		return nil, err
 	}
 
-	if err := dec.Decode(&mph); err != nil {
+	if err := dec.Decode(&table); err != nil {
 		return nil, err
 	}
 
-	return NewLanguageModel(model, NewIndexer(dict, mph), config), nil
+	return NewLanguageModel(model, NewIndexer(dict, table), config), nil
 }
 
 // buildDictionary builds a dictionary for the given config
@@ -109,7 +109,7 @@ func newDictionaryReader(config *Config) (dictionary.Iterable, error) {
 	f, err := os.Open(fmt.Sprintf(fileFormat, config.OutputPath, 1))
 
 	if err != nil {
-		return nil, fmt.Errorf("Could not open a source file %s", err)
+		return nil, fmt.Errorf("could not open a source file %s", err)
 	}
 
 	scanner := bufio.NewScanner(f)
@@ -144,11 +144,11 @@ func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
 
 // buildMPH builds a mph from the given dictionary
 func buildMPH(dict dictionary.Dictionary) (mph.MPH, error) {
-	mph, err := mph.BuildMPH(dict)
+	table, err := mph.BuildMPH(dict)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to build mph: %v", err)
+		return nil, fmt.Errorf("failed to build mph: %v", err)
 	}
 
-	return mph, nil
+	return table, nil
 }

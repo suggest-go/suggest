@@ -28,20 +28,20 @@ type Indexer interface {
 
 // BuildIndexer builds a indexer from the given dictionary
 func BuildIndexer(dict dictionary.Dictionary) (Indexer, error) {
-	mph, err := mph.BuildMPH(dict)
+	table, err := mph.BuildMPH(dict)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return NewIndexer(dict, mph), nil
+	return NewIndexer(dict, table), nil
 }
 
 // NewIndexer creates a new instance of indexer
-func NewIndexer(dict dictionary.Dictionary, mph mph.MPH) Indexer {
+func NewIndexer(dict dictionary.Dictionary, table mph.MPH) Indexer {
 	return &indexerImpl{
 		dictionary: dict,
-		table:      mph,
+		table:      table,
 	}
 }
 
@@ -57,7 +57,7 @@ func (i *indexerImpl) Get(token Token) (WordID, error) {
 	stored, err := i.dictionary.Get(index)
 
 	if err != nil {
-		return UnknownWordID, fmt.Errorf("Failed to get index from the dictionary: %v", err)
+		return UnknownWordID, fmt.Errorf("failed to get index from the dictionary: %v", err)
 	}
 
 	if stored != token {
@@ -72,7 +72,7 @@ func (i *indexerImpl) Find(index WordID) (Token, error) {
 	val, err := i.dictionary.Get(index)
 
 	if err != nil {
-		return UnknownWordSymbol, fmt.Errorf("Failed to get index from the dictionary: %v", err)
+		return UnknownWordSymbol, fmt.Errorf("failed to get index from the dictionary: %v", err)
 	}
 
 	if val == dictionary.NilValue {

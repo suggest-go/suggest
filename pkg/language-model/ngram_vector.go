@@ -20,12 +20,12 @@ type (
 
 // NGramVector represents one level of nGram trie
 type NGramVector interface {
-	// Returns WordCount and Node ContextOffset for the given pair (word, context)
+	// GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
 	GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset)
-	// Returns the given node context offset
+	// GetContextOffset returns the given node context offset
 	GetContextOffset(word WordID, context ContextOffset) ContextOffset
-	// Returns size of all counts in the collection
-	CorpousCount() WordCount
+	// CorpusCount returns size of all counts in the collection
+	CorpusCount() WordCount
 	// Next returns next words for the given context
 	Next(context ContextOffset) []WordID
 }
@@ -37,13 +37,18 @@ const (
 	maxContextOffset     = maxUint32 - 1
 )
 
+var (
+	// ErrContextOverflow tells that it was an attempt
+	ErrContextOverflow = errors.New("out of maxContextOffset")
+)
+
 type sortedArray struct {
 	keys   []key
 	values []WordCount
 	total  WordCount
 }
 
-// Returns WordCount and Node ContextOffset for the given pair (word, context)
+// GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
 func (s *sortedArray) GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset) {
 	key := makeKey(word, context)
 	i := s.find(key)
@@ -55,14 +60,14 @@ func (s *sortedArray) GetCount(word WordID, context ContextOffset) (WordCount, C
 	return s.values[int(i)], i
 }
 
-// Returns the given node context offset
+// GetContextOffset returns the given node context offset
 func (s *sortedArray) GetContextOffset(word WordID, context ContextOffset) ContextOffset {
 	key := makeKey(word, context)
 	return s.find(key)
 }
 
-// Returns size of all counts in the collection
-func (s *sortedArray) CorpousCount() WordCount {
+// CorpusCount returns size of all counts in the collection
+func (s *sortedArray) CorpusCount() WordCount {
 	return s.total
 }
 
@@ -110,7 +115,9 @@ func (s *sortedArray) MarshalBinary() ([]byte, error) {
 	result.Grow(keyEndPos + valEndPos + 4 + strconv.IntSize*2)
 
 	// write header
-	fmt.Fprintln(&result, keyEndPos, valEndPos, s.total)
+	if _, err := fmt.Fprintln(&result, keyEndPos, valEndPos, s.total); err != nil {
+		return nil, err
+	}
 
 	// write data
 	result.Write(encodedKeys[:keyEndPos])
@@ -124,8 +131,7 @@ func (s *sortedArray) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	keySize, valSize := 0, 0
 
-	_, err := fmt.Fscanln(buf, &keySize, &valSize, &s.total)
-	if err != nil {
+	if _, err := fmt.Fscanln(buf, &keySize, &valSize, &s.total); err != nil {
 		return err
 	}
 
@@ -167,7 +173,7 @@ func (s *sortedArray) find(key uint64) ContextOffset {
 // Creates uint64 key for the given pair (word, context)
 func makeKey(word WordID, context ContextOffset) key {
 	if context > maxContextOffset {
-		log.Fatal(errors.New("Out of maxContextOffset"))
+		log.Fatal(ErrContextOverflow)
 	}
 
 	return pack(context, word)

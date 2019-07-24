@@ -6,15 +6,18 @@ import "errors"
 type WordCount = uint32
 
 // TrieIterator is a callback that is called for each path of the given trie
-type TrieIterator = func(path Sentence, count WordCount)
+type TrieIterator = func(path Sentence, count WordCount) error
 
 // CountTrie represents a data structure for counting ngrams.
 type CountTrie interface {
 	// Put increments WordCount for last element of given sequence.
-	Put(sentence Sentence, count WordCount) error
+	Put(sentence Sentence, count WordCount)
 	// Walk iterates through trie and calls walker function on each element.
 	Walk(walker TrieIterator) error
 }
+
+// ErrInvalidIndex tells that there is not data for the provided index index
+var ErrInvalidIndex = errors.New("index is not exists")
 
 // NewCountTrie creates new a instance of CountTrie
 func NewCountTrie() CountTrie {
@@ -47,7 +50,7 @@ type node struct {
 type childrenTable map[uint32]*node
 
 // Put increments WordCount for the last element of the given sequence.
-func (t *countTrie) Put(sentence Sentence, count WordCount) error {
+func (t *countTrie) Put(sentence Sentence, count WordCount) {
 	if len(sentence) > t.depth {
 		t.depth = len(sentence)
 	}
@@ -75,7 +78,6 @@ func (t *countTrie) Put(sentence Sentence, count WordCount) error {
 	}
 
 	n.count += count
-	return nil
 }
 
 // Walk iterates through the trie and calls the walker function on each element.
@@ -112,7 +114,7 @@ func (t *countTrie) mapToUint32(token Token) uint32 {
 // mapFromUint32 restores a token from the given index
 func (t *countTrie) mapFromUint32(index uint32) (Token, error) {
 	if uint32(len(t.holder)) <= index {
-		return "<UNK/>", errors.New("index is not exists")
+		return UnknownWordSymbol, ErrInvalidIndex
 	}
 
 	return t.holder[int(index)], nil
@@ -121,7 +123,9 @@ func (t *countTrie) mapFromUint32(index uint32) (Token, error) {
 // iterate iterates through the given depth and calls the iterator on each path
 func (n *node) iterate(trie *countTrie, depth int, path []Token, iterator TrieIterator) {
 	if n.count > 0 {
-		iterator(path[:depth], n.count)
+		if err := iterator(path[:depth], n.count); err != nil {
+			panic(err)
+		}
 	}
 
 	if n.children == nil {

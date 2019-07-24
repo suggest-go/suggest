@@ -3,6 +3,7 @@ package lm
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -45,20 +46,30 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) (err error) {
 			return err
 		}
 
-		defer f.Close()
+		defer func (f io.Closer) {
+			err = f.Close()
+		}(f)
 
 		buf := bufio.NewWriter(f)
 		bufs = append(bufs, buf)
-		defer buf.Flush()
+
+		defer func(buf *bufio.Writer) {
+			err = buf.Flush()
+		}(buf)
 	}
 
-	err = trie.Walk(func(nGrams []Token, count WordCount) {
+	err = trie.Walk(func(nGrams []Token, count WordCount) error {
 		if len(nGrams) == 0 {
-			return
+			return nil
 		}
 
 		joined := strings.Join(nGrams, " ")
-		fmt.Fprintf(bufs[len(nGrams)-1], nGramFormat, joined, count)
+
+		if _, err := fmt.Fprintf(bufs[len(nGrams)-1], nGramFormat, joined, count); err != nil {
+			return fmt.Errorf("failed to print nGrams: %v", err)
+		}
+
+		return nil
 	})
 
 	if err != nil {

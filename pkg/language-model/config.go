@@ -49,11 +49,13 @@ func (c *Config) GetBinaryPath() string {
 // ReadConfig reads a language model config from the given reader
 func ReadConfig(reader io.Reader) (*Config, error) {
 	data, err := ioutil.ReadAll(reader)
+
 	if err != nil {
 		return nil, err
 	}
 
 	var config Config
+
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}

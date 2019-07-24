@@ -50,7 +50,7 @@ func (m *nGramModel) Score(nGrams []WordID) float64 {
 		vector := m.indices[i]
 
 		if i == 0 {
-			counts[0] = vector.CorpousCount()
+			counts[0] = vector.CorpusCount()
 		}
 
 		counts[i+1], parent = vector.GetCount(nGrams[i], parent)
@@ -116,7 +116,7 @@ func (m *nGramModel) UnmarshalBinary(data []byte) error {
 	}
 
 	if binaryVersion != version {
-		return fmt.Errorf("Version mismatch, expected: %s, got %s", version, binaryVersion)
+		return fmt.Errorf("version mismatch, expected: %s, got %s", version, binaryVersion)
 	}
 
 	if err := decoder.Decode(&m.nGramOrder); err != nil {
