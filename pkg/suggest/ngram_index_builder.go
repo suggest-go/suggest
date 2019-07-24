@@ -28,14 +28,14 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 	cleaner, err := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create cleaner: %v", err)
+		return nil, fmt.Errorf("failed to create cleaner: %v", err)
 	}
 
 	generator := index.NewGenerator(description.NGramSize)
 	directory, err := store.NewFSDirectory(description.GetOutputPath())
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create fs directory: %v", err)
+		return nil, fmt.Errorf("failed to create fs directory: %v", err)
 	}
 
 	return &builderImpl{
@@ -55,13 +55,13 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 	cleaner, err := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create cleaner: %v", err)
+		return nil, fmt.Errorf("failed to create cleaner: %v", err)
 	}
 
 	encoder, err := index.NewEncoder()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create Encoder: %v", err)
+		return nil, fmt.Errorf("failed to create Encoder: %v", err)
 	}
 
 	directory := store.NewRAMDirectory()
@@ -75,7 +75,7 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 	)
 
 	if err := index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
-		return nil, fmt.Errorf("Failed to build index in RAMDriver directory: %v", err)
+		return nil, fmt.Errorf("failed to build index in RAMDriver directory: %v", err)
 	}
 
 	return &builderImpl{
@@ -93,7 +93,7 @@ func (b *builderImpl) Build() (NGramIndex, error) {
 	invertedIndices, err := b.indexReader.Read()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to build NGramIndex: %v", err)
+		return nil, fmt.Errorf("failed to build NGramIndex: %v", err)
 	}
 
 	return NewNGramIndex(

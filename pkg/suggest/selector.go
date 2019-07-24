@@ -63,6 +63,7 @@ func (h topKHeap) top() *Candidate { return &h[0] }
 type topKSelector struct {
 	topK int
 	h    topKHeap
+	rank Rank
 }
 
 // NewTopKSelector returns instance of TopKSelector
@@ -70,6 +71,16 @@ func NewTopKSelector(topK int) TopKSelector {
 	return &topKSelector{
 		topK: topK,
 		h:    make(topKHeap, 0, topK),
+		rank: &idOrderRank{},
+	}
+}
+
+// NewTopKSelectorWithRanker returns instance of TopKSelector with ranker
+func NewTopKSelectorWithRanker(topK int, rank Rank) TopKSelector {
+	return &topKSelector{
+		topK: topK,
+		h:    make(topKHeap, 0, topK),
+		rank: rank,
 	}
 }
 
@@ -81,16 +92,20 @@ func (c *topKSelector) Add(candidate index.Position, score float64) {
 		return
 	}
 
-	if c.h.Len() == c.topK {
-		top := c.h.top()
-		top.Key = candidate
-		top.Score = score
-		heap.Fix(&c.h, 0)
-	} else {
+	if c.h.Len() < c.topK {
 		heap.Push(&c.h, Candidate{
 			Key:   candidate,
 			Score: score,
 		})
+		return
+	}
+
+	top := c.h.top()
+
+	if top.Score < score || c.rank.Less(top.Key, candidate) {
+		top.Key = candidate
+		top.Score = score
+		heap.Fix(&c.h, 0)
 	}
 }
 
@@ -109,7 +124,7 @@ func (c *topKSelector) CanTakeWithScore(score float64) bool {
 		return true
 	}
 
-	return c.h.top().Score <= score
+	return c.h.top().Score < score
 }
 
 // IsFull tells if selector has collected topK elements

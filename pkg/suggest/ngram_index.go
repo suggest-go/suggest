@@ -2,6 +2,7 @@ package suggest
 
 import (
 	"fmt"
+
 	"github.com/alldroll/suggest/pkg/utils"
 
 	"github.com/alldroll/suggest/pkg/index"
@@ -43,14 +44,14 @@ func NewNGramIndex(
 func (n *nGramIndexImpl) Suggest(config *SearchConfig) ([]Candidate, error) {
 	preparedQuery := n.cleaner.CleanAndWrap(config.query)
 
-	return n.fuzzySearch(preparedQuery, config, NewTopKSelector(config.topK))
+	return n.fuzzySearch(preparedQuery, config, NewTopKSelectorWithRanker(config.topK, &idOrderRank{}))
 }
 
 // AutoComplete returns candidates where the query string is a substring of each candidate
 func (n *nGramIndexImpl) AutoComplete(query string, limit int) ([]Candidate, error) {
 	preparedQuery := n.cleaner.CleanAndLeftWrap(query)
 
-	return n.autoComplete(preparedQuery, NewTopKSelector(limit))
+	return n.autoComplete(preparedQuery, NewTopKSelectorWithRanker(limit, &idOrderRank{}))
 }
 
 // fuzzySearch performs approximate string search in the search index
@@ -92,7 +93,7 @@ func (n *nGramIndexImpl) fuzzySearch(
 		}
 
 		if len(boundarySlice) == 0 {
-			break;
+			break
 		}
 
 		j++

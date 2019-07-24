@@ -41,36 +41,36 @@ func (s *Service) AddIndexByDescription(description IndexDescription) error {
 
 // AddRunTimeIndex adds a new RAM search index with the given description
 func (s *Service) AddRunTimeIndex(description IndexDescription) error {
-	dictionary, err := dictionary.OpenRAMDictionary(description.GetSourcePath())
+	dict, err := dictionary.OpenRAMDictionary(description.GetSourcePath())
 
 	if err != nil {
-		return fmt.Errorf("Failed to create RAMDriver builder: %v", err)
+		return fmt.Errorf("failed to create RAMDriver builder: %v", err)
 	}
 
-	builder, err := NewRAMBuilder(dictionary, description)
+	builder, err := NewRAMBuilder(dict, description)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create RAMDriver builder: %v", err)
+		return fmt.Errorf("failed to create RAMDriver builder: %v", err)
 	}
 
-	return s.AddIndex(description.Name, dictionary, builder)
+	return s.AddIndex(description.Name, dict, builder)
 }
 
 // AddOnDiscIndex adds a new DISC search index with the given description
 func (s *Service) AddOnDiscIndex(description IndexDescription) error {
-	dictionary, err := dictionary.OpenCDBDictionary(description.GetDictionaryFile())
+	dict, err := dictionary.OpenCDBDictionary(description.GetDictionaryFile())
 
 	if err != nil {
-		return fmt.Errorf("Failed to create CDB dictionary: %v", err)
+		return fmt.Errorf("failed to create CDB dictionary: %v", err)
 	}
 
 	builder, err := NewFSBuilder(description)
 
 	if err != nil {
-		return fmt.Errorf("Failed to open FS inverted index: %v", err)
+		return fmt.Errorf("failed to open FS inverted index: %v", err)
 	}
 
-	return s.AddIndex(description.Name, dictionary, builder)
+	return s.AddIndex(description.Name, dict, builder)
 }
 
 // AddIndex adds an index with the given name, dictionary and builder
@@ -78,7 +78,7 @@ func (s *Service) AddIndex(name string, dict dictionary.Dictionary, builder Buil
 	nGramIndex, err := builder.Build()
 
 	if err != nil {
-		return fmt.Errorf("Failed to build NGramIndex: %v", err)
+		return fmt.Errorf("failed to build NGramIndex: %v", err)
 	}
 
 	s.Lock()
@@ -101,14 +101,14 @@ func (s *Service) GetDictionaries() []string {
 }
 
 // Suggest returns Top-k approximate strings for the given query in the dict
-func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, error) {
+func (s *Service) Suggest(dictName string, config *SearchConfig) ([]ResultItem, error) {
 	s.RLock()
-	index, okIndex := s.indexes[dict]
-	dictionary, okDict := s.dictionaries[dict]
+	index, okIndex := s.indexes[dictName]
+	dict, okDict := s.dictionaries[dictName]
 	s.RUnlock()
 
 	if !okDict || !okIndex {
-		return nil, fmt.Errorf("Given dictionary %s is not exists", dict)
+		return nil, fmt.Errorf("given dictionary %s is not exists", dictName)
 	}
 
 	candidates, err := index.Suggest(config)
@@ -121,7 +121,7 @@ func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, erro
 	result := make([]ResultItem, 0, l)
 
 	for _, candidate := range candidates {
-		value, err := dictionary.Get(candidate.Key)
+		value, err := dict.Get(candidate.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -133,14 +133,14 @@ func (s *Service) Suggest(dict string, config *SearchConfig) ([]ResultItem, erro
 }
 
 // AutoComplete returns first limit
-func (s *Service) AutoComplete(dict string, query string, limit int) ([]ResultItem, error) {
+func (s *Service) AutoComplete(dictName string, query string, limit int) ([]ResultItem, error) {
 	s.RLock()
-	index, okIndex := s.indexes[dict]
-	dictionary, okDict := s.dictionaries[dict]
+	index, okIndex := s.indexes[dictName]
+	dict, okDict := s.dictionaries[dictName]
 	s.RUnlock()
 
 	if !okDict || !okIndex {
-		return nil, fmt.Errorf("Given dictionary %s is not exists", dict)
+		return nil, fmt.Errorf("given dictionary %s is not exists", dictName)
 	}
 
 	candidates, err := index.AutoComplete(query, limit)
@@ -152,7 +152,7 @@ func (s *Service) AutoComplete(dict string, query string, limit int) ([]ResultIt
 	result := make([]ResultItem, 0, len(candidates))
 
 	for _, candidate := range candidates {
-		value, err := dictionary.Get(candidate.Key)
+		value, err := dict.Get(candidate.Key)
 		if err != nil {
 			return nil, err
 		}
