@@ -116,6 +116,7 @@ func (r *byteInput) Slice(off int64, n int64) (Input, error) {
 }
 
 // ReadVUInt32 reads a variable-length decoded uint32 number
+// Inspired by https://github.com/golang/protobuf/blob/master/proto/decode.go
 func (r *byteInput) ReadVUInt32() (uint32, error) {
 	var (
 		i = r.i
@@ -124,22 +125,62 @@ func (r *byteInput) ReadVUInt32() (uint32, error) {
 		b byte
 	)
 
-	for s := uint32(0); s < 35; s += 7 {
-		if i >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
+	if l <= i {
+		return 0, ErrUInt32Overflow
+	} else if r.buf[i] < 0x80 {
+		r.i++
+		return uint32(r.buf[i]), nil
+	} else if l-i < 5 {
+		return r.readVarUInt32Slow()
+	}
 
-		b = r.buf[i]
-		v |= uint32(b&0x7f) << s
-		i++
+	v = uint32(r.buf[i]) - 0x80
+	i++
 
-		if b < 0x80 {
-			r.i = i
-			return v, nil
-		}
+	b = r.buf[i]
+	i++
+	v += uint32(b) << 7
+
+	if b&0x80 == 0 {
+		goto done
+	}
+
+	v -= 0x80 << 7
+
+	b = r.buf[i]
+	i++
+	v += uint32(b) << 14
+
+	if b&0x80 == 0 {
+		goto done
+	}
+
+	v -= 0x80 << 14
+
+	b = r.buf[i]
+	i++
+	v += uint32(b) << 21
+
+	if b&0x80 == 0 {
+		goto done
+	}
+
+	v -= 0x80 << 21
+
+	b = r.buf[i]
+	i++
+	v += uint32(b) << 28
+
+	if b&0x80 == 0 {
+		goto done
 	}
 
 	return 0, ErrUInt32Overflow
+
+done:
+	r.i = i
+
+	return v, nil
 }
 
 // ReadUInt32 reads a binary decoded uint32 number
@@ -164,4 +205,32 @@ func (r *byteInput) ReadUInt16() (uint16, error) {
 	r.i += 2
 
 	return v, nil
+}
+
+// readVarUInt32Slow decodes VarUInt32 with the loop approach
+// Inspired by https://github.com/golang/protobuf/blob/master/proto/decode.go
+func (r *byteInput) readVarUInt32Slow() (uint32, error) {
+	var (
+		i = r.i
+		l = int64(len(r.buf))
+		v = uint32(0)
+		b byte
+	)
+
+	for s := uint32(0); s < 35; s += 7 {
+		if i >= l {
+			return 0, io.ErrUnexpectedEOF
+		}
+
+		b = r.buf[i]
+		v |= uint32(b&0x7f) << s
+		i++
+
+		if b < 0x80 {
+			r.i = i
+			return v, nil
+		}
+	}
+
+	return 0, ErrUInt32Overflow
 }
