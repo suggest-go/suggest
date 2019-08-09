@@ -17,3 +17,9 @@ type Input interface {
 	// ReadUInt16 reads a binary decoded uint16 number
 	ReadUInt16() (uint16, error)
 }
+
+// SliceAccessible represents the entity with the ability to return underlying byte slice
+type SliceAccessible interface {
+	// Data returns the underlying content as byte slice
+	Data() []byte
+}

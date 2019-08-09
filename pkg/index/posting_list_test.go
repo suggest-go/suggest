@@ -74,10 +74,14 @@ func TestSkipping(t *testing.T) {
 			t.Errorf("Unexpected error occurs: %v", err)
 		}
 
-		posting.init(&postingListContext{
+		err := posting.init(&postingListContext{
 			listSize: len(c.list),
 			reader:   store.NewBytesInput(buf.Bytes()),
 		})
+
+		if err != nil {
+			t.Errorf("Unexpected error occurs: %v", err)
+		}
 
 		actual := []uint32{}
 		v, err := posting.LowerBound(c.to)
@@ -125,8 +129,12 @@ func BenchmarkSkippingNext(b *testing.B) {
 	benchmarkNext(b, &skippingPostingList{skippingGap: 64}, encoder)
 }
 
+func BenchmarkBitmapNext(b *testing.B) {
+	benchmarkNext(b, &bitmapPostingList{}, compression.BitmapEncoder())
+}
+
 func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encoder) {
-	list := make([]uint32, 0, 1000)
+	list := make([]uint32, 0, 65000)
 
 	for i := 0; i < cap(list); i++ {
 		list = append(list, uint32(i))
@@ -140,16 +148,30 @@ func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encode
 
 	in := store.NewBytesInput(buf.Bytes())
 
-	for i := 0; i < b.N; i++ {
-		in.Seek(0, io.SeekStart)
+	b.ResetTimer()
 
-		posting.init(&postingListContext{
+	for i := 0; i < b.N; i++ {
+		_, _ = in.Seek(0, io.SeekStart)
+
+		err := posting.init(&postingListContext{
 			listSize: len(list),
 			reader:   in,
 		})
 
-		for posting.HasNext() {
-			posting.Next()
+		if err != nil {
+			b.Fatalf("Unexpected error: %v", err)
+		}
+
+		for j := uint32(1); j < 1000 &&posting.HasNext(); j++ {
+			v, err := posting.Next()
+
+			if err != nil {
+				b.Fatalf("Unexpected error: %v", err)
+			}
+
+			if j != v {
+				b.Fatalf("Should receive %d, got %d", j, v)
+			}
 		}
 	}
 }
@@ -163,8 +185,12 @@ func BenchmarkSkippingLowerBound(b *testing.B) {
 	benchmarkLowerBound(b, &skippingPostingList{skippingGap: 64}, encoder)
 }
 
+func BenchmarkBitmapLowerBound(b *testing.B) {
+	benchmarkLowerBound(b, &bitmapPostingList{}, compression.BitmapEncoder())
+}
+
 func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.Encoder) {
-	n := 10000
+	n := 65000
 	list := make([]uint32, 0, n)
 
 	for i := 0; i < cap(list); i++ {
@@ -179,13 +205,19 @@ func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.
 
 	in := store.NewBytesInput(buf.Bytes())
 
-	for i := 0; i < b.N; i++ {
-		in.Seek(0, io.SeekStart)
+	b.ResetTimer()
 
-		posting.init(&postingListContext{
+	for i := 0; i < b.N; i++ {
+		_, _ = in.Seek(0, io.SeekStart)
+
+		err := posting.init(&postingListContext{
 			listSize: n,
 			reader:   in,
 		})
+
+		if err != nil {
+			b.Fatalf("Unexpected error %v", err)
+		}
 
 		to := uint32(i % n)
 		v, err := posting.LowerBound(to)

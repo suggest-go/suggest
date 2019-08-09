@@ -68,7 +68,6 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 	generator := index.NewGenerator(description.NGramSize)
 	writerConfig := description.CreateWriterConfig()
 
-
 	indexWriter := index.NewIndexWriter(
 		directory,
 		writerConfig,

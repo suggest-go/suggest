@@ -40,6 +40,7 @@ var evalCmd = &cobra.Command{
 		}
 
 		scanner := bufio.NewScanner(os.Stdin)
+		//scanner := bufio.NewScanner(bytes.NewBufferString("matematica"))
 		fmt.Print(">> ")
 
 		for scanner.Scan() {
