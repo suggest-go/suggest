@@ -34,7 +34,7 @@ type encoder struct {
 }
 
 // Encode encodes the given positing list into the buf array
-// Returns number of elements encoded, number of bytes readed
+// Returns number of elements encoded, number of bytes read
 func (e *encoder) Encode(list []uint32, out store.Output) (int, error) {
 	n := len(list)
 

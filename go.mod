@@ -14,5 +14,3 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	golang.org/x/sys v0.0.0-20190426135247-a129542de9ae // indirect
 )
-
-replace github.com/RoaringBitmap/roaring => github.com/alldroll/roaring v0.4.19-0.20190803203039-b3f4f3210e08
