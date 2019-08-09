@@ -45,6 +45,11 @@ func (r *byteInput) Read(b []byte) (n int, err error) {
 	return
 }
 
+// Data returns the underlying content as byte slice
+func (r *byteInput) Data() []byte {
+	return r.buf
+}
+
 // ReadAt implements the io.ReaderAt interface.
 func (r *byteInput) ReadAt(b []byte, off int64) (n int, err error) {
 	if off < 0 {
