@@ -69,8 +69,9 @@ func TestSkipping(t *testing.T) {
 	for _, c := range cases {
 		encoder, _ := compression.SkippingEncoder(3)
 		buf := &bytes.Buffer{}
+		out := store.NewBytesOutput(buf)
 
-		if _, err := encoder.Encode(c.list, buf); err != nil {
+		if _, err := encoder.Encode(c.list, out); err != nil {
 			t.Errorf("Unexpected error occurs: %v", err)
 		}
 
@@ -141,8 +142,9 @@ func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encode
 	}
 
 	buf := &bytes.Buffer{}
+	out := store.NewBytesOutput(buf)
 
-	if _, err := encoder.Encode(list, buf); err != nil {
+	if _, err := encoder.Encode(list, out); err != nil {
 		b.Errorf("Unexpected error occurs: %v", err)
 	}
 
@@ -162,7 +164,7 @@ func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encode
 			b.Fatalf("Unexpected error: %v", err)
 		}
 
-		for j := uint32(1); j < 1000 &&posting.HasNext(); j++ {
+		for j := uint32(1); j < 1000 && posting.HasNext(); j++ {
 			v, err := posting.Next()
 
 			if err != nil {
@@ -198,8 +200,9 @@ func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.
 	}
 
 	buf := &bytes.Buffer{}
+	out := store.NewBytesOutput(buf)
 
-	if _, err := encoder.Encode(list, buf); err != nil {
+	if _, err := encoder.Encode(list, out); err != nil {
 		b.Errorf("Unexpected error occurs: %v", err)
 	}
 

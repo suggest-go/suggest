@@ -47,7 +47,7 @@ func (ir *Reader) Read() (InvertedIndexIndices, error) {
 	}
 
 	runtime.SetFinalizer(index, func(d interface{}) {
-		closeIfRequired(documentReader)
+		documentReader.Close()
 	})
 
 	return index, nil
@@ -72,7 +72,7 @@ func (ir *Reader) readHeader() (*header, error) {
 		return nil, fmt.Errorf("Index version mismatch, expected %s version", IndexVersion)
 	}
 
-	if err = closeIfRequired(headerReader); err != nil {
+	if err = headerReader.Close(); err != nil {
 		return nil, fmt.Errorf("Failed to close header file: %v", err)
 	}
 

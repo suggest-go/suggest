@@ -4,6 +4,7 @@ import "io"
 
 // Input is a wrap for methods Read and retrieving underlying data
 type Input interface {
+	io.Closer
 	io.ReadSeeker
 	io.ReaderAt
 	io.ByteReader

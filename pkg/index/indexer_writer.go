@@ -1,11 +1,9 @@
 package index
 
 import (
-	"bufio"
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/store"
@@ -100,9 +98,6 @@ func (iw *Writer) Commit() error {
 		return fmt.Errorf("Failed to create document list: %v", err)
 	}
 
-	// use buffered writer for providing efficient writing to a file
-	documentListBuf := bufio.NewWriter(documentWriter)
-
 	// mapValueOffset stores current posting list offset
 	mapValueOffset := int64(0)
 
@@ -125,7 +120,7 @@ func (iw *Writer) Commit() error {
 			}
 
 			// Encode the given posting list into a byte slice
-			n, err := iw.encoder.Encode(postingList, documentListBuf)
+			n, err := iw.encoder.Encode(postingList, documentWriter)
 
 			if err != nil {
 				return err
@@ -143,15 +138,11 @@ func (iw *Writer) Commit() error {
 		}
 	}
 
-	if err = documentListBuf.Flush(); err != nil {
-		return fmt.Errorf("Failed to persist document list file: %v", err)
-	}
-
 	if err = iw.writeHeader(header); err != nil {
 		return err
 	}
 
-	if err = closeIfRequired(documentWriter); err != nil {
+	if err = documentWriter.Close(); err != nil {
 		return fmt.Errorf("Failed to close document list: %v", err)
 	}
 
@@ -173,20 +164,9 @@ func (iw *Writer) writeHeader(header header) error {
 		return fmt.Errorf("Failed to encode header: %v", err)
 	}
 
-	if err = closeIfRequired(headerWriter); err != nil {
+	if err = headerWriter.Close(); err != nil {
 		return fmt.Errorf("Failed to close header file: %v", err)
 	}
 
 	return nil
-}
-
-// closeIfRequired tries to close the object if it implements io.Closer interface
-func closeIfRequired(object interface{}) error {
-	closer, ok := object.(io.Closer)
-
-	if !ok {
-		return nil
-	}
-
-	return closer.Close()
 }
