@@ -2,7 +2,6 @@ package compression
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 
 	"github.com/alldroll/suggest/pkg/store"
@@ -19,7 +18,7 @@ var (
 
 const (
 	// we are keeping the 16th bit as a marker of the last block
-	lastBlockFlag  = 1 << 15
+	lastBlockFlag = 1 << 15
 	// as the max size of var uint32 is 5 bytes, the maxSkippingGap will be 2^15 / 5
 	maxSkippingGap = (1 << 14) / 5
 )
@@ -71,10 +70,11 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 	}
 
 	var (
-		buf     = bytes.NewBuffer(make([]byte, 0, b.gap * 5)) // max var int * 5
-		prev    = uint32(0)
-		total   = 0
-		listLen = len(list)
+		buf         = bytes.NewBuffer(make([]byte, 0, b.gap*5)) // max var int * 5
+		blockOutput = store.NewBytesOutput(buf)
+		prev        = uint32(0)
+		total       = 0
+		listLen     = len(list)
 	)
 
 	for i := 0; i < listLen; i += b.gap {
@@ -85,7 +85,7 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 		}
 
 		// write encoded value into buffer (we should know the encoded size first)
-		n, err := varIntEncode(list[i:j], buf, prev)
+		n, err := varIntEncode(list[i:j], blockOutput, prev)
 		prev = list[i]
 
 		if err != nil {
@@ -101,7 +101,7 @@ func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 		}
 
 		// write the start position and the indicator of the last block at the first stage
-		if err := binary.Write(out, binary.LittleEndian, uint16(pos)); err != nil {
+		if _, err := out.WriteUInt16(uint16(pos)); err != nil {
 			return 0, err
 		}
 

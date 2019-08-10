@@ -24,7 +24,7 @@ func (rd *ramDirectory) CreateOutput(name string) (Output, error) {
 		rd.files[name] = &bytes.Buffer{}
 	}
 
-	return rd.files[name], nil
+	return NewBytesOutput(rd.files[name]), nil
 }
 
 // OpenInput returns a reader for the given name

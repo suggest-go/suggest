@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"bufio"
 
 	"github.com/alldroll/suggest/pkg/utils"
 )
@@ -47,7 +48,7 @@ func (fs *fsDirectory) CreateOutput(name string) (Output, error) {
 		return nil, fmt.Errorf("Failed to create output: %v", err)
 	}
 
-	return file, nil
+	return NewBytesOutput(bufio.NewWriter(file)), nil
 }
 
 // OpenInput returns a reader for the given name

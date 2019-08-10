@@ -1,8 +1,9 @@
 package compression
 
 import (
-	"github.com/alldroll/suggest/pkg/store"
 	"io"
+
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // VBEncoder returns new instance of vbEnc that encodes posting list using
@@ -36,24 +37,13 @@ func varIntEncode(list []uint32, out store.Output, prev uint32) (int, error) {
 	var (
 		delta = uint32(0)
 		total = 0
-		chunk = make([]byte, 5)
-		j     = 0
 	)
 
 	for _, v := range list {
-		j = 0
 		delta = v - prev
 		prev = v
 
-		for ; delta > 0x7F; j++ {
-			chunk[j] = 0x80 | uint8(delta&0x7F)
-			delta >>= 7
-		}
-
-		chunk[j] = uint8(delta)
-		j++
-
-		n, err := out.Write(chunk[:j])
+		n, err := out.WriteVUInt32(delta)
 		total += n
 
 		if err != nil {

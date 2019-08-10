@@ -38,9 +38,10 @@ func TestEncodeDecode(t *testing.T) {
 
 		for _, c := range cases {
 			buf := &bytes.Buffer{}
+			output := store.NewBytesOutput(buf)
 			list := make([]uint32, len(c.p))
 
-			if _, err := encoder.Encode(c.p, buf); err != nil {
+			if _, err := encoder.Encode(c.p, output); err != nil {
 				t.Errorf("[%s] Unexpected error occurs: %v", ins.name, err)
 			}
 
@@ -93,8 +94,9 @@ func benchmarkDecode(encoder Encoder, decoder Decoder, b *testing.B) {
 	})
 
 	buf := &bytes.Buffer{}
+	output := store.NewBytesOutput(buf)
 
-	if _, err := encoder.Encode(list, buf); err != nil {
+	if _, err := encoder.Encode(list, output); err != nil {
 		b.Errorf("Unexpected error: %v", err)
 	}
 

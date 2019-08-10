@@ -33,6 +33,11 @@ type byteInput struct {
 	i   int64
 }
 
+// Close closes the given byteInput for io operations
+func (r *byteInput) Close() error {
+	return nil
+}
+
 // Read implements the io.Reader interface.
 func (r *byteInput) Read(b []byte) (n int, err error) {
 	if r.i >= int64(len(r.buf)) {
