@@ -1,9 +1,11 @@
+// +build ignore
 package vgram
 
 import (
-	"github.com/alldroll/suggest/pkg/dictionary"
 	"reflect"
 	"testing"
+
+	"github.com/alldroll/suggest/pkg/dictionary"
 )
 
 func TestBuildFrequencyTree(t *testing.T) {

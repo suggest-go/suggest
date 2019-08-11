@@ -114,6 +114,8 @@ func BenchmarkRealExampleOnDisc(b *testing.B) {
 
 //
 func benchmarkRealExample(b *testing.B, index NGramIndex) {
+	b.ReportAllocs()
+
 	queries := [...]string{
 		"Nissan Mar",
 		"Hnda Fi",

@@ -46,7 +46,7 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 		return
 	}
 
-	rid := make([]merger.ListIterator, 0, len(terms))
+	rid := make([]merger.ListIterator, 0, allowedSkips+threshold-1)
 
 	for _, term := range terms {
 		postingListContext, err := invertedIndex.Get(term)
