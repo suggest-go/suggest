@@ -2,6 +2,7 @@ package suggest
 
 import (
 	"fmt"
+	"github.com/alldroll/suggest/pkg/utils"
 
 	"github.com/alldroll/suggest/pkg/index"
 )
@@ -75,12 +76,12 @@ func (n *nGramIndexImpl) fuzzySearch(
 		bMax = lenIndices - 1
 	}
 
-	boundarySlice := make([]int, 0, 2)
+	buf := [2]int{}
 	i, j := sizeA, sizeA
 
 	// iteratively expand the slice with boundaries [i, j] in the interval [bMin, bMax]
 	for {
-		boundarySlice = boundarySlice[:0]
+		boundarySlice := buf[:0]
 
 		if i >= bMin {
 			boundarySlice = append(boundarySlice, i)
@@ -90,12 +91,12 @@ func (n *nGramIndexImpl) fuzzySearch(
 			boundarySlice = append(boundarySlice, j)
 		}
 
+		if len(boundarySlice) == 0 {
+			break;
+		}
+
 		j++
 		i--
-
-		if len(boundarySlice) == 0 {
-			break
-		}
 
 		for _, sizeB := range boundarySlice {
 			threshold := metric.Threshold(similarity, sizeA, sizeB)
@@ -105,8 +106,8 @@ func (n *nGramIndexImpl) fuzzySearch(
 				continue
 			}
 
-			// no reason to continue (the lowest candidate is more suitaible)
-			if !selector.CanTakeWithScore(1 - metric.Distance(sizeA, sizeA, sizeB)) {
+			// no reason to continue (the lowest candidate is more suitable even if we have complete intersection)
+			if !selector.CanTakeWithScore(1 - metric.Distance(utils.Min(sizeA, sizeB), sizeA, sizeB)) {
 				continue
 			}
 
