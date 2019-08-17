@@ -164,7 +164,7 @@ func BenchmarkBitmapNext(b *testing.B) {
 }
 
 func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encoder) {
-	for _, n := range []int{650, 6500, 65000, 650000} {
+	for _, n := range []int{65, 256, 650, 6500, 65000, 650000} {
 		b.Run(fmt.Sprintf("Iterate %d", n), func(b *testing.B) {
 			list := make([]uint32, 0, n)
 
@@ -224,7 +224,7 @@ func BenchmarkBitmapLowerBound(b *testing.B) {
 }
 
 func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.Encoder) {
-	for _, n := range []int{650, 6500, 65000, 650000} {
+	for _, n := range []int{65, 256, 650, 6500, 65000, 650000} {
 		b.Run(fmt.Sprintf("LowerBound %d", n), func(b *testing.B) {
 			list := make([]uint32, 0, n)
 

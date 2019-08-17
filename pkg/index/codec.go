@@ -2,13 +2,14 @@ package index
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/alldroll/suggest/pkg/compression"
 	"github.com/alldroll/suggest/pkg/store"
-	"sync"
 )
 
 const skippingGapSize = 64
-const maxSkippingLen = 1024
+const maxSkippingLen = 256
 
 var errUnknownPostingListImplementation = errors.New("unknown posting list implementation")
 
@@ -23,14 +24,14 @@ func NewEncoder() (compression.Encoder, error) {
 	return &encoder{
 		vbEnc:       compression.VBEncoder(),
 		skippingEnc: skippingEnc,
-		bitmapEnc: compression.BitmapEncoder(),
+		bitmapEnc:   compression.BitmapEncoder(),
 	}, nil
 }
 
 type encoder struct {
 	vbEnc       compression.Encoder
 	skippingEnc compression.Encoder
-	bitmapEnc compression.Encoder
+	bitmapEnc   compression.Encoder
 }
 
 // Encode encodes the given positing list into the buf array
