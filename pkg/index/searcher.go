@@ -26,50 +26,45 @@ func NewSearcher(merger merger.ListMerger) Searcher {
 
 // Search performs search for the given index with the terms and threshold
 func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold int) (candidates []merger.MergeCandidate, err error) {
-	if threshold > len(terms) {
-		return
-	}
+	n := len(terms)
 
-	allowedSkips := len(terms) - threshold + 1
-
-	for _, term := range terms {
-		if allowedSkips == 0 {
-			break
-		}
+	for i := 0; i < n && n >= threshold; {
+		term := terms[i]
 
 		if !invertedIndex.Has(term) {
-			allowedSkips--
+			terms[i], terms[n-1] = terms[n-1], terms[i]
+			n--
+		} else {
+			i++
 		}
 	}
 
-	if allowedSkips == 0 {
+	if n < threshold {
 		return
 	}
 
-	rid := make([]merger.ListIterator, 0, len(terms))
+	rid := make([]merger.ListIterator, 0, n)
 
-	for _, term := range terms {
+	for _, term := range terms[:n] {
 		postingListContext, err := invertedIndex.Get(term)
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve a posting list context: %v", err)
 		}
 
-		if postingListContext != nil && postingListContext.GetListSize() > 0 {
-			list := resolvePostingList(postingListContext)
+		list := resolvePostingList(postingListContext)
 
-			defer func(list postingList) {
-				if closeErr := releasePostingList(list); err != nil {
-					err = closeErr
-				}
-			}(list)
-
-			if err := list.init(postingListContext); err != nil {
-				return nil, fmt.Errorf("failed to initialize a posting list iterator: %v", err)
+		defer func(list postingList) {
+			if closeErr := releasePostingList(list); err != nil {
+				err = closeErr
 			}
+		}(list)
 
-			rid = append(rid, list)
+		if err := list.init(postingListContext); err != nil {
+			return nil, fmt.Errorf("failed to initialize a posting list iterator: %v", err)
 		}
+
+		rid = append(rid, list)
 	}
 
 	candidates, err = s.merger.Merge(rid, threshold)

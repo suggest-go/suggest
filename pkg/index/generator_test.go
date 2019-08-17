@@ -30,7 +30,9 @@ func TestSplitIntoNGrams(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		actual := SplitIntoNGrams(c.word, c.k)
+		generator := NewGenerator(c.k)
+		actual := generator.Generate(c.word)
+
 		if !reflect.DeepEqual(actual, c.ngrams) {
 			t.Errorf(
 				"Test Fail, expected %v, got %v",
@@ -38,5 +40,13 @@ func TestSplitIntoNGrams(t *testing.T) {
 				actual,
 			)
 		}
+	}
+}
+
+func BenchmarkGenerate(b *testing.B) {
+	generator := NewGenerator(3)
+
+	for i := 0; i < b.N; i++ {
+		generator.Generate("abcdefghkl123456йцукен")
 	}
 }

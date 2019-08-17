@@ -2,6 +2,7 @@ package merger
 
 import (
 	"sort"
+	"sync"
 )
 
 // CPMerge was described in paper
@@ -22,11 +23,17 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	}
 
 	minQueries := lenRid - threshold + 1
-	candidates := make([]MergeCandidate, 0, lenRid)
-	tmp := make([]MergeCandidate, 0, lenRid)
 	j, endMergeCandidate := 0, 0
+	candidatesMinLen := 0
 
 	sort.Sort(rid)
+
+	if minQueries > 0 {
+		candidatesMinLen = rid[minQueries-1].Len()
+	}
+
+	tmp := bufPool.Get().([]MergeCandidate)
+	candidates := make([]MergeCandidate, 0, candidatesMinLen)
 
 	for _, list := range rid[:minQueries] {
 		isValid := true
@@ -79,10 +86,6 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		candidates, tmp = tmp, candidates
 	}
 
-	if len(candidates) == 0 {
-		return candidates, nil
-	}
-
 	for i := minQueries; i < lenRid; i++ {
 		tmp = tmp[:0]
 
@@ -111,5 +114,21 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		}
 	}
 
+	n, m := len(candidates), cap(candidates)
+
+	if m-n <= cap(tmp) {
+		bufPool.Put(tmp[:cap(tmp)])
+	} else {
+		tmp = candidates[:m]
+		bufPool.Put(tmp[n:])
+		candidates = tmp[:n]
+	}
+
 	return candidates, nil
+}
+
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return make([]MergeCandidate, 0, 1024)
+	},
 }

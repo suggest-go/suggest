@@ -8,5 +8,14 @@
     "output": "db",
     "pad": "$",
     "wrap": ["$", "$"]
+  },
+  {
+    "name": "words",
+    "nGramSize": 3,
+    "alphabet": ["english", "numbers", "$^"],
+    "source": "words.dict",
+    "output": "db",
+    "pad": "$",
+    "wrap": ["^", "$"]
   }
 ]

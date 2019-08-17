@@ -55,17 +55,15 @@ func (b *byteOutput) WriteUInt16(v uint16) (int, error) {
 
 // Close closes the given output for io operations
 func (b *byteOutput) Close() error {
-	closer, ok := b.writer.(io.Closer)
-
-	if !ok {
-		return nil
-	}
-
 	if buf, ok := b.writer.(*bufio.Writer); ok {
 		if err := buf.Flush(); err != nil {
 			return err
 		}
 	}
 
-	return closer.Close()
+	if closer, ok := b.writer.(io.Closer); ok {
+		return closer.Close()
+	}
+
+	return nil
 }

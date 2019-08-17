@@ -106,14 +106,48 @@ func BenchmarkRealExampleInMemory(b *testing.B) {
 }
 
 func BenchmarkRealExampleOnDisc(b *testing.B) {
-	nGramIndex := buildOnDiscNGramIndex()
+	nGramIndex := buildOnDiscNGramIndex(0)
 
 	b.ResetTimer()
 	benchmarkRealExample(b, nGramIndex)
 }
 
+func BenchmarkWordsOnDisc(b *testing.B) {
+	index := buildOnDiscNGramIndex(1)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	queries := [...]string{
+		"testing",
+		"Acuracacy",
+		"Indpendence",
+		"Villictiy",
+		"Velocity",
+		"matehmatica",
+		"acationally",
+		"misleading",
+		"litter",
+		"arthroendoscopy",
+	}
+
+	qLen := len(queries)
+	conf, err := NewSearchConfig("axuialary", 5, metric.CosineMetric(), 0.5)
+
+	if err != nil {
+		b.Errorf("Unexpected error: %v", err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		conf.query = queries[i%qLen]
+		index.Suggest(conf)
+	}
+}
+
 //
 func benchmarkRealExample(b *testing.B, index NGramIndex) {
+	b.ReportAllocs()
+
 	queries := [...]string{
 		"Nissan Mar",
 		"Hnda Fi",
@@ -180,7 +214,7 @@ func TestAutoComplete(t *testing.T) {
 func BenchmarkAutoCompleteOnDisc(b *testing.B) {
 	b.StopTimer()
 
-	nGramIndex := buildOnDiscNGramIndex()
+	nGramIndex := buildOnDiscNGramIndex(0)
 
 	queries := [...]string{
 		"Nissan Mar",
@@ -225,14 +259,14 @@ func buildNGramIndex(collection []string) NGramIndex {
 	return index
 }
 
-func buildOnDiscNGramIndex() NGramIndex {
+func buildOnDiscNGramIndex(off int) NGramIndex {
 	description, err := ReadConfigs("testdata/config.json")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	builder, err := NewFSBuilder(description[0])
+	builder, err := NewFSBuilder(description[off])
 
 	if err != nil {
 		log.Fatal(err)

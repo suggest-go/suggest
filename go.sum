@@ -2,6 +2,10 @@ github.com/RoaringBitmap/roaring v0.4.18 h1:nh8Ngxctxt5QAoMLuR7MHJe4jEqpn+EnsdgD
 github.com/RoaringBitmap/roaring v0.4.18/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrXIr8KVNvRsDi1NI=
 github.com/RoaringBitmap/roaring v0.4.19-0.20190803203039-d0ce1763c352 h1:EFC9GzkPM25yuJ6ogD6jUm7ScZuUOEm5Ev9Mm0shNBg=
 github.com/RoaringBitmap/roaring v0.4.19-0.20190803203039-d0ce1763c352/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrXIr8KVNvRsDi1NI=
+github.com/RoaringBitmap/roaring v0.4.19 h1:xy932fRqfJ3qXVm8XKymSfwSnv3bXvC0n4TNs2LdeQs=
+github.com/RoaringBitmap/roaring v0.4.19/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrXIr8KVNvRsDi1NI=
+github.com/RoaringBitmap/roaring v0.4.20-0.20190817170538-bbe4f2294041 h1:GK5P5ifNfzDuL2esaecvWZVw4imbvpVTe+/EFYg7RLI=
+github.com/RoaringBitmap/roaring v0.4.20-0.20190817170538-bbe4f2294041/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrXIr8KVNvRsDi1NI=
 github.com/alldroll/cdb v1.0.1 h1:aJz2knMVlkLhMFariicMlevHQTyzJh7gpkecGz46NHg=
 github.com/alldroll/cdb v1.0.1/go.mod h1:1gzu+TPb5T0xc/3jEnipJrl62ZV9HyAw5kAVh03Lm2E=
 github.com/alldroll/go-datastructures v0.0.0-20190322060030-1d3a19ff3b29 h1:gKZgtn2ud0FxyG0lFqrp8hRnvABoqkDTNgebDlbmtgM=

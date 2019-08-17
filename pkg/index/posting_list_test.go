@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"reflect"
 	"testing"
@@ -11,6 +12,30 @@ import (
 )
 
 func TestSkipping(t *testing.T) {
+	skipEncoder, _ := compression.SkippingEncoder(3)
+
+	postings := []struct {
+		name    string
+		posting postingList
+		encoder compression.Encoder
+	}{
+		{
+			name:    "skipping",
+			posting: &skippingPostingList{skippingGap: 3},
+			encoder: skipEncoder,
+		},
+		{
+			name:    "dummy",
+			posting: &postingListIterator{},
+			encoder: compression.VBEncoder(),
+		},
+		{
+			name:    "bitmap",
+			posting: &bitmapPostingList{},
+			encoder: compression.BitmapEncoder(),
+		},
+	}
+
 	cases := []struct {
 		name          string
 		list          []uint32
@@ -64,60 +89,64 @@ func TestSkipping(t *testing.T) {
 		},
 	}
 
-	posting := &skippingPostingList{skippingGap: 3}
+	for _, p := range postings {
+		t.Run(fmt.Sprintf("Test %s posting", p.name), func(t *testing.T) {
+			posting := p.posting
+			encoder := p.encoder
 
-	for _, c := range cases {
-		encoder, _ := compression.SkippingEncoder(3)
-		buf := &bytes.Buffer{}
-		out := store.NewBytesOutput(buf)
+			for _, c := range cases {
+				buf := &bytes.Buffer{}
+				out := store.NewBytesOutput(buf)
 
-		if _, err := encoder.Encode(c.list, out); err != nil {
-			t.Errorf("Unexpected error occurs: %v", err)
-		}
+				if _, err := encoder.Encode(c.list, out); err != nil {
+					t.Errorf("Unexpected error occurs: %v", err)
+				}
 
-		err := posting.init(&postingListContext{
-			listSize: len(c.list),
-			reader:   store.NewBytesInput(buf.Bytes()),
+				err := posting.init(&postingListContext{
+					listSize: len(c.list),
+					reader:   store.NewBytesInput(buf.Bytes()),
+				})
+
+				if err != nil {
+					t.Errorf("Unexpected error occurs: %v", err)
+				}
+
+				actual := []uint32{}
+				v, err := posting.LowerBound(c.to)
+
+				if v != c.lowerBound {
+					t.Errorf("Test %s fail, expected %v, got %v", c.name, c.lowerBound, v)
+				}
+
+				if err != nil && !c.expectedError {
+					t.Errorf("Unexpected error: %v", err)
+				}
+
+				for !c.expectedError {
+					v, err := posting.Get()
+
+					if err != nil {
+						t.Errorf("Unexpected error: %v", err)
+					}
+
+					actual = append(actual, v)
+
+					if !posting.HasNext() {
+						break
+					}
+
+					v, err = posting.Next()
+
+					if err != nil {
+						t.Errorf("Unexpected error: %v", err)
+					}
+				}
+
+				if !reflect.DeepEqual(c.tail, actual) {
+					t.Errorf("Test %s fail, expected posting list: %v, got: %v", c.name, c.tail, actual)
+				}
+			}
 		})
-
-		if err != nil {
-			t.Errorf("Unexpected error occurs: %v", err)
-		}
-
-		actual := []uint32{}
-		v, err := posting.LowerBound(c.to)
-
-		if v != c.lowerBound {
-			t.Errorf("Test %s fail, expected %v, got %v", c.name, c.lowerBound, v)
-		}
-
-		if err != nil && !c.expectedError {
-			t.Errorf("Unexpected error: %v", err)
-		}
-
-		for !c.expectedError {
-			v, err := posting.Get()
-
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			actual = append(actual, v)
-
-			if !posting.HasNext() {
-				break
-			}
-
-			v, err = posting.Next()
-
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
-		}
-
-		if !reflect.DeepEqual(c.tail, actual) {
-			t.Errorf("Test %s fail, expected posting list: %v, got: %v", c.name, c.tail, actual)
-		}
 	}
 }
 
@@ -135,46 +164,49 @@ func BenchmarkBitmapNext(b *testing.B) {
 }
 
 func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encoder) {
-	list := make([]uint32, 0, 65000)
+	for _, n := range []int{65, 256, 650, 6500, 65000, 650000} {
+		b.Run(fmt.Sprintf("Iterate %d", n), func(b *testing.B) {
+			list := make([]uint32, 0, n)
 
-	for i := 0; i < cap(list); i++ {
-		list = append(list, uint32(i))
-	}
+			for i := 0; i < cap(list); i++ {
+				list = append(list, uint32(i))
+			}
 
-	buf := &bytes.Buffer{}
-	out := store.NewBytesOutput(buf)
+			buf := &bytes.Buffer{}
+			out := store.NewBytesOutput(buf)
 
-	if _, err := encoder.Encode(list, out); err != nil {
-		b.Errorf("Unexpected error occurs: %v", err)
-	}
+			if _, err := encoder.Encode(list, out); err != nil {
+				b.Errorf("Unexpected error occurs: %v", err)
+			}
 
-	in := store.NewBytesInput(buf.Bytes())
+			in := store.NewBytesInput(buf.Bytes())
+			b.ResetTimer()
 
-	b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _ = in.Seek(0, io.SeekStart)
 
-	for i := 0; i < b.N; i++ {
-		_, _ = in.Seek(0, io.SeekStart)
+				err := posting.init(&postingListContext{
+					listSize: len(list),
+					reader:   in,
+				})
 
-		err := posting.init(&postingListContext{
-			listSize: len(list),
-			reader:   in,
+				if err != nil {
+					b.Fatalf("Unexpected error: %v", err)
+				}
+
+				for j := uint32(1); j < uint32(n) && posting.HasNext(); j++ {
+					v, err := posting.Next()
+
+					if err != nil {
+						b.Fatalf("Unexpected error: %v", err)
+					}
+
+					if j != v {
+						b.Fatalf("Should receive %d, got %d", j, v)
+					}
+				}
+			}
 		})
-
-		if err != nil {
-			b.Fatalf("Unexpected error: %v", err)
-		}
-
-		for j := uint32(1); j < 1000 && posting.HasNext(); j++ {
-			v, err := posting.Next()
-
-			if err != nil {
-				b.Fatalf("Unexpected error: %v", err)
-			}
-
-			if j != v {
-				b.Fatalf("Should receive %d, got %d", j, v)
-			}
-		}
 	}
 }
 
@@ -192,45 +224,47 @@ func BenchmarkBitmapLowerBound(b *testing.B) {
 }
 
 func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.Encoder) {
-	n := 65000
-	list := make([]uint32, 0, n)
+	for _, n := range []int{65, 256, 650, 6500, 65000, 650000} {
+		b.Run(fmt.Sprintf("LowerBound %d", n), func(b *testing.B) {
+			list := make([]uint32, 0, n)
 
-	for i := 0; i < cap(list); i++ {
-		list = append(list, uint32(i))
-	}
+			for i := 0; i < cap(list); i++ {
+				list = append(list, uint32(i))
+			}
 
-	buf := &bytes.Buffer{}
-	out := store.NewBytesOutput(buf)
+			buf := &bytes.Buffer{}
+			out := store.NewBytesOutput(buf)
 
-	if _, err := encoder.Encode(list, out); err != nil {
-		b.Errorf("Unexpected error occurs: %v", err)
-	}
+			if _, err := encoder.Encode(list, out); err != nil {
+				b.Errorf("Unexpected error occurs: %v", err)
+			}
 
-	in := store.NewBytesInput(buf.Bytes())
+			in := store.NewBytesInput(buf.Bytes())
+			b.ResetTimer()
 
-	b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _ = in.Seek(0, io.SeekStart)
 
-	for i := 0; i < b.N; i++ {
-		_, _ = in.Seek(0, io.SeekStart)
+				err := posting.init(&postingListContext{
+					listSize: n,
+					reader:   in,
+				})
 
-		err := posting.init(&postingListContext{
-			listSize: n,
-			reader:   in,
+				if err != nil {
+					b.Fatalf("Unexpected error %v", err)
+				}
+
+				to := uint32(i % n)
+				v, err := posting.LowerBound(to)
+
+				if err != nil {
+					b.Fatalf("Unexpected error %v", err)
+				}
+
+				if v != to {
+					b.Fatalf("Test fail, expected %v, got %v", to, v)
+				}
+			}
 		})
-
-		if err != nil {
-			b.Fatalf("Unexpected error %v", err)
-		}
-
-		to := uint32(i % n)
-		v, err := posting.LowerBound(to)
-
-		if err != nil {
-			b.Fatalf("Unexpected error %v", err)
-		}
-
-		if v != to {
-			b.Fatalf("Test fail, expected %v, got %v", to, v)
-		}
 	}
 }

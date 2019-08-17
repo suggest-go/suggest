@@ -21,30 +21,42 @@ func NewGenerator(nGramSize int) Generator {
 }
 
 // Generate returns terms array for given word
+// inspired by https://github.com/Lazin/go-ngram
 func (g *generatorImpl) Generate(word string) []Term {
-	nGrams := SplitIntoNGrams(word, g.nGramSize)
-	l := len(nGrams)
-	set := make(map[Term]struct{}, l)
-	list := make([]Term, 0, l)
+	if len(word) < g.nGramSize {
+		return []Term{}
+	}
 
-	for _, nGram := range nGrams {
-		if _, found := set[nGram]; !found {
-			set[nGram] = struct{}{}
-			list = append(list, nGram)
+	result := make([]Term, 0, len(word)-g.nGramSize+1)
+	prevIndexes := [maxN]int{}
+	i := 0
+
+	for index := range word {
+		i++
+
+		if i > g.nGramSize {
+			top := prevIndexes[(i-g.nGramSize)%g.nGramSize]
+			nGram := word[top:index]
+			result = appendUnique(result, nGram)
+		}
+
+		prevIndexes[i%g.nGramSize] = index
+	}
+
+	top := prevIndexes[(i+1)%g.nGramSize]
+	nGram := word[top:]
+	result = appendUnique(result, nGram)
+
+	return result
+}
+
+// https://blog.golang.org/profiling-go-programs
+func appendUnique(a []Term, x Term) []Term {
+	for _, y := range a {
+		if x == y {
+			return a
 		}
 	}
 
-	return list
-}
-
-// SplitIntoNGrams split given word on k-gram list
-func SplitIntoNGrams(word string, k int) []string {
-	runes := []rune(word)
-	result := make([]string, 0, len(runes))
-
-	for i := 0; i < len(runes)-k+1; i++ {
-		result = append(result, string(runes[i:i+k]))
-	}
-
-	return result
+	return append(a, x)
 }
