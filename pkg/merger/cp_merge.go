@@ -24,16 +24,11 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 
 	minQueries := lenRid - threshold + 1
 	j, endMergeCandidate := 0, 0
-	candidatesMinLen := 0
 
 	sort.Sort(rid)
 
-	if minQueries > 0 {
-		candidatesMinLen = rid[minQueries-1].Len()
-	}
-
 	tmp := bufPool.Get().([]MergeCandidate)
-	candidates := make([]MergeCandidate, 0, candidatesMinLen)
+	candidates := make([]MergeCandidate, 0, rid[minQueries-1].Len())
 
 	for _, list := range rid[:minQueries] {
 		isValid := true
