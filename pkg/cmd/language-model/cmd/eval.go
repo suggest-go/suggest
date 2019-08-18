@@ -20,13 +20,7 @@ var evalCmd = &cobra.Command{
 	Short: "cli to approximate string search access",
 	Long:  `cli to approximate string search access`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		f, err := os.Open(configPath)
-
-		if err != nil {
-			return fmt.Errorf("Failed to open config file: %v", err)
-		}
-
-		config, err := lm.ReadConfig(f)
+		config, err := lm.ReadConfig(configPath)
 
 		if err != nil {
 			return fmt.Errorf("Failed to read config file: %v", err)

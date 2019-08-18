@@ -18,14 +18,7 @@ var countNGramsCmd = &cobra.Command{
 	Short: "builds ngram counts for the given config file using google ngram format",
 	Long:  `builds ngram counts for the given config file using google ngram format`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configFile, err := os.Open(configPath)
-		if err != nil {
-			return fmt.Errorf("could not open config file %s", err)
-		}
-
-		defer configFile.Close()
-
-		config, err := lm.ReadConfig(configFile)
+		config, err := lm.ReadConfig(configPath)
 
 		if err != nil {
 			return fmt.Errorf("could read config %s", err)
@@ -43,7 +36,7 @@ var countNGramsCmd = &cobra.Command{
 
 // buildNGramsCount builds a count trie
 func buildNGramsCount(config *lm.Config) (lm.CountTrie, error) {
-	sourceFile, err := os.Open(config.SourcePath)
+	sourceFile, err := os.Open(config.GetSourcePath())
 
 	if err != nil {
 		return nil, fmt.Errorf("could read source file %s", err)

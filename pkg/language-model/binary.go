@@ -25,7 +25,7 @@ func StoreBinaryLMFromGoogleFormat(config *Config) error {
 		return err
 	}
 
-	reader := NewGoogleNGramReader(config.NGramOrder, NewIndexer(dict, table), config.OutputPath)
+	reader := NewGoogleNGramReader(config.NGramOrder, NewIndexer(dict, table), config.GetOutputPath())
 	model, err := reader.Read()
 
 	if err != nil {
@@ -71,7 +71,7 @@ func RetrieveLMFromBinary(config *Config) (LanguageModel, error) {
 
 	var (
 		model NGramModel
-		table   mph.MPH
+		table mph.MPH
 		dec   = gob.NewDecoder(binaryFile)
 	)
 
@@ -106,7 +106,7 @@ func buildDictionary(config *Config) (dictionary.Dictionary, error) {
 // newDictionaryReader creates an adapter to Iterable interface, that scans all lines
 // from the SourcePath and creates pairs of <DocID, Value>
 func newDictionaryReader(config *Config) (dictionary.Iterable, error) {
-	f, err := os.Open(fmt.Sprintf(fileFormat, config.OutputPath, 1))
+	f, err := os.Open(fmt.Sprintf(fileFormat, config.GetOutputPath(), 1))
 
 	if err != nil {
 		return nil, fmt.Errorf("could not open a source file %s", err)

@@ -2,7 +2,6 @@ package lm
 
 import (
 	"math"
-	"os"
 	"testing"
 )
 
@@ -12,6 +11,7 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		StartSymbol: "<S>",
 		EndSymbol:   "</S>",
 		OutputPath:  "testdata/fixtures",
+		basePath:    ".",
 	}
 
 	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
@@ -20,7 +20,7 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	reader := NewGoogleNGramReader(config.NGramOrder, indexer, config.OutputPath)
+	reader := NewGoogleNGramReader(config.NGramOrder, indexer, config.GetOutputPath())
 
 	model, err := reader.Read()
 	if err != nil {
@@ -32,13 +32,7 @@ func TestScoreSentenceFromFile(t *testing.T) {
 }
 
 func TestScoreSentenceFromBinary(t *testing.T) {
-	f, err := os.Open("testdata/config-example.json")
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	config, err := ReadConfig(f)
+	config, err := ReadConfig("testdata/config-example.json")
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
