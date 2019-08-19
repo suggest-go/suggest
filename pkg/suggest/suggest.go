@@ -143,7 +143,7 @@ func (s *Service) AutoComplete(dictName string, query string, limit int) ([]Resu
 		return nil, fmt.Errorf("given dictionary %s is not exists", dictName)
 	}
 
-	candidates, err := index.AutoComplete(query, limit)
+	candidates, err := index.AutoComplete(query, limit, dummyScorer{})
 
 	if err != nil {
 		return nil, err

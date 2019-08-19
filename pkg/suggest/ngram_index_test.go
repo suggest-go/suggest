@@ -186,7 +186,7 @@ func TestAutoComplete(t *testing.T) {
 	}
 
 	nGramIndex := buildNGramIndex(collection)
-	candidates, err := nGramIndex.AutoComplete("Niss", 5)
+	candidates, err := nGramIndex.AutoComplete("Niss", 5, dummyScorer{})
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -228,9 +228,10 @@ func BenchmarkAutoCompleteOnDisc(b *testing.B) {
 
 	qLen := len(queries)
 	b.StartTimer()
+	scorer := dummyScorer{}
 
 	for i := 0; i < b.N; i++ {
-		nGramIndex.AutoComplete(queries[i%qLen], 5)
+		nGramIndex.AutoComplete(queries[i%qLen], 5, scorer)
 	}
 }
 

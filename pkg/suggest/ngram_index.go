@@ -14,7 +14,7 @@ type NGramIndex interface {
 	// Suggest returns top-k similar candidates
 	Suggest(config *SearchConfig) ([]Candidate, error)
 	// AutoComplete returns candidates with query as substring
-	AutoComplete(query string, limit int) ([]Candidate, error)
+	AutoComplete(query string, limit int, scorer Scorer) ([]Candidate, error)
 }
 
 // nGramIndexImpl implements NGramIndex
@@ -48,10 +48,10 @@ func (n *nGramIndexImpl) Suggest(config *SearchConfig) ([]Candidate, error) {
 }
 
 // AutoComplete returns candidates where the query string is a substring of each candidate
-func (n *nGramIndexImpl) AutoComplete(query string, limit int) ([]Candidate, error) {
+func (n *nGramIndexImpl) AutoComplete(query string, limit int, scorer Scorer) ([]Candidate, error) {
 	preparedQuery := n.cleaner.CleanAndLeftWrap(query)
 
-	return n.autoComplete(preparedQuery, NewTopKSelectorWithRanker(limit, &idOrderRank{}))
+	return n.autoComplete(preparedQuery, NewTopKSelectorWithRanker(limit, &idOrderRank{}), scorer)
 }
 
 // fuzzySearch performs approximate string search in the search index
@@ -151,7 +151,7 @@ func (n *nGramIndexImpl) fuzzySearch(
 }
 
 // autoComplete performs a completion of phrases that contain the given query
-func (n *nGramIndexImpl) autoComplete(query string, selector TopKSelector) ([]Candidate, error) {
+func (n *nGramIndexImpl) autoComplete(query string, selector TopKSelector, scorer Scorer) ([]Candidate, error) {
 	set := n.generator.Generate(query)
 	invertedIndex := n.indices.GetWholeIndex()
 	candidates, err := n.searcher.Search(invertedIndex, set, len(set))
@@ -160,8 +160,8 @@ func (n *nGramIndexImpl) autoComplete(query string, selector TopKSelector) ([]Ca
 		return nil, fmt.Errorf("failed to search posting lists: %v", err)
 	}
 
-	for i, c := range candidates {
-		selector.Add(c.Position(), float64(-i))
+	for _, c := range candidates {
+		selector.Add(c.Position(), scorer.Score(c.Position()))
 	}
 
 	return selector.GetCandidates(), nil

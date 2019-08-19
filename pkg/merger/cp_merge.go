@@ -18,7 +18,7 @@ type cpMerge struct{}
 func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	lenRid := len(rid)
 
-	if threshold > lenRid {
+	if threshold > lenRid || lenRid == 0 {
 		return []MergeCandidate{}, nil
 	}
 
@@ -97,7 +97,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 				}
 			}
 
-			if c.Overlap() +(lenRid-i-1) >= threshold {
+			if c.Overlap()+(lenRid-i-1) >= threshold {
 				tmp = append(tmp, c)
 			}
 		}

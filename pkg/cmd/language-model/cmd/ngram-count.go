@@ -60,7 +60,7 @@ func buildNGramsCount(config *lm.Config) (lm.CountTrie, error) {
 
 // storeNGramsCount flushes the constructed count trie on FS
 func storeNGramsCount(config *lm.Config, trie lm.CountTrie) error {
-	writer := lm.NewGoogleNGramWriter(config.NGramOrder, config.OutputPath)
+	writer := lm.NewGoogleNGramWriter(config.NGramOrder, config.GetOutputPath())
 
 	if err := writer.Write(trie); err != nil {
 		return fmt.Errorf("could save ngrams %s", err)
