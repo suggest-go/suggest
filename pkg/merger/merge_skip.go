@@ -84,10 +84,7 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		n := len(poppedItems)
 
 		if n >= threshold {
-			result = append(result, MergeCandidate{
-				Position: t.position,
-				Overlap:  n,
-			})
+			result = append(result, NewMergeCandidate(t.position, n))
 
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]

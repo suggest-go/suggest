@@ -140,8 +140,8 @@ func (n *nGramIndexImpl) fuzzySearch(
 			}
 
 			for _, c := range candidates {
-				score := 1 - metric.Distance(c.Overlap, sizeA, sizeB)
-				selector.Add(c.Position, score)
+				score := 1 - metric.Distance(c.Overlap(), sizeA, sizeB)
+				selector.Add(c.Position(), score)
 			}
 		}
 	}
@@ -160,7 +160,7 @@ func (n *nGramIndexImpl) autoComplete(query string, selector TopKSelector) ([]Ca
 	}
 
 	for i, c := range candidates {
-		selector.Add(c.Position, float64(-i))
+		selector.Add(c.Position(), float64(-i))
 	}
 
 	return selector.GetCandidates(), nil
