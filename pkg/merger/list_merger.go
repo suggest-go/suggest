@@ -24,18 +24,22 @@ func (p Rid) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 // MergeCandidate is result of merging Rid
 type MergeCandidate uint64
 
+// NewMergeCandidate creates a new instance of MergeCandidate
 func NewMergeCandidate(position uint32, overlap int) MergeCandidate {
 	return MergeCandidate(uint64(position) << 32 | uint64(overlap))
 }
 
+// Position returns the given position of the candidate
 func (m MergeCandidate) Position() uint32 {
 	return uint32(m >> 32)
 }
 
+// Overlap returns the current overlap count of the candidate
 func (m MergeCandidate) Overlap() int {
 	return int(uint32(m))
 }
 
+// Increment increments the overlap value of the candidate
 func (m *MergeCandidate) Increment() {
 	*m = NewMergeCandidate(m.Position(), m.Overlap() + 1)
 }
