@@ -46,8 +46,8 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		j, endMergeCandidate = 0, len(candidates)
 
 		for j < endMergeCandidate || isValid {
-			if j >= endMergeCandidate || (isValid && candidates[j].Position > current) {
-				tmp = append(tmp, MergeCandidate{current, 1})
+			if j >= endMergeCandidate || (isValid && candidates[j].Position() > current) {
+				tmp = append(tmp, NewMergeCandidate(current, 1))
 
 				if list.HasNext() {
 					current, err = list.Next()
@@ -58,11 +58,11 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 				} else {
 					isValid = false
 				}
-			} else if !isValid || (j < endMergeCandidate && candidates[j].Position < current) {
+			} else if !isValid || (j < endMergeCandidate && candidates[j].Position() < current) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {
-				candidates[j].Overlap++
+				candidates[j].Increment()
 				tmp = append(tmp, candidates[j])
 				j++
 
@@ -85,19 +85,19 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		tmp = tmp[:0]
 
 		for _, c := range candidates {
-			current, err := rid[i].LowerBound(c.Position)
+			current, err := rid[i].LowerBound(c.Position())
 
 			if err != nil && err != ErrIteratorIsNotDereferencable {
 				return nil, err
 			}
 
 			if err != ErrIteratorIsNotDereferencable {
-				if current == c.Position {
-					c.Overlap++
+				if current == c.Position() {
+					c.Increment()
 				}
 			}
 
-			if c.Overlap+(lenRid-i-1) >= threshold {
+			if c.Overlap() +(lenRid-i-1) >= threshold {
 				tmp = append(tmp, c)
 			}
 		}

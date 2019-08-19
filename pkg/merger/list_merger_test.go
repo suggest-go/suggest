@@ -29,7 +29,7 @@ func TestMerge(t *testing.T) {
 			}
 
 			for _, candidate := range candidates {
-				actual[candidate.Overlap] = append(actual[candidate.Overlap], candidate.Position)
+				actual[candidate.Overlap()] = append(actual[candidate.Overlap()], candidate.Position())
 			}
 
 			if !reflect.DeepEqual(actual, c.expected) {

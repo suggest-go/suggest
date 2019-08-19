@@ -47,7 +47,7 @@ func (ds *divideSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	)
 
 	for _, c := range candidates {
-		position = c.Position
+		position = c.Position()
 
 		for _, longList := range lLong {
 			r, err := longList.LowerBound(position)
@@ -57,11 +57,11 @@ func (ds *divideSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 			}
 
 			if err == nil && r == position {
-				c.Overlap++
+				c.Increment()
 			}
 		}
 
-		if c.Overlap >= threshold {
+		if c.Overlap() >= threshold {
 			result = append(result, c)
 		}
 	}
