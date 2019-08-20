@@ -17,8 +17,9 @@ type NGramModel interface {
 }
 
 const (
+	// UnknownWordScore is the score for unknown phrases
+	UnknownWordScore = -100.0
 	alpha            = 0.4
-	unknownWordScore = -100.0
 	version          = "0.0.1"
 )
 
@@ -148,7 +149,7 @@ func calcScore(counts []WordCount) float64 {
 		factor *= alpha
 	}
 
-	return unknownWordScore
+	return UnknownWordScore
 }
 
 func init() {

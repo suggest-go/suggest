@@ -8,6 +8,8 @@ type LanguageModel interface {
 	ScoreWordIDs(sequence []WordID) float64
 	// GetWordID returns id for the given token
 	GetWordID(token Token) (WordID, error)
+	// Next returns the list of candidates for the given sequence
+	Next(sequence []WordID) ([]WordID, error)
 }
 
 // languageModel implements LanguageModel interface
@@ -80,6 +82,21 @@ func (lm *languageModel) ScoreWordIDs(sequence []WordID) float64 {
 // GetWordID returns id for the given token
 func (lm *languageModel) GetWordID(token Token) (WordID, error) {
 	return lm.indexer.Get(token)
+}
+
+// Next returns the list of next candidates for the given sequence
+func (lm *languageModel) Next(sequence []WordID) ([]WordID, error) {
+	nGramOrder := int(lm.config.NGramOrder)
+
+	if len(sequence)+1 < nGramOrder {
+		sequence = lm.leftWrapSentence(sequence)
+	} else if len(sequence) > nGramOrder {
+		sequence = sequence[len(sequence)-nGramOrder-1:]
+	} else if len(sequence) == nGramOrder {
+		sequence = sequence[:nGramOrder-1]
+	}
+
+	return lm.model.Next(sequence)
 }
 
 // split splits the given sequence of WordIDs to nGrams

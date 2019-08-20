@@ -1,6 +1,8 @@
 package spellchecker
 
 import (
+	"strings"
+
 	"github.com/alldroll/suggest/pkg/dictionary"
 	lm "github.com/alldroll/suggest/pkg/language-model"
 	"github.com/alldroll/suggest/pkg/metric"
@@ -31,8 +33,8 @@ func New(
 }
 
 // Predict predicts the next word of the sentence
-func (s *SpellChecker) Predict(query string, topK int) ([]string, error) {
-	tokens := s.tokenizer.Tokenize(query)
+func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]string, error) {
+	tokens := s.tokenizer.Tokenize(strings.ToLower(query))
 
 	if len(tokens) == 0 {
 		return []string{}, nil
@@ -45,9 +47,20 @@ func (s *SpellChecker) Predict(query string, topK int) ([]string, error) {
 		return nil, err
 	}
 
+	next := []lm.WordID{}
+
+	if len(seqIds) > 0 {
+		next, err = s.model.Next(seqIds)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	scorer := &lmScorer{
 		model:    s.model,
 		sentence: seqIds,
+		next:     next,
 	}
 
 	candidates, err := s.index.AutoComplete(word, topK, scorer)
@@ -61,7 +74,7 @@ func (s *SpellChecker) Predict(query string, topK int) ([]string, error) {
 			word,
 			topK-len(candidates),
 			metric.CosineMetric(),
-			0.7,
+			similarity,
 		)
 
 		if err != nil {
@@ -69,7 +82,12 @@ func (s *SpellChecker) Predict(query string, topK int) ([]string, error) {
 		}
 
 		fuzzyCandidates, err := s.index.Suggest(config)
-		candidates = append(candidates, fuzzyCandidates...)
+
+		if err != nil {
+			return nil, err
+		}
+
+		candidates = merge(candidates, fuzzyCandidates)
 	}
 
 	result := make([]string, 0, len(candidates))
@@ -85,4 +103,24 @@ func (s *SpellChecker) Predict(query string, topK int) ([]string, error) {
 	}
 
 	return result, nil
+}
+
+// merge merges the 2 canidates sets into one without duplication
+func merge(a, b []suggest.Candidate) []suggest.Candidate {
+	for _, y := range b {
+		unique := true
+
+		for _, x := range a {
+			if x.Key == y.Key {
+				unique = false
+				break
+			}
+		}
+
+		if unique {
+			a = append(a, y)
+		}
+	}
+
+	return a
 }

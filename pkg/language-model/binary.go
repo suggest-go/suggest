@@ -5,8 +5,10 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/alldroll/go-datastructures/rbtree"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/mph"
 )
@@ -124,22 +126,58 @@ type dictionaryReader struct {
 	lineScanner *bufio.Scanner
 }
 
+type dictItem struct {
+	word  dictionary.Value
+	count WordCount
+}
+
+// Less tells is current elements is bigger than the other
+func (n *dictItem) Less(other rbtree.Item) bool {
+	o := other.(*dictItem)
+
+	if n.count > o.count {
+		return true
+	}
+
+	if n.count == o.count {
+		return n.word > o.word
+	}
+
+	return false
+}
+
 // Iterate iterates through each line of the corresponding dictionary
 func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
-	docID := dictionary.Key(0)
+	tree := rbtree.New()
 
 	for dr.lineScanner.Scan() {
 		line := dr.lineScanner.Text()
 		tabIndex := strings.Index(line, "\t")
+		count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)
 
-		if err := iterator(docID, line[:tabIndex]); err != nil {
+		if err != nil {
 			return err
 		}
 
-		docID++
+		_, _ = tree.Insert(&dictItem{
+			word:  line[:tabIndex],
+			count: WordCount(count),
+		})
 	}
 
-	return dr.lineScanner.Err()
+	if err := dr.lineScanner.Err(); err != nil {
+		return err
+	}
+
+	for docID, iter := dictionary.Key(0), tree.NewIterator(); iter.Next() != nil; docID++ {
+		item := iter.Get().(*dictItem)
+
+		if err := iterator(docID, item.word); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // buildMPH builds a mph from the given dictionary
