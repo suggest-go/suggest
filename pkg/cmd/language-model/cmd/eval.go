@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"github.com/alldroll/suggest/pkg/store"
 	"os"
 	"strings"
 	"time"
@@ -23,10 +24,16 @@ var evalCmd = &cobra.Command{
 		config, err := lm.ReadConfig(configPath)
 
 		if err != nil {
-			return fmt.Errorf("Failed to read config file: %v", err)
+			return fmt.Errorf("failed to read config file: %v", err)
 		}
 
-		languageModel, err := lm.RetrieveLMFromBinary(config)
+		directory, err := store.NewFSDirectory(config.GetOutputPath())
+
+		if err != nil {
+			return fmt.Errorf("failed to create a fs directory: %v", err)
+		}
+
+		languageModel, err := lm.RetrieveLMFromBinary(directory, config)
 
 		if err != nil {
 			return err

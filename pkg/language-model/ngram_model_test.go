@@ -3,6 +3,7 @@ package lm
 import (
 	"bytes"
 	"encoding/gob"
+	"github.com/alldroll/suggest/pkg/store"
 	"math"
 	"reflect"
 	"testing"
@@ -17,7 +18,13 @@ func TestScoreFromFile(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
+	directory, err := store.NewFSDirectory("testdata/fixtures")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	reader := NewGoogleNGramReader(3, indexer, directory)
 
 	model, err := reader.Read()
 	if err != nil {
@@ -34,7 +41,13 @@ func TestPredict(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
+	directory, err := store.NewFSDirectory("testdata/fixtures")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	reader := NewGoogleNGramReader(3, indexer, directory)
 	ids := make([]WordID, 0, 3)
 
 	model, err := reader.Read()
@@ -90,7 +103,14 @@ func TestBinaryMarshalling(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	reader := NewGoogleNGramReader(3, indexer, "testdata/fixtures")
+
+	directory, err := store.NewFSDirectory("testdata/fixtures")
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	reader := NewGoogleNGramReader(3, indexer, directory)
 
 	expected, err := reader.Read()
 	if err != nil {

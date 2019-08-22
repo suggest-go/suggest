@@ -2,26 +2,45 @@
 package mph
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"math"
 	"sort"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // MPH represents minimal perfect hash function
 type MPH interface {
+	// Build builds a MPH for the given dictionary
+	Build(dict dictionary.Dictionary) error
 	// Get returns a hash value for the given word
 	Get(word dictionary.Value) dictionary.Key
+	// Store stores the given MPH structure into output
+	Store(out store.Output) (int, error)
+	// Load loads from the input a MPH structure
+	Load(in store.Input) (int, error)
 }
 
-// BuildMPH builds a MPH for the given dictionary
+// New creates a new instance of MPH object
+func New() MPH {
+	return &mph{
+		auxiliary: []int32{},
+		values:    []uint32{},
+	}
+}
+
+// mph implements MPH interface
+type mph struct {
+	auxiliary []int32
+	values    []dictionary.Key
+}
+
+// Build builds a MPH for the given dictionary
 // Inspired by http://stevehanov.ca/blog/?id=119
-func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
+func (m *mph) Build(dict dictionary.Dictionary) error {
 	size := dict.Size()
-	buckets := make([][]dictionary.Key, size, size)
+	buckets := make([][]dictionary.Key, size)
 	auxiliary := make([]int32, size, size)
 	values := make([]dictionary.Key, 0, size)
 
@@ -35,7 +54,7 @@ func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Step 2: Sort the buckets and process the ones with the most items first.
@@ -60,7 +79,7 @@ func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
 			value, err := dict.Get(bucket[item])
 
 			if err != nil {
-				return nil, fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
+				return fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
 			}
 
 			slot := hash(d, value) % size
@@ -78,7 +97,7 @@ func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
 		val, err := dict.Get(bucket[0])
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
+			return fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
 		}
 
 		auxiliary[hash(0, val)%size] = int32(d)
@@ -93,25 +112,25 @@ func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
 	// Only buckets with 1 item remain. Process them more quickly by directly
 	// placing them into a free slot. Use a negative value of d to indicate
 	// this.
-	freeslots := make([]int, 0, size)
+	freeSlots := make([]int, 0, size)
 
 	for i, val := range values {
 		if val == math.MaxUint32 {
-			freeslots = append(freeslots, i)
+			freeSlots = append(freeSlots, i)
 		}
 	}
 
 	for _, bucket := range buckets[bucketIter:] {
-		if len(bucket) == 0 || len(freeslots) == 0 {
+		if len(bucket) == 0 || len(freeSlots) == 0 {
 			break
 		}
 
-		slot := freeslots[len(freeslots)-1]
-		freeslots = freeslots[:len(freeslots)-1]
+		slot := freeSlots[len(freeSlots)-1]
+		freeSlots = freeSlots[:len(freeSlots)-1]
 		val, err := dict.Get(bucket[0])
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
+			return fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
 		}
 
 		// We subtract one to ensure it's negative even if the zeroeth slot was
@@ -120,16 +139,10 @@ func BuildMPH(dict dictionary.Dictionary) (MPH, error) {
 		values[slot] = bucket[0]
 	}
 
-	return &mph{
-		auxiliary: auxiliary,
-		values:    values,
-	}, nil
-}
+	m.auxiliary = auxiliary
+	m.values = values
 
-// mph implements MPH interface
-type mph struct {
-	auxiliary []int32
-	values    []dictionary.Key
+	return nil
 }
 
 // Get returns a hash value for the given word
@@ -143,32 +156,81 @@ func (m *mph) Get(word dictionary.Value) dictionary.Key {
 	return m.values[hash(d, word)%len(m.values)]
 }
 
-// MarshalBinary encodes the receiver into a binary form and returns the result.
-func (m *mph) MarshalBinary() ([]byte, error) {
-	buf := bytes.Buffer{}
-	encoder := gob.NewEncoder(&buf)
+// Store stores the given MPH structure into output
+func (m *mph) Store(out store.Output) (int, error) {
+	n, err := out.WriteUInt32(uint32(len(m.values)))
 
-	if err := encoder.Encode(m.auxiliary); err != nil {
-		return nil, err
+	if err != nil {
+		return n, fmt.Errorf("failed to write the length of values: %v", err)
 	}
 
-	if err := encoder.Encode(m.values); err != nil {
-		return nil, err
+	for _, v := range m.values {
+		s, err := out.WriteUInt32(v)
+		n += s
+
+		if err != nil {
+			return n, fmt.Errorf("failed to write a value: %v", err)
+		}
 	}
 
-	return buf.Bytes(), nil
+	s, err := out.WriteUInt32(uint32(len(m.auxiliary)))
+	n += s
+
+	if err != nil {
+		return n, fmt.Errorf("failed to write the length of auxiliary: %v", err)
+	}
+
+	for _, v := range m.auxiliary {
+		s, err := out.WriteUInt32(uint32(v))
+		n += s
+
+		if err != nil {
+			return n, fmt.Errorf("failed to writer a value: %v", err)
+		}
+	}
+
+	return n, nil
 }
 
-// UnmarshalBinary decodes the binary data
-func (m *mph) UnmarshalBinary(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	decoder := gob.NewDecoder(buf)
+// Load loads from the input a MPH structure
+func (m *mph) Load(in store.Input) (int, error) {
+	n, err := in.ReadUInt32()
 
-	if err := decoder.Decode(&m.auxiliary); err != nil {
-		return err
+	if err != nil {
+		return 0, fmt.Errorf("failed to read the length of values: %v", err)
 	}
 
-	return decoder.Decode(&m.values)
+	m.values = make([]dictionary.Key, n)
+
+	for i := range m.values {
+		v, err := in.ReadUInt32()
+
+		if err != nil {
+			return 0, fmt.Errorf("failed to read a value: %v", err)
+		}
+
+		m.values[i] = v
+	}
+
+	s, err := in.ReadUInt32()
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to read the length of auxiliary: %v", err)
+	}
+
+	m.auxiliary = make([]int32, s)
+
+	for i := range m.auxiliary {
+		v, err := in.ReadUInt32()
+
+		if err != nil {
+			return 0, fmt.Errorf("failed to read a value: %v", err)
+		}
+
+		m.auxiliary[i] = int32(v)
+	}
+
+	return int(n + s) * 4 + 8, nil
 }
 
 // hash encodes the given value and the salt
@@ -195,8 +257,4 @@ func has(slice []int, value int) bool {
 	}
 
 	return false
-}
-
-func init() {
-	gob.Register(&mph{})
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"github.com/alldroll/suggest/pkg/store"
 	"os"
 
 	lm "github.com/alldroll/suggest/pkg/language-model"
@@ -60,7 +61,13 @@ func buildNGramsCount(config *lm.Config) (lm.CountTrie, error) {
 
 // storeNGramsCount flushes the constructed count trie on FS
 func storeNGramsCount(config *lm.Config, trie lm.CountTrie) error {
-	writer := lm.NewGoogleNGramWriter(config.NGramOrder, config.GetOutputPath())
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
+
+	if err != nil {
+		return fmt.Errorf("failed to create a fs directory: %v", err)
+	}
+
+	writer := lm.NewGoogleNGramWriter(config.NGramOrder, directory)
 
 	if err := writer.Write(trie); err != nil {
 		return fmt.Errorf("could save ngrams %s", err)

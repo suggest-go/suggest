@@ -4,11 +4,9 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"os"
+	"github.com/alldroll/suggest/pkg/store"
 	"strconv"
 	"strings"
-
-	"github.com/alldroll/suggest/pkg/dictionary"
 )
 
 // NGramReader is responsible for creating NGramModel from the files
@@ -20,16 +18,16 @@ type NGramReader interface {
 // googleNGramFormatReader implements NGramReader with google nGram format storage
 type googleNGramFormatReader struct {
 	indexer    Indexer
-	sourcePath string
 	nGramOrder uint8
+	directory store.Directory
 }
 
 // NewGoogleNGramReader creates new instance of NGramReader
-func NewGoogleNGramReader(nGramOrder uint8, indexer Indexer, sourcePath string) NGramReader {
+func NewGoogleNGramReader(nGramOrder uint8, indexer Indexer, directory store.Directory) NGramReader {
 	return &googleNGramFormatReader{
 		nGramOrder: nGramOrder,
 		indexer:    indexer,
-		sourcePath: sourcePath,
+		directory: directory,
 	}
 }
 
@@ -39,18 +37,17 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 		return nil, errors.New("nGramOrder should be >= 1")
 	}
 
-	vectors := []NGramVector{}
+	vectors := make([]NGramVector, 0, int(gr.nGramOrder))
 	nGrams := make([]WordID, 0, int(gr.nGramOrder))
 
 	for i := 0; i < int(gr.nGramOrder); i++ {
-		f, err := os.Open(fmt.Sprintf(fileFormat, gr.sourcePath, i+1))
+		in, err := gr.directory.OpenInput(fmt.Sprintf(fileFormat, i+1))
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to open a ngram input: %v", err)
 		}
 
-		defer f.Close()
-		scanner := bufio.NewScanner(f)
+		scanner := bufio.NewScanner(in)
 		builder := NewNGramVectorBuilder(vectors)
 
 		for scanner.Scan() {
@@ -68,11 +65,15 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 			}
 
 			count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)
+
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("ngram file is corrupted, expected number: %v", err)
 			}
 
-			builder.Put(nGrams, WordCount(count))
+			if err := builder.Put(nGrams, WordCount(count)); err != nil {
+				return nil, fmt.Errorf("failed to add nGrams to a builder: %v", err)
+			}
+
 			nGrams = nGrams[:0]
 		}
 
@@ -81,33 +82,12 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 		}
 
 		vectors = append(vectors, builder.Build())
+
+		if err := in.Close(); err != nil {
+			return nil, fmt.Errorf("failed to close an input source: %v", err)
+		}
 	}
 
 	return NewNGramModel(vectors), nil
 }
 
-// buildeIndexerWithInMemoryDictionary
-func buildIndexerWithInMemoryDictionary(googleFormatDictPath string) (Indexer, error) {
-	f, err := os.Open(googleFormatDictPath)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-
-	collection := []Token{}
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		tabIndex := strings.Index(line, "\t")
-		collection = append(collection, line[:tabIndex])
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return BuildIndexer(dictionary.NewInMemoryDictionary(collection))
-}

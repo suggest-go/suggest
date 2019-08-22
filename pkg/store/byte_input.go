@@ -125,7 +125,7 @@ func (r *byteInput) Slice(off int64, n int64) (Input, error) {
 	}, nil
 }
 
-// ReadVUInt32 reads a variable-length decoded uint32 number
+// ReadVUInt32 reads a variable-length encoded uint32 number
 // Inspired by https://github.com/golang/protobuf/blob/master/proto/decode.go
 func (r *byteInput) ReadVUInt32() (uint32, error) {
 	var (
@@ -193,7 +193,7 @@ done:
 	return v, nil
 }
 
-// ReadUInt32 reads a binary decoded uint32 number
+// ReadUInt32 reads four bytes and returns uint32
 func (r *byteInput) ReadUInt32() (uint32, error) {
 	if r.i+4 > int64(len(r.buf)) {
 		return 0, io.ErrUnexpectedEOF
@@ -205,7 +205,7 @@ func (r *byteInput) ReadUInt32() (uint32, error) {
 	return v, nil
 }
 
-// ReadUInt16 reads a binary decoded uint16 number
+// ReadUInt16 reads two bytes and returns uint16
 func (r *byteInput) ReadUInt16() (uint16, error) {
 	if r.i+2 > int64(len(r.buf)) {
 		return 0, io.ErrUnexpectedEOF

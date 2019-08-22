@@ -1,5 +1,7 @@
 package merger
 
+import "github.com/alldroll/suggest/pkg/utils"
+
 // ListMerger solves `threshold`-occurrence problem:
 // For given inverted lists find the set of strings ids, that appears at least
 // `threshold` times.
@@ -26,21 +28,22 @@ type MergeCandidate uint64
 
 // NewMergeCandidate creates a new instance of MergeCandidate
 func NewMergeCandidate(position uint32, overlap int) MergeCandidate {
-	return MergeCandidate(uint64(position) << 32 | uint64(overlap))
+	return MergeCandidate(utils.Pack(position, uint32(overlap)))
 }
 
 // Position returns the given position of the candidate
 func (m MergeCandidate) Position() uint32 {
-	return uint32(m >> 32)
+	position, _ := utils.Unpack(uint64(m))
+	return position
 }
 
 // Overlap returns the current overlap count of the candidate
 func (m MergeCandidate) Overlap() int {
-	return int(uint32(m))
+	_, overlap := utils.Unpack(uint64(m))
+	return int(overlap)
 }
 
 // Increment increments the overlap value of the candidate
 func (m *MergeCandidate) Increment() {
-	*m = NewMergeCandidate(m.Position(), m.Overlap() + 1)
+	*m = NewMergeCandidate(m.Position(), m.Overlap()+1)
 }
-

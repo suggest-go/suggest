@@ -38,14 +38,9 @@ func (c *Config) GetDictionaryPath() string {
 	return fmt.Sprintf("%s/%s.cdb", c.GetOutputPath(), c.Name)
 }
 
-// GetMPHPath returns a stored path for the mph
-func (c *Config) GetMPHPath() string {
-	return fmt.Sprintf("%s/%s.mph", c.GetOutputPath(), c.Name)
-}
-
 // GetBinaryPath returns a stored path for the binary lm
 func (c *Config) GetBinaryPath() string {
-	return fmt.Sprintf("%s/%s.lm", c.GetOutputPath(), c.Name)
+	return fmt.Sprintf("%s.lm", c.Name)
 }
 
 // GetOutputPath returns a output path of the builded index

@@ -1,4 +1,8 @@
+// Package lm provides a library for storing large n-gram language models in memory.
+// Mostly inspired by https://code.google.com/archive/p/berkeleylm/
 package lm
+
+import "fmt"
 
 // LanguageModel is an interface for an n-gram language model
 type LanguageModel interface {
@@ -26,10 +30,18 @@ func NewLanguageModel(
 	model NGramModel,
 	indexer Indexer,
 	config *Config,
-) LanguageModel {
-	// TODO handle me
-	startSymbol, _ := indexer.Get(config.StartSymbol)
-	endSymbol, _ := indexer.Get(config.EndSymbol)
+) (LanguageModel, error) {
+	startSymbol, err := indexer.Get(config.StartSymbol)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wordID of startSymbol: %v", err)
+	}
+
+	endSymbol, err := indexer.Get(config.EndSymbol)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wordID of endSymbol: %v", err)
+	}
 
 	return &languageModel{
 		model:       model,
@@ -37,7 +49,7 @@ func NewLanguageModel(
 		config:      config,
 		startSymbol: startSymbol,
 		endSymbol:   endSymbol,
-	}
+	}, nil
 }
 
 // MapIntoListOfWordIDs maps the given sentence into a list of WordIDs

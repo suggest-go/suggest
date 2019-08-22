@@ -1,7 +1,10 @@
 package lm
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/mph"
@@ -28,9 +31,9 @@ type Indexer interface {
 
 // BuildIndexer builds a indexer from the given dictionary
 func BuildIndexer(dict dictionary.Dictionary) (Indexer, error) {
-	table, err := mph.BuildMPH(dict)
+	table := mph.New()
 
-	if err != nil {
+	if err := table.Build(dict); err != nil {
 		return nil, err
 	}
 
@@ -80,4 +83,32 @@ func (i *indexerImpl) Find(index WordID) (Token, error) {
 	}
 
 	return val, nil
+}
+
+// buildIndexerWithInMemoryDictionary builds an indexer with a ram dictionary for the given path
+func buildIndexerWithInMemoryDictionary(dictPath string) (Indexer, error) {
+	f, err := os.Open(dictPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(f)
+	collection := []Token{}
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		tabIndex := strings.Index(line, "\t")
+		collection = append(collection, line[:tabIndex])
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := f.Close(); err != nil {
+		return nil, err
+	}
+
+	return BuildIndexer(dictionary.NewInMemoryDictionary(collection))
 }

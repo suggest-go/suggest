@@ -1,6 +1,7 @@
 package lm
 
 import (
+	"github.com/alldroll/suggest/pkg/store"
 	"math"
 	"testing"
 )
@@ -20,14 +21,25 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	reader := NewGoogleNGramReader(config.NGramOrder, indexer, config.GetOutputPath())
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
 
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	reader := NewGoogleNGramReader(config.NGramOrder, indexer, directory)
 	model, err := reader.Read()
+
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	lm := NewLanguageModel(model, indexer, &config)
+	lm, err := NewLanguageModel(model, indexer, &config)
+
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+
 	testLM(lm, t)
 }
 
@@ -38,7 +50,13 @@ func TestScoreSentenceFromBinary(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	lm, err := RetrieveLMFromBinary(config)
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	lm, err := RetrieveLMFromBinary(directory, config)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

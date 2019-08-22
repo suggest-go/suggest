@@ -10,6 +10,8 @@ import (
 	"math"
 	"sort"
 	"strconv"
+
+	"github.com/alldroll/suggest/pkg/utils"
 )
 
 type (
@@ -176,23 +178,13 @@ func makeKey(word WordID, context ContextOffset) key {
 		log.Fatal(ErrContextOverflow)
 	}
 
-	return pack(context, word)
+	return utils.Pack(context, word)
 }
 
 // getWordID returns the word id for the given key
 func getWordID(key key) WordID {
-	_, wordID := unpack(key)
+	_, wordID := utils.Unpack(key)
 	return wordID
-}
-
-// Packs 2 uint32 in uint64
-func pack(a, b uint32) uint64 {
-	return (uint64(a) << 32) | uint64(b&maxUint32)
-}
-
-// Unpacks explode uint64 into 2 uint32
-func unpack(v uint64) (uint32, uint32) {
-	return uint32(v >> 32), uint32(v)
 }
 
 func init() {

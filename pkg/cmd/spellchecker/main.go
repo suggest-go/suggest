@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/alldroll/suggest/pkg/store"
 	"log"
 	"os"
 	"strings"
@@ -82,7 +83,13 @@ func main() {
 
 // buildSpellChecker builds spellchecker
 func buildSpellChecker(config *lm.Config) (*spellchecker.SpellChecker, error) {
-	languageModel, err := lm.RetrieveLMFromBinary(config)
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a fs directory: %v", err)
+	}
+
+	languageModel, err := lm.RetrieveLMFromBinary(directory, config)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve a lm model from binary format: %v", err)

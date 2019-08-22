@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/alldroll/suggest/pkg/store"
 
 	lm "github.com/alldroll/suggest/pkg/language-model"
 	"github.com/spf13/cobra"
@@ -19,9 +20,15 @@ var buildLMCmd = &cobra.Command{
 		config, err := lm.ReadConfig(configPath)
 
 		if err != nil {
-			return fmt.Errorf("Couldn't read a config %v", err)
+			return fmt.Errorf("couldn't read a config %v", err)
 		}
 
-		return lm.StoreBinaryLMFromGoogleFormat(config)
+		directory, err := store.NewFSDirectory(config.GetOutputPath())
+
+		if err != nil {
+			return fmt.Errorf("failed to create a fs directory: %v", err)
+		}
+
+		return lm.StoreBinaryLMFromGoogleFormat(directory, config)
 	},
 }
