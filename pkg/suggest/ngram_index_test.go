@@ -236,16 +236,17 @@ func BenchmarkAutoCompleteOnDisc(b *testing.B) {
 }
 
 func buildNGramIndex(collection []string) NGramIndex {
-	builder, err := NewRAMBuilder(
-		dictionary.NewInMemoryDictionary(collection),
-		IndexDescription{
-			Name:      "index",
-			NGramSize: 3,
-			Pad:       "$",
-			Wrap:      [2]string{"$", "$"},
-			Alphabet:  []string{"english", "russian", "numbers", "$"},
-		},
-	)
+	config := IndexDescription{
+		Driver:    RAMDriver,
+		Name:      "index",
+		NGramSize: 3,
+		Pad:       "$",
+		Wrap:      [2]string{"$", "$"},
+		Alphabet:  []string{"english", "russian", "numbers", "$"},
+	}
+
+	dict := dictionary.NewInMemoryDictionary(collection)
+	builder, err := NewRAMBuilder(dict, config)
 
 	if err != nil {
 		log.Fatal(err)

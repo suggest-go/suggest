@@ -2,11 +2,11 @@ package suggest
 
 import (
 	"fmt"
-
 	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/alldroll/suggest/pkg/store"
+
 	"github.com/alldroll/suggest/pkg/index"
 	"github.com/alldroll/suggest/pkg/merger"
-	"github.com/alldroll/suggest/pkg/store"
 )
 
 // Builder is the entity that is responsible for tuning and creating a NGramIndex
@@ -22,8 +22,31 @@ type builderImpl struct {
 	generator   index.Generator
 }
 
+// NewRAMBuilder creates a search index by using the given dictionary and the index description
+// in a RAMDriver directory
+func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Builder, error) {
+	directory := store.NewRAMDirectory()
+
+	if err := Index(directory, dict, description); err != nil {
+		return nil, fmt.Errorf("failed to create a ram search index: %v", err)
+	}
+
+	return NewBuilder(directory, description)
+}
+
 // NewFSBuilder works with already indexed data
 func NewFSBuilder(description IndexDescription) (Builder, error) {
+	directory, err := store.NewFSDirectory(description.GetOutputPath())
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a fs directory: %v", err)
+	}
+
+	return NewBuilder(directory, description)
+}
+
+// NewBuilder works with already indexed data
+func NewBuilder(directory store.Directory, description IndexDescription) (Builder, error) {
 	alphabet := description.CreateAlphabet()
 	cleaner, err := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
 
@@ -32,56 +55,11 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 	}
 
 	generator := index.NewGenerator(description.NGramSize)
-	directory, err := store.NewFSDirectory(description.GetOutputPath())
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create fs directory: %v", err)
-	}
 
 	return &builderImpl{
 		indexReader: index.NewIndexReader(
 			directory,
 			description.CreateWriterConfig(),
-		),
-		generator: generator,
-		cleaner:   cleaner,
-	}, nil
-}
-
-// NewRAMBuilder creates a search index by using the given dictionary and the index description
-// in a RAMDriver directory
-func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Builder, error) {
-	alphabet := description.CreateAlphabet()
-	cleaner, err := index.NewCleaner(alphabet.Chars(), description.Pad, description.Wrap)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cleaner: %v", err)
-	}
-
-	encoder, err := index.NewEncoder()
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Encoder: %v", err)
-	}
-
-	directory := store.NewRAMDirectory()
-	generator := index.NewGenerator(description.NGramSize)
-	writerConfig := description.CreateWriterConfig()
-
-	indexWriter := index.NewIndexWriter(
-		directory,
-		writerConfig,
-		encoder,
-	)
-
-	if err := index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
-		return nil, fmt.Errorf("failed to build index in RAMDriver directory: %v", err)
-	}
-
-	return &builderImpl{
-		indexReader: index.NewIndexReader(
-			directory,
-			writerConfig,
 		),
 		generator: generator,
 		cleaner:   cleaner,

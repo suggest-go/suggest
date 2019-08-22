@@ -43,7 +43,7 @@ func NewIndexWriter(
 
 var (
 	// ErrPostingListShouldBeNotNil occurs when was an attempt to persist nil Posting List
-	ErrPostingListShouldBeNotNil = errors.New("PostingList should be not nil")
+	ErrPostingListShouldBeNotNil = errors.New("postingList should be not nil")
 )
 
 // header struct that store terms descriptions and indices count
@@ -95,7 +95,7 @@ func (iw *Writer) Commit() error {
 	documentWriter, err := iw.directory.CreateOutput(iw.config.DocumentListFileName)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create document list: %v", err)
+		return fmt.Errorf("failed to create document list: %v", err)
 	}
 
 	// mapValueOffset stores current posting list offset
@@ -143,7 +143,7 @@ func (iw *Writer) Commit() error {
 	}
 
 	if err = documentWriter.Close(); err != nil {
-		return fmt.Errorf("Failed to close document list: %v", err)
+		return fmt.Errorf("failed to close document list: %v", err)
 	}
 
 	return nil
@@ -154,18 +154,18 @@ func (iw *Writer) writeHeader(header header) error {
 	headerWriter, err := iw.directory.CreateOutput(iw.config.HeaderFileName)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create header: %v", err)
+		return fmt.Errorf("failed to create header: %v", err)
 	}
 
 	encoder := gob.NewEncoder(headerWriter)
 	err = encoder.Encode(header)
 
 	if err != nil {
-		return fmt.Errorf("Failed to encode header: %v", err)
+		return fmt.Errorf("failed to encode header: %v", err)
 	}
 
 	if err = headerWriter.Close(); err != nil {
-		return fmt.Errorf("Failed to close header file: %v", err)
+		return fmt.Errorf("failed to close header file: %v", err)
 	}
 
 	return nil

@@ -75,17 +75,7 @@ func (d *IndexDescription) GetDictionaryFile() string {
 	return fmt.Sprintf("%s/%s.cdb", d.GetOutputPath(), d.Name)
 }
 
-// GetHeaderFile returns a path to a header file from the configuration
-func (d *IndexDescription) GetHeaderFile() string {
-	return fmt.Sprintf("%s.hd", d.Name)
-}
-
-// GetDocumentListFile returns a path to a document list file from the configuration
-func (d *IndexDescription) GetDocumentListFile() string {
-	return fmt.Sprintf("%s.dl", d.Name)
-}
-
-// GetOutputPath returns a output path of the builded index
+// GetOutputPath returns a output path of the built index
 func (d *IndexDescription) GetOutputPath() string {
 	if !path.IsAbs(d.OutputPath) {
 		return fmt.Sprintf("%s/%s", d.basePath, d.OutputPath)
@@ -106,7 +96,17 @@ func (d *IndexDescription) GetSourcePath() string {
 // CreateWriterConfig creates and returns IndexWriter config from the given index description
 func (d *IndexDescription) CreateWriterConfig() index.WriterConfig {
 	return index.WriterConfig{
-		HeaderFileName:       d.GetHeaderFile(),
-		DocumentListFileName: d.GetDocumentListFile(),
+		HeaderFileName:       d.getHeaderFile(),
+		DocumentListFileName: d.getDocumentListFile(),
 	}
+}
+
+// getHeaderFile returns a path to a header file from the configuration
+func (d *IndexDescription) getHeaderFile() string {
+	return fmt.Sprintf("%s.hd", d.Name)
+}
+
+// getDocumentListFile returns a path to a document list file from the configuration
+func (d *IndexDescription) getDocumentListFile() string {
+	return fmt.Sprintf("%s.dl", d.Name)
 }
