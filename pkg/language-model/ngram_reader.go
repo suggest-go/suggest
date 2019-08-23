@@ -38,56 +38,62 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 	}
 
 	vectors := make([]NGramVector, 0, int(gr.nGramOrder))
-	nGrams := make([]WordID, 0, int(gr.nGramOrder))
 
 	for i := 0; i < int(gr.nGramOrder); i++ {
-		in, err := gr.directory.OpenInput(fmt.Sprintf(fileFormat, i+1))
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to open a ngram input: %v", err)
-		}
-
-		scanner := bufio.NewScanner(in)
 		builder := NewNGramVectorBuilder(vectors)
 
-		for scanner.Scan() {
-			line := scanner.Text()
-			tabIndex := strings.Index(line, "\t")
-
-			for _, word := range strings.Split(line[:tabIndex], " ") {
-				index, err := gr.indexer.Get(word)
-
-				if err != nil {
-					return nil, err
-				}
-
-				nGrams = append(nGrams, index)
-			}
-
-			count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)
-
-			if err != nil {
-				return nil, fmt.Errorf("ngram file is corrupted, expected number: %v", err)
-			}
-
-			if err := builder.Put(nGrams, WordCount(count)); err != nil {
-				return nil, fmt.Errorf("failed to add nGrams to a builder: %v", err)
-			}
-
-			nGrams = nGrams[:0]
-		}
-
-		if err := scanner.Err(); err != nil {
-			return nil, err
+		if err := gr.readNGramVector(builder, i + 1); err != nil {
+			return nil, fmt.Errorf("failed to read %d ngram vector: %v", i + 1, err)
 		}
 
 		vectors = append(vectors, builder.Build())
-
-		if err := in.Close(); err != nil {
-			return nil, fmt.Errorf("failed to close an input source: %v", err)
-		}
 	}
 
 	return NewNGramModel(vectors), nil
+}
+
+// readNGramVector reads nGram vector for the given order
+func (gr *googleNGramFormatReader) readNGramVector(builder NGramVectorBuilder, order int) error {
+	in, err := gr.directory.OpenInput(fmt.Sprintf(fileFormat, order))
+
+	if err != nil {
+		return fmt.Errorf("failed to open a ngram input: %v", err)
+	}
+
+	nGrams := make([]WordID, 0, order)
+	scanner := bufio.NewScanner(in)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		tabIndex := strings.Index(line, "\t")
+
+		for _, word := range strings.Split(line[:tabIndex], " ") {
+			index, err := gr.indexer.Get(word)
+
+			if err != nil {
+				return err
+			}
+
+			nGrams = append(nGrams, index)
+		}
+
+		count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)
+
+		if err != nil {
+			return fmt.Errorf("ngram file is corrupted, expected number: %v", err)
+		}
+
+		if err := builder.Put(nGrams, WordCount(count)); err != nil {
+			return fmt.Errorf("failed to add nGrams to a builder: %v", err)
+		}
+
+		nGrams = nGrams[:0]
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("failed to scan ngram file format: %v", err)
+	}
+
+	return nil
 }
 

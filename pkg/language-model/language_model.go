@@ -113,7 +113,7 @@ func (lm *languageModel) Next(sequence []WordID) ([]WordID, error) {
 
 // split splits the given sequence of WordIDs to nGrams
 func (lm *languageModel) split(sequence []WordID) NGrams {
-	return SplitIntoNGrams(sequence, lm.config.NGramOrder)
+	return splitIntoNGrams(sequence, lm.config.NGramOrder)
 }
 
 // wrapSentence wraps the given sentence with start and end symbols

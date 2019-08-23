@@ -161,7 +161,7 @@ func (s *sortedArray) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Finds given key in the collection. Returns ContextOffset if the given key exists
+// find finds the given key in the collection. Returns ContextOffset if the key exists, otherwise returns InvalidContextOffset
 func (s *sortedArray) find(key uint64) ContextOffset {
 	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= key })
 
@@ -172,7 +172,7 @@ func (s *sortedArray) find(key uint64) ContextOffset {
 	return ContextOffset(i)
 }
 
-// Creates uint64 key for the given pair (word, context)
+// makeKey creates uint64 key for the given pair (word, context)
 func makeKey(word WordID, context ContextOffset) key {
 	if context > maxContextOffset {
 		log.Fatal(ErrContextOverflow)
