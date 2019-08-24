@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/alldroll/suggest/pkg/store"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/alldroll/suggest/pkg/store"
 
 	"github.com/spf13/cobra"
 
@@ -95,11 +96,11 @@ func readConfigs() ([]suggest.IndexDescription, error) {
 }
 
 // indexJob performs building a dictionary, a search index for the given index description
-func indexJob(config suggest.IndexDescription) error {
-	log.Printf("Start process '%s' config", config.Name)
+func indexJob(description suggest.IndexDescription) error {
+	log.Printf("Start process '%s' config", description.Name)
 
-	if config.Driver != suggest.DiscDriver {
-		log.Printf("skip processing '%s', there is no disc configuration\n", config.Name)
+	if description.Driver != suggest.DiscDriver {
+		log.Printf("skip processing '%s', there is no disc configuration\n", description.Name)
 		return nil
 	}
 
@@ -107,7 +108,7 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("Building a dictionary...")
 	start := time.Now()
 
-	dict, err := buildDictionaryJob(config)
+	dict, err := buildDictionaryJob(description)
 
 	if err != nil {
 		return fmt.Errorf("failed to build a dictionary: %v", err)
@@ -119,13 +120,13 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("Creating a search index...")
 	start = time.Now()
 
-	directory, err := store.NewFSDirectory(config.GetOutputPath())
+	directory, err := store.NewFSDirectory(description.GetIndexPath())
 
 	if err != nil {
 		return fmt.Errorf("failed to create a directory: %v", err)
 	}
 
-	if err = suggest.Index(directory, dict, config); err != nil {
+	if err = suggest.Index(directory, dict, description.GetWriterConfig(), description.GetIndexTokenizer()); err != nil {
 		return err
 	}
 

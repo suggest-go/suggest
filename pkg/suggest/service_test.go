@@ -65,7 +65,7 @@ func testConcurrency(t *testing.T, driver Driver) {
 	}
 
 	go func() {
-		for i := 0; i < 5; i++ {
+		for i := 0; i < len(expectedValues); i++ {
 			searchConf, _ := NewSearchConfig(wordsList[i], 5, metric.CosineMetric(), 0.7)
 			result, err := service.Suggest(description.Name, searchConf)
 			if err != nil {

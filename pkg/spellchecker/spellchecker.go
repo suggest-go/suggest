@@ -1,8 +1,10 @@
+// Package spellchecker provides spellcheck functionality
 package spellchecker
 
 import (
-	"strings"
+	"sort"
 
+	"github.com/alldroll/suggest/pkg/analysis"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	lm "github.com/alldroll/suggest/pkg/language-model"
 	"github.com/alldroll/suggest/pkg/metric"
@@ -13,7 +15,7 @@ import (
 type SpellChecker struct {
 	index     suggest.NGramIndex
 	model     lm.LanguageModel
-	tokenizer lm.Tokenizer
+	tokenizer analysis.Tokenizer
 	dict      dictionary.Dictionary
 }
 
@@ -21,7 +23,7 @@ type SpellChecker struct {
 func New(
 	index suggest.NGramIndex,
 	model lm.LanguageModel,
-	tokenizer lm.Tokenizer,
+	tokenizer analysis.Tokenizer,
 	dict dictionary.Dictionary,
 ) *SpellChecker {
 	return &SpellChecker{
@@ -34,36 +36,20 @@ func New(
 
 // Predict predicts the next word of the sentence
 func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]string, error) {
-	tokens := s.tokenizer.Tokenize(strings.ToLower(query))
+	tokens := s.tokenizer.Tokenize(query)
 
 	if len(tokens) == 0 {
 		return []string{}, nil
 	}
 
 	word, seq := tokens[len(tokens)-1], tokens[:len(tokens)-1]
-	seqIds, err := lm.MapIntoListOfWordIDs(s.model, seq)
+	scorer, err := s.createScorer(seq)
 
 	if err != nil {
 		return nil, err
 	}
 
-	next := []lm.WordID{}
-
-	if len(seqIds) > 0 {
-		next, err = s.model.Next(seqIds)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	scorer := &lmScorer{
-		model:    s.model,
-		sentence: seqIds,
-		next:     next,
-	}
-
-	candidates, err := s.index.AutoComplete(word, topK, scorer)
+	candidates, err := s.index.Autocomplete(word, topK, scorer)
 
 	if err != nil {
 		return nil, err
@@ -90,6 +76,10 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 		candidates = merge(candidates, fuzzyCandidates)
 	}
 
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return scorer.Score(candidates[i].Key) > scorer.Score(candidates[j].Key)
+	})
+
 	result := make([]string, 0, len(candidates))
 
 	for _, c := range candidates {
@@ -103,6 +93,31 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 	}
 
 	return result, nil
+}
+
+// createScorer creates scorer for the given sentence
+func (s *SpellChecker) createScorer(seq []string) (suggest.Scorer, error) {
+	seqIds, err := lm.MapIntoListOfWordIDs(s.model, seq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	next := []lm.WordID{}
+
+	if len(seqIds) > 0 {
+		next, err = s.model.Next(seqIds)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &lmScorer{
+		model:    s.model,
+		sentence: seqIds,
+		next:     next,
+	}, nil
 }
 
 // merge merges the 2 canidates sets into one without duplication

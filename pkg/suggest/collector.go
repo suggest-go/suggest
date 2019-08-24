@@ -8,8 +8,8 @@ import (
 	"github.com/alldroll/suggest/pkg/index"
 )
 
-// TopKSelector is an accumulator that selects the "top" k elements added to it
-type TopKSelector interface {
+// TopKCollector is an accumulator that selects the "top" k elements added to it
+type TopKCollector interface {
 	// Add adds item with given position and distance to collection if item belongs to `top k items`
 	Add(candidate index.Position, score float64)
 	// GetLowestScore returns the lowest score of the collected candidates. If collection is empty, 0 will be returned
@@ -59,25 +59,25 @@ func (h *topKHeap) Pop() interface{} {
 // top returns a pointer to the top element of the heap
 func (h topKHeap) top() *Candidate { return &h[0] }
 
-// topKSelector implements TopKSelector interface
-type topKSelector struct {
+// topKCollector implements TopKCollector interface
+type topKCollector struct {
 	topK int
 	h    topKHeap
 	rank Rank
 }
 
-// NewTopKSelector returns instance of TopKSelector
-func NewTopKSelector(topK int) TopKSelector {
-	return &topKSelector{
+// NewTopKCollector returns instance of TopKCollector
+func NewTopKCollector(topK int) TopKCollector {
+	return &topKCollector{
 		topK: topK,
 		h:    make(topKHeap, 0, topK),
 		rank: &idOrderRank{},
 	}
 }
 
-// NewTopKSelectorWithRanker returns instance of TopKSelector with ranker
-func NewTopKSelectorWithRanker(topK int, rank Rank) TopKSelector {
-	return &topKSelector{
+// NewTopKCollectorWithRanker returns instance of TopKCollector with ranker
+func NewTopKCollectorWithRanker(topK int, rank Rank) TopKCollector {
+	return &topKCollector{
 		topK: topK,
 		h:    make(topKHeap, 0, topK),
 		rank: rank,
@@ -87,7 +87,7 @@ func NewTopKSelectorWithRanker(topK int, rank Rank) TopKSelector {
 // Add adds item with given position and distance to collection if item belongs to `top k items`
 // use heap search for finding top k items in a list efficiently
 // see http://stevehanov.ca/blog/index.php?id=122
-func (c *topKSelector) Add(candidate index.Position, score float64) {
+func (c *topKCollector) Add(candidate index.Position, score float64) {
 	if !c.CanTakeWithScore(score) {
 		return
 	}
@@ -110,7 +110,7 @@ func (c *topKSelector) Add(candidate index.Position, score float64) {
 }
 
 // GetLowestScore returns the lowest score of the collected candidates
-func (c *topKSelector) GetLowestScore() float64 {
+func (c *topKCollector) GetLowestScore() float64 {
 	if c.h.Len() > 0 {
 		return c.h.top().Score
 	}
@@ -119,21 +119,21 @@ func (c *topKSelector) GetLowestScore() float64 {
 }
 
 // CanTakeWithScore returns true if a candidate with the given score can be accepted
-func (c *topKSelector) CanTakeWithScore(score float64) bool {
+func (c *topKCollector) CanTakeWithScore(score float64) bool {
 	if !c.IsFull() {
 		return true
 	}
 
-	return c.h.top().Score < score
+	return c.h.top().Score <= score
 }
 
 // IsFull tells if selector has collected topK elements
-func (c *topKSelector) IsFull() bool {
+func (c *topKCollector) IsFull() bool {
 	return c.h.Len() == c.topK
 }
 
 // GetCandidates returns `top k items`
-func (c *topKSelector) GetCandidates() []Candidate {
+func (c *topKCollector) GetCandidates() []Candidate {
 	if c.h.Len() == 0 {
 		return []Candidate{}
 	}

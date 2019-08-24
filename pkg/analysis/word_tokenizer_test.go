@@ -1,4 +1,4 @@
-package lm
+package analysis
 
 import (
 	"reflect"
@@ -19,7 +19,7 @@ func TestTokenize(t *testing.T) {
 		{"hello, привет, 33", []Token{"hello", "привет", "33"}},
 	}
 
-	tokenizer := NewTokenizer(alphabet.NewCompositeAlphabet(
+	tokenizer := NewWordTokenizer(alphabet.NewCompositeAlphabet(
 		[]alphabet.Alphabet{
 			alphabet.NewEnglishAlphabet(),
 			alphabet.NewRussianAlphabet(),
@@ -33,5 +33,19 @@ func TestTokenize(t *testing.T) {
 		if !reflect.DeepEqual(actual, c.expected) {
 			t.Errorf("Test fail, expected %v, got %v", c.expected, actual)
 		}
+	}
+}
+
+func BenchmarkWordTokenizer(b *testing.B) {
+	tokenizer := NewWordTokenizer(alphabet.NewCompositeAlphabet(
+		[]alphabet.Alphabet{
+			alphabet.NewEnglishAlphabet(),
+			alphabet.NewRussianAlphabet(),
+			alphabet.NewNumberAlphabet(),
+		},
+	))
+
+	for i := 0; i < b.N; i++ {
+		tokenizer.Tokenize("Hello, how are you. How to say in russian Привет?")
 	}
 }

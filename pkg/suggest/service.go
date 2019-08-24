@@ -132,8 +132,8 @@ func (s *Service) Suggest(dictName string, config *SearchConfig) ([]ResultItem, 
 	return result, nil
 }
 
-// AutoComplete returns first limit
-func (s *Service) AutoComplete(dictName string, query string, limit int) ([]ResultItem, error) {
+// Autocomplete returns first limit
+func (s *Service) Autocomplete(dictName string, query string, limit int) ([]ResultItem, error) {
 	s.RLock()
 	index, okIndex := s.indexes[dictName]
 	dict, okDict := s.dictionaries[dictName]
@@ -143,7 +143,7 @@ func (s *Service) AutoComplete(dictName string, query string, limit int) ([]Resu
 		return nil, fmt.Errorf("given dictionary %s is not exists", dictName)
 	}
 
-	candidates, err := index.AutoComplete(query, limit, dummyScorer{})
+	candidates, err := index.Autocomplete(query, limit, dummyScorer{})
 
 	if err != nil {
 		return nil, err

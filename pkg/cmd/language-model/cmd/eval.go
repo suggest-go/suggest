@@ -3,10 +3,10 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/alldroll/suggest/pkg/store"
 	"os"
-	"strings"
 	"time"
+
+	"github.com/alldroll/suggest/pkg/store"
 
 	lm "github.com/alldroll/suggest/pkg/language-model"
 	"github.com/spf13/cobra"
@@ -44,7 +44,7 @@ var evalCmd = &cobra.Command{
 		fmt.Print(">> ")
 
 		for scanner.Scan() {
-			sentence := tokenizer.Tokenize(strings.TrimSpace(scanner.Text()))
+			sentence := tokenizer.Tokenize(scanner.Text())
 
 			if len(sentence) == 0 {
 				fmt.Print(">> ")

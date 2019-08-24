@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestTopKSelector(t *testing.T) {
+func TestTopKCollector(t *testing.T) {
 	candidates := []Candidate{
 		{Key: 1, Score: 0.1},
 		{Key: 2, Score: 0.01},
@@ -19,7 +19,7 @@ func TestTopKSelector(t *testing.T) {
 		{Key: 10, Score: 0.6565},
 	}
 
-	selector := NewTopKSelector(3)
+	selector := NewTopKCollector(3)
 
 	for _, candidate := range candidates {
 		selector.Add(candidate.Key, candidate.Score)

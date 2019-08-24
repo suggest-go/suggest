@@ -57,6 +57,44 @@ func TestSuggestAuto(t *testing.T) {
 	}
 }
 
+func TestAutoComplete(t *testing.T) {
+	collection := []string{
+		"Nissan March",
+		"Nissan Juke",
+		"Nissan Maxima",
+		"Nissan Murano",
+		"Nissan Note",
+		"Toyota Mark II",
+		"Toyota Corolla",
+		"Toyota Corona",
+	}
+
+	nGramIndex := buildNGramIndex(collection)
+	candidates, err := nGramIndex.Autocomplete("Niss", 5, dummyScorer{})
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	actual := make([]index.Position, 0, len(candidates))
+
+	for _, candidate := range candidates {
+		actual = append(actual, candidate.Key)
+	}
+
+	expected := []index.Position{
+		0, 1, 2, 3, 4,
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf(
+			"Test Fail, expected %v, got %v",
+			expected,
+			actual,
+		)
+	}
+}
+
 func BenchmarkSuggest(b *testing.B) {
 	collection := []string{
 		"Nissan March",
@@ -80,6 +118,29 @@ func BenchmarkSuggest(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		nGramIndex.Suggest(conf)
+	}
+}
+
+func BenchmarkAutoComplete(b *testing.B) {
+	collection := []string{
+		"Nissan March",
+		"Nissan Juke",
+		"Nissan Maxima",
+		"Nissan Murano",
+		"Nissan Note",
+		"Toyota Mark II",
+		"Toyota Corolla",
+		"Toyota Corona",
+	}
+
+	qLen := len(collection)
+
+	nGramIndex := buildNGramIndex(collection)
+	b.ResetTimer()
+	scorer := &dummyScorer{}
+
+	for i := 0; i < b.N; i++ {
+		nGramIndex.Autocomplete(collection[i%qLen], 5, scorer)
 	}
 }
 
@@ -112,7 +173,7 @@ func BenchmarkRealExampleOnDisc(b *testing.B) {
 	benchmarkRealExample(b, nGramIndex)
 }
 
-func BenchmarkWordsOnDisc(b *testing.B) {
+func BenchmarkSuggestWordsOnDisc(b *testing.B) {
 	index := buildOnDiscNGramIndex(1)
 
 	b.ResetTimer()
@@ -144,7 +205,33 @@ func BenchmarkWordsOnDisc(b *testing.B) {
 	}
 }
 
-//
+func BenchmarkAutocompleteWordsOnDisc(b *testing.B) {
+	index := buildOnDiscNGramIndex(1)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	queries := [...]string{
+		"testing",
+		"Acuracacy",
+		"Indpendence",
+		"Villictiy",
+		"Velocity",
+		"matehmatica",
+		"acationally",
+		"misleading",
+		"litter",
+		"arthroendoscopy",
+	}
+
+	qLen := len(queries)
+	scorer := &dummyScorer{}
+
+	for i := 0; i < b.N; i++ {
+		index.Autocomplete(queries[i%qLen], 5, scorer)
+	}
+}
+
 func benchmarkRealExample(b *testing.B, index NGramIndex) {
 	b.ReportAllocs()
 
@@ -170,68 +257,6 @@ func benchmarkRealExample(b *testing.B, index NGramIndex) {
 	for i := 0; i < b.N; i++ {
 		conf.query = queries[i%qLen]
 		index.Suggest(conf)
-	}
-}
-
-func TestAutoComplete(t *testing.T) {
-	collection := []string{
-		"Nissan March",
-		"Nissan Juke",
-		"Nissan Maxima",
-		"Nissan Murano",
-		"Nissan Note",
-		"Toyota Mark II",
-		"Toyota Corolla",
-		"Toyota Corona",
-	}
-
-	nGramIndex := buildNGramIndex(collection)
-	candidates, err := nGramIndex.AutoComplete("Niss", 5, dummyScorer{})
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	actual := make([]index.Position, 0, len(candidates))
-
-	for _, candidate := range candidates {
-		actual = append(actual, candidate.Key)
-	}
-
-	expected := []index.Position{
-		0, 1, 2, 3, 4,
-	}
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf(
-			"Test Fail, expected %v, got %v",
-			expected,
-			actual,
-		)
-	}
-}
-
-func BenchmarkAutoCompleteOnDisc(b *testing.B) {
-	b.StopTimer()
-
-	nGramIndex := buildOnDiscNGramIndex(0)
-
-	queries := [...]string{
-		"Nissan Mar",
-		"Fit",
-		"Benz",
-		"Toyo",
-		"Nissan Juke",
-		"Hummer",
-		"Corol",
-	}
-
-	qLen := len(queries)
-	b.StartTimer()
-	scorer := dummyScorer{}
-
-	for i := 0; i < b.N; i++ {
-		nGramIndex.AutoComplete(queries[i%qLen], 5, scorer)
 	}
 }
 
