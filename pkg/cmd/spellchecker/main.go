@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/alldroll/suggest/pkg/store"
 	"log"
 	"os"
-	"strings"
 	"time"
+
+	"github.com/alldroll/suggest/pkg/store"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
 	lm "github.com/alldroll/suggest/pkg/language-model"
@@ -55,7 +55,7 @@ func main() {
 	fmt.Print(">> ")
 
 	for scanner.Scan() {
-		sentence := strings.TrimSpace(scanner.Text())
+		sentence := scanner.Text()
 
 		if len(sentence) == 0 {
 			fmt.Print(">> ")

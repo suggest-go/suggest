@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+
 	"github.com/RoaringBitmap/roaring"
 	"github.com/alldroll/suggest/pkg/merger"
 	"github.com/alldroll/suggest/pkg/store"
@@ -27,7 +28,7 @@ func (i *bitmapPostingList) Get() (uint32, error) {
 
 // HasNext tells if the given iterator can be moved to the next record
 func (i *bitmapPostingList) HasNext() bool {
-	return i.iterator.HasNext()
+	return i.isValid && i.iterator.HasNext()
 }
 
 // Next moves the given iterator to the next record
@@ -44,6 +45,10 @@ func (i *bitmapPostingList) Next() (uint32, error) {
 // LowerBound moves the given iterator to the smallest record x
 // in corresponding list such that x >= to
 func (i *bitmapPostingList) LowerBound(to uint32) (uint32, error) {
+	if !i.isValid {
+		return 0, merger.ErrIteratorIsNotDereferencable
+	}
+
 	if i.current >= to {
 		return i.current, nil
 	}
@@ -98,4 +103,3 @@ func (i *bitmapPostingList) init(context PostingListContext) error {
 
 	return err
 }
-

@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"encoding/gob"
 	"fmt"
-	"github.com/alldroll/suggest/pkg/store"
 	"strconv"
 	"strings"
 
 	"github.com/alldroll/go-datastructures/rbtree"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/mph"
+	"github.com/alldroll/suggest/pkg/store"
 )
 
 // StoreBinaryLMFromGoogleFormat creates a ngram language model from the google ngram format
@@ -142,7 +142,7 @@ func (n *dictItem) Less(other rbtree.Item) bool {
 	}
 
 	if n.count == o.count {
-		return n.word > o.word
+		return n.word < o.word
 	}
 
 	return false
@@ -176,7 +176,7 @@ func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
 		item := iter.Get().(*dictItem)
 
 		if err := iterator(docID, item.word); err != nil {
-			return fmt.Errorf("failed to iterate through dictionary: %v",err)
+			return fmt.Errorf("failed to iterate through dictionary: %v", err)
 		}
 	}
 

@@ -87,14 +87,12 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		for _, c := range candidates {
 			current, err := rid[i].LowerBound(c.Position())
 
-			if err != nil && err != ErrIteratorIsNotDereferencable {
-				return nil, err
+			if err == nil && current == c.Position() {
+				c.Increment()
 			}
 
-			if err != ErrIteratorIsNotDereferencable {
-				if current == c.Position() {
-					c.Increment()
-				}
+			if err != nil && err != ErrIteratorIsNotDereferencable {
+				return nil, err
 			}
 
 			if c.Overlap()+(lenRid-i-1) >= threshold {

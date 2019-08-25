@@ -16,6 +16,10 @@ type lmScorer struct {
 
 // Score returns the score of the given position
 func (s *lmScorer) Score(position index.Position) float64 {
+	if len(s.next) == 0 {
+		return 0
+	}
+
 	i := sort.Search(len(s.next), func(i int) bool { return s.next[i] >= position })
 
 	if i < 0 || i >= len(s.next) || s.next[i] != position {

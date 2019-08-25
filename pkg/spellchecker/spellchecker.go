@@ -76,9 +76,11 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 		candidates = merge(candidates, fuzzyCandidates)
 	}
 
-	sort.SliceStable(candidates, func(i, j int) bool {
-		return scorer.Score(candidates[i].Key) > scorer.Score(candidates[j].Key)
-	})
+	if len(seq) > 0 {
+		sort.SliceStable(candidates, func(i, j int) bool {
+			return scorer.Score(candidates[i].Key) > scorer.Score(candidates[j].Key)
+		})
+	}
 
 	result := make([]string, 0, len(candidates))
 
