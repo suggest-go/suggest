@@ -13,8 +13,8 @@ import (
 // This example demonstrates how to use this package.
 func Example() {
 	// we create InMemoryDictionary. Here we can use anything we want,
-	// for example SqlDictionary
-	collection := []string{
+	// for example SqlDictionary, CDBDictionary and so on
+	dict := dictionary.NewInMemoryDictionary([]string{
 		"Nissan March",
 		"Nissan Juke",
 		"Nissan Maxima",
@@ -23,12 +23,8 @@ func Example() {
 		"Toyota Mark II",
 		"Toyota Corolla",
 		"Toyota Corona",
-	}
+	})
 
-	service := suggest.NewService()
-
-	// create dictionary of autocomplete items
-	dictionary := dictionary.NewInMemoryDictionary(collection)
 	// describe index configuration
 	indexDescription := suggest.IndexDescription{
 		Name:      "cars",                   // name of the dictionary
@@ -39,14 +35,16 @@ func Example() {
 	}
 
 	// create runtime search index builder
-	builder, err := suggest.NewRAMBuilder(dictionary, indexDescription)
+	builder, err := suggest.NewRAMBuilder(dict, indexDescription)
 
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)
 	}
 
+	service := suggest.NewService()
+
 	// asking our service for adding a new search index with given configuration
-	if err := service.AddIndex(indexDescription.Name, dictionary, builder); err != nil {
+	if err := service.AddIndex(indexDescription.Name, dict, builder); err != nil {
 		log.Fatalf("Unexpected error: %v", err)
 	}
 

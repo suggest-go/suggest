@@ -15,21 +15,25 @@ func OpenCDBDictionary(path string) (Dictionary, error) {
 	dictionaryFile, err := utils.NewMMapReader(path)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open cdb dictionary file: %v", err)
+		return nil, fmt.Errorf("failed to open cdb dictionary file: %v", err)
 	}
 
 	return NewCDBDictionary(dictionaryFile)
 }
 
 // OpenRAMDictionary opens a dictionary from the given path and stores items in RAM
-func OpenRAMDictionary(path string) (Dictionary, error) {
+func OpenRAMDictionary(path string) (dict Dictionary, err error) {
 	dictionaryFile, err := os.Open(path)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open dictionary file: %v", err)
+		return nil, fmt.Errorf("failed to open dictionary file: %v", err)
 	}
 
-	defer dictionaryFile.Close()
+	defer func() {
+		if cErr := dictionaryFile.Close(); cErr != nil {
+			err = cErr
+		}
+	}()
 
 	scanner := bufio.NewScanner(dictionaryFile)
 	collection := make([]string, 0)
@@ -38,7 +42,9 @@ func OpenRAMDictionary(path string) (Dictionary, error) {
 		collection = append(collection, scanner.Text())
 	}
 
-	return NewInMemoryDictionary(collection), nil
+	dict = NewInMemoryDictionary(collection)
+
+	return
 }
 
 // BuildCDBDictionary is a helper for building a CDB dictionary from the sourcePath
@@ -51,32 +57,38 @@ func BuildCDBDictionary(iterator Iterable, destinationPath string) (Dictionary, 
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create dictionary file %s", err)
+		return nil, fmt.Errorf("failed to create dictionary file %v", err)
 	}
-
-	defer destinationFile.Close()
 
 	cdbHandle := cdb.New()
 	cdbWriter, err := cdbHandle.GetWriter(destinationFile)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create cdb writer %s", err)
+		return nil, fmt.Errorf("failed to create cdb writer %v", err)
 	}
 
 	key := make([]byte, 4)
 
-	iterator.Iterate(func(docID Key, word Value) error {
+	err = iterator.Iterate(func(docID Key, word Value) error {
 		binary.LittleEndian.PutUint32(key, docID)
 
 		if err := cdbWriter.Put(key, []byte(word)); err != nil {
-			return fmt.Errorf("Failed to put record to cdb %s", err)
+			return fmt.Errorf("failed to put record to cdb: %v", err)
 		}
 
 		return nil
 	})
 
+	if err != nil {
+		return nil, fmt.Errorf("failed to iterate through a dictionary: %v", err)
+	}
+
 	if err := cdbWriter.Close(); err != nil {
-		return nil, fmt.Errorf("Failed to save cdb dictionary %s", err)
+		return nil, fmt.Errorf("failed to save cdb dictionary %v", err)
+	}
+
+	if err := destinationFile.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close cdb file %v", err)
 	}
 
 	return OpenCDBDictionary(destinationPath)

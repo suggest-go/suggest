@@ -37,13 +37,13 @@ func (ir *Reader) Read() (InvertedIndexIndices, error) {
 	documentReader, err := ir.directory.OpenInput(ir.config.DocumentListFileName)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open document list: %v", err)
+		return nil, fmt.Errorf("failed to open document list: %v", err)
 	}
 
 	index, err := ir.createInvertedIndexIndices(header, documentReader)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to retrieve inverted index: %v", err)
+		return nil, fmt.Errorf("failed to retrieve inverted index: %v", err)
 	}
 
 	runtime.SetFinalizer(index, func(d interface{}) {
@@ -58,22 +58,22 @@ func (ir *Reader) readHeader() (*header, error) {
 	headerReader, err := ir.directory.OpenInput(ir.config.HeaderFileName)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open header: %v", err)
+		return nil, fmt.Errorf("failed to open header: %v", err)
 	}
 
 	header := &header{}
 	decoder := gob.NewDecoder(headerReader)
 
 	if err = decoder.Decode(header); err != nil {
-		return nil, fmt.Errorf("Failed to retrieve header: %v", err)
+		return nil, fmt.Errorf("failed to retrieve header: %v", err)
 	}
 
 	if header.Version != IndexVersion {
-		return nil, fmt.Errorf("Index version mismatch, expected %s version", IndexVersion)
+		return nil, fmt.Errorf("index version mismatch, expected %s version", IndexVersion)
 	}
 
 	if err = headerReader.Close(); err != nil {
-		return nil, fmt.Errorf("Failed to close header file: %v", err)
+		return nil, fmt.Errorf("failed to close header file: %v", err)
 	}
 
 	return header, nil

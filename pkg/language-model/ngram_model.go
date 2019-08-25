@@ -17,8 +17,9 @@ type NGramModel interface {
 }
 
 const (
+	// UnknownWordScore is the score for unknown phrases
+	UnknownWordScore = -100.0
 	alpha            = 0.4
-	unknownWordScore = -100.0
 	version          = "0.0.1"
 )
 
@@ -50,7 +51,7 @@ func (m *nGramModel) Score(nGrams []WordID) float64 {
 		vector := m.indices[i]
 
 		if i == 0 {
-			counts[0] = vector.CorpousCount()
+			counts[0] = vector.CorpusCount()
 		}
 
 		counts[i+1], parent = vector.GetCount(nGrams[i], parent)
@@ -116,7 +117,7 @@ func (m *nGramModel) UnmarshalBinary(data []byte) error {
 	}
 
 	if binaryVersion != version {
-		return fmt.Errorf("Version mismatch, expected: %s, got %s", version, binaryVersion)
+		return fmt.Errorf("version mismatch, expected: %s, got %s", version, binaryVersion)
 	}
 
 	if err := decoder.Decode(&m.nGramOrder); err != nil {
@@ -148,7 +149,7 @@ func calcScore(counts []WordCount) float64 {
 		factor *= alpha
 	}
 
-	return unknownWordScore
+	return UnknownWordScore
 }
 
 func init() {

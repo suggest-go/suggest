@@ -3,10 +3,10 @@ package lm
 import (
 	"bufio"
 	"io"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/alldroll/suggest/pkg/alphabet"
+	"github.com/alldroll/suggest/pkg/analysis"
 )
 
 // Sentence is a sequence of tokens
@@ -20,7 +20,7 @@ type SentenceRetriever interface {
 }
 
 // NewSentenceRetriever creates new instance of sentence retriever
-func NewSentenceRetriever(tokenizer Tokenizer, reader io.Reader, alphabet alphabet.Alphabet) SentenceRetriever {
+func NewSentenceRetriever(tokenizer analysis.Tokenizer, reader io.Reader, alphabet alphabet.Alphabet) SentenceRetriever {
 	scanner := bufio.NewScanner(reader)
 
 	r := &retriever{
@@ -36,15 +36,14 @@ func NewSentenceRetriever(tokenizer Tokenizer, reader io.Reader, alphabet alphab
 // retriever implements SentenceRetriever interface
 type retriever struct {
 	scanner   *bufio.Scanner
-	tokenizer Tokenizer
+	tokenizer analysis.Tokenizer
 	alphabet  alphabet.Alphabet
 }
 
 // Retrieves and returns the next sentence from the source
 func (r *retriever) Retrieve() Sentence {
 	if r.scanner.Scan() {
-		text := r.scanner.Text()
-		return r.tokenizer.Tokenize(strings.ToLower(text))
+		return r.tokenizer.Tokenize(r.scanner.Text())
 	}
 
 	return nil

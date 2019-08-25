@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 	"time"
+
+	"github.com/alldroll/suggest/pkg/store"
 
 	lm "github.com/alldroll/suggest/pkg/language-model"
 	"github.com/spf13/cobra"
@@ -20,19 +21,19 @@ var evalCmd = &cobra.Command{
 	Short: "cli to approximate string search access",
 	Long:  `cli to approximate string search access`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		f, err := os.Open(configPath)
+		config, err := lm.ReadConfig(configPath)
 
 		if err != nil {
-			return fmt.Errorf("Failed to open config file: %v", err)
+			return fmt.Errorf("failed to read config file: %v", err)
 		}
 
-		config, err := lm.ReadConfig(f)
+		directory, err := store.NewFSDirectory(config.GetOutputPath())
 
 		if err != nil {
-			return fmt.Errorf("Failed to read config file: %v", err)
+			return fmt.Errorf("failed to create a fs directory: %v", err)
 		}
 
-		languageModel, err := lm.RetrieveLMFromBinary(config)
+		languageModel, err := lm.RetrieveLMFromBinary(directory, config)
 
 		if err != nil {
 			return err
@@ -43,7 +44,7 @@ var evalCmd = &cobra.Command{
 		fmt.Print(">> ")
 
 		for scanner.Scan() {
-			sentence := tokenizer.Tokenize(strings.TrimSpace(scanner.Text()))
+			sentence := tokenizer.Tokenize(scanner.Text())
 
 			if len(sentence) == 0 {
 				fmt.Print(">> ")

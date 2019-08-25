@@ -32,7 +32,9 @@ func (d *inMemoryDictionary) Size() int {
 // Iterator returns an iterator over the elements in this dictionary
 func (d *inMemoryDictionary) Iterate(iterator Iterator) error {
 	for key, value := range d.holder {
-		iterator(Key(key), Value(value))
+		if err := iterator(Key(key), Value(value)); err != nil {
+			return err
+		}
 	}
 
 	return nil

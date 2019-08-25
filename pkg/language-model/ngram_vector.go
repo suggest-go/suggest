@@ -10,6 +10,8 @@ import (
 	"math"
 	"sort"
 	"strconv"
+
+	"github.com/alldroll/suggest/pkg/utils"
 )
 
 type (
@@ -20,12 +22,12 @@ type (
 
 // NGramVector represents one level of nGram trie
 type NGramVector interface {
-	// Returns WordCount and Node ContextOffset for the given pair (word, context)
+	// GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
 	GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset)
-	// Returns the given node context offset
+	// GetContextOffset returns the given node context offset
 	GetContextOffset(word WordID, context ContextOffset) ContextOffset
-	// Returns size of all counts in the collection
-	CorpousCount() WordCount
+	// CorpusCount returns size of all counts in the collection
+	CorpusCount() WordCount
 	// Next returns next words for the given context
 	Next(context ContextOffset) []WordID
 }
@@ -37,13 +39,18 @@ const (
 	maxContextOffset     = maxUint32 - 1
 )
 
+var (
+	// ErrContextOverflow tells that it was an attempt
+	ErrContextOverflow = errors.New("out of maxContextOffset")
+)
+
 type sortedArray struct {
 	keys   []key
 	values []WordCount
 	total  WordCount
 }
 
-// Returns WordCount and Node ContextOffset for the given pair (word, context)
+// GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
 func (s *sortedArray) GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset) {
 	key := makeKey(word, context)
 	i := s.find(key)
@@ -55,14 +62,14 @@ func (s *sortedArray) GetCount(word WordID, context ContextOffset) (WordCount, C
 	return s.values[int(i)], i
 }
 
-// Returns the given node context offset
+// GetContextOffset returns the given node context offset
 func (s *sortedArray) GetContextOffset(word WordID, context ContextOffset) ContextOffset {
 	key := makeKey(word, context)
 	return s.find(key)
 }
 
-// Returns size of all counts in the collection
-func (s *sortedArray) CorpousCount() WordCount {
+// CorpusCount returns size of all counts in the collection
+func (s *sortedArray) CorpusCount() WordCount {
 	return s.total
 }
 
@@ -110,7 +117,9 @@ func (s *sortedArray) MarshalBinary() ([]byte, error) {
 	result.Grow(keyEndPos + valEndPos + 4 + strconv.IntSize*2)
 
 	// write header
-	fmt.Fprintln(&result, keyEndPos, valEndPos, s.total)
+	if _, err := fmt.Fprintln(&result, keyEndPos, valEndPos, s.total); err != nil {
+		return nil, err
+	}
 
 	// write data
 	result.Write(encodedKeys[:keyEndPos])
@@ -124,8 +133,7 @@ func (s *sortedArray) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	keySize, valSize := 0, 0
 
-	_, err := fmt.Fscanln(buf, &keySize, &valSize, &s.total)
-	if err != nil {
+	if _, err := fmt.Fscanln(buf, &keySize, &valSize, &s.total); err != nil {
 		return err
 	}
 
@@ -153,7 +161,7 @@ func (s *sortedArray) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Finds given key in the collection. Returns ContextOffset if the given key exists
+// find finds the given key in the collection. Returns ContextOffset if the key exists, otherwise returns InvalidContextOffset
 func (s *sortedArray) find(key uint64) ContextOffset {
 	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= key })
 
@@ -164,29 +172,19 @@ func (s *sortedArray) find(key uint64) ContextOffset {
 	return ContextOffset(i)
 }
 
-// Creates uint64 key for the given pair (word, context)
+// makeKey creates uint64 key for the given pair (word, context)
 func makeKey(word WordID, context ContextOffset) key {
 	if context > maxContextOffset {
-		log.Fatal(errors.New("Out of maxContextOffset"))
+		log.Fatal(ErrContextOverflow)
 	}
 
-	return pack(context, word)
+	return utils.Pack(context, word)
 }
 
 // getWordID returns the word id for the given key
 func getWordID(key key) WordID {
-	_, wordID := unpack(key)
+	_, wordID := utils.Unpack(key)
 	return wordID
-}
-
-// Packs 2 uint32 in uint64
-func pack(a, b uint32) uint64 {
-	return (uint64(a) << 32) | uint64(b&maxUint32)
-}
-
-// Unpacks explode uint64 into 2 uint32
-func unpack(v uint64) (uint32, uint32) {
-	return uint32(v >> 32), uint32(v)
 }
 
 func init() {

@@ -30,7 +30,7 @@ func (h *autocompleteHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resultItems, err := h.suggestService.AutoComplete(dict, query, int(i64))
+	resultItems, err := h.suggestService.Autocomplete(dict, query, int(i64))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

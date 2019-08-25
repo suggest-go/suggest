@@ -18,9 +18,9 @@ func TestFlow(t *testing.T) {
 	}
 
 	dict := dictionary.NewInMemoryDictionary(collection)
-	mph, err := BuildMPH(dict)
+	mph := New()
 
-	if err != nil {
+	if err := mph.Build(dict); err != nil {
 		t.Errorf("Unexpected error occurs: %v", err)
 	}
 
@@ -48,10 +48,10 @@ func BenchmarkMPHGet(b *testing.B) {
 		b.Fatalf("Unexpected error occurs: %v", err)
 	}
 
-	mph, err := BuildMPH(dict)
+	mph := New()
 
-	if err != nil {
-		b.Fatalf("Unexpected error occurs: %v", err)
+	if err := mph.Build(dict); err != nil {
+		b.Errorf("Unexpected error occurs: %v", err)
 	}
 
 	b.ReportAllocs()

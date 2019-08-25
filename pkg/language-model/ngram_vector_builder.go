@@ -2,6 +2,7 @@ package lm
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/alldroll/go-datastructures/rbtree"
 )
@@ -51,7 +52,9 @@ func (m *nGramVectorBuilder) Put(nGrams []WordID, count WordCount) error {
 			if prev != nil {
 				(prev.(*nGramNode)).value += count
 			} else {
-				m.tree.Insert(node)
+				if _, err := m.tree.Insert(node); err != nil {
+					return fmt.Errorf("failed to insert the node: %v", err)
+				}
 			}
 		} else {
 			parent = m.parents[i].GetContextOffset(nGram, parent)

@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alldroll/suggest/pkg/store"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/store"
 	"github.com/alldroll/suggest/pkg/suggest"
 )
 
@@ -46,7 +46,7 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-		reindexed := false
+		reIndexed := false
 		totalStart := time.Now()
 
 		for _, config := range configs {
@@ -58,10 +58,10 @@ var indexCmd = &cobra.Command{
 				return err
 			}
 
-			reindexed = true
+			reIndexed = true
 		}
 
-		if !reindexed {
+		if !reIndexed {
 			log.Printf("There were not any reindex job")
 			return nil
 		}
@@ -89,30 +89,29 @@ func readConfigs() ([]suggest.IndexDescription, error) {
 	configs, err := suggest.ReadConfigs(configPath)
 
 	if err != nil {
-		return nil, fmt.Errorf("Invalid config file format %s", err)
+		return nil, fmt.Errorf("invalid config file format %s", err)
 	}
 
 	return configs, nil
 }
 
 // indexJob performs building a dictionary, a search index for the given index description
-func indexJob(config suggest.IndexDescription) error {
-	log.Printf("Start process '%s' config", config.Name)
+func indexJob(description suggest.IndexDescription) error {
+	log.Printf("Start process '%s' config", description.Name)
+
+	if description.Driver != suggest.DiscDriver {
+		log.Printf("skip processing '%s', there is no disc configuration\n", description.Name)
+		return nil
+	}
 
 	// create a cdb dictionary
 	log.Printf("Building a dictionary...")
 	start := time.Now()
 
-	dictReader, err := newDictionaryReader(config)
+	dict, err := buildDictionaryJob(description)
 
 	if err != nil {
-		return err
-	}
-
-	dict, err := dictionary.BuildCDBDictionary(dictReader, config.GetDictionaryFile())
-
-	if err != nil {
-		return err
+		return fmt.Errorf("failed to build a dictionary: %v", err)
 	}
 
 	log.Printf("Time spent %s", time.Since(start))
@@ -121,7 +120,13 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("Creating a search index...")
 	start = time.Now()
 
-	if err = buildIndex(dict, config); err != nil {
+	directory, err := store.NewFSDirectory(description.GetIndexPath())
+
+	if err != nil {
+		return fmt.Errorf("failed to create a directory: %v", err)
+	}
+
+	if err = suggest.Index(directory, dict, description.GetWriterConfig(), description.GetIndexTokenizer()); err != nil {
 		return err
 	}
 
@@ -129,6 +134,23 @@ func indexJob(config suggest.IndexDescription) error {
 	log.Printf("End process\n\n")
 
 	return nil
+}
+
+// buildDictionary builds a persistent dictionary
+func buildDictionaryJob(config suggest.IndexDescription) (dictionary.Dictionary, error) {
+	dictReader, err := newDictionaryReader(config)
+
+	if err != nil {
+		return nil, err
+	}
+
+	dict, err := dictionary.BuildCDBDictionary(dictReader, config.GetDictionaryFile())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dict, nil
 }
 
 // dictionaryReader is an adapter, that implements dictionary.Iterable for bufio.Scanner
@@ -157,7 +179,7 @@ func newDictionaryReader(config suggest.IndexDescription) (dictionary.Iterable, 
 	f, err := os.Open(config.GetSourcePath())
 
 	if err != nil {
-		return nil, fmt.Errorf("Could not open a source file %s", err)
+		return nil, fmt.Errorf("could not open a source file %s", err)
 	}
 
 	scanner := bufio.NewScanner(f)
@@ -165,42 +187,6 @@ func newDictionaryReader(config suggest.IndexDescription) (dictionary.Iterable, 
 	return &dictionaryReader{
 		lineScanner: scanner,
 	}, nil
-}
-
-// buildIndex builds a search index by using the given config and the dictionary
-// and persists it on FS
-func buildIndex(dict dictionary.Dictionary, config suggest.IndexDescription) error {
-	alphabet := config.CreateAlphabet()
-	cleaner, err := index.NewCleaner(alphabet.Chars(), config.Pad, config.Wrap)
-
-	if err != nil {
-		return err
-	}
-
-	directory, err := store.NewFSDirectory(config.GetOutputPath())
-
-	if err != nil {
-		return err
-	}
-
-	encoder, err := index.NewEncoder()
-
-	if err != nil {
-		return fmt.Errorf("Failed to create Encoder: %v", err)
-	}
-
-	generator := index.NewGenerator(config.NGramSize)
-	indexWriter := index.NewIndexWriter(
-		directory,
-		config.CreateWriterConfig(),
-		encoder,
-	)
-
-	if err = index.BuildIndex(dict, indexWriter, generator, cleaner); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // tryToSendReindexSignal sends a SIGHUP signal to the pid
@@ -218,7 +204,7 @@ func tryToSendReindexSignal() error {
 	}
 
 	if err := syscall.Kill(pid, syscall.SIGHUP); err != nil {
-		return fmt.Errorf("Fail to send reindex signal to %d, %s", pid, err)
+		return fmt.Errorf("fail to send reindex signal to %d, %s", pid, err)
 	}
 
 	return nil
@@ -229,18 +215,18 @@ func tryToSendReindexRequest() error {
 	resp, err := http.Post(host, "text/plain", nil)
 
 	if err != nil {
-		return fmt.Errorf("Fail to send reindex request to %s, %s", host, err)
+		return fmt.Errorf("fail to send reindex request to %s, %s", host, err)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		return fmt.Errorf("Fail to read response body %s", err)
+		return fmt.Errorf("fail to read response body %s", err)
 	}
 
 	if string(body) != "OK" {
-		return fmt.Errorf("Something goes wrong with reindex request, %s", body)
+		return fmt.Errorf("something goes wrong with reindex request, %s", body)
 	}
 
 	return nil

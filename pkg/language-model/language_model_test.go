@@ -1,8 +1,8 @@
 package lm
 
 import (
+	"github.com/alldroll/suggest/pkg/store"
 	"math"
-	"os"
 	"testing"
 )
 
@@ -12,6 +12,7 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		StartSymbol: "<S>",
 		EndSymbol:   "</S>",
 		OutputPath:  "testdata/fixtures",
+		basePath:    ".",
 	}
 
 	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
@@ -20,31 +21,42 @@ func TestScoreSentenceFromFile(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	reader := NewGoogleNGramReader(config.NGramOrder, indexer, config.OutputPath)
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
 
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	reader := NewGoogleNGramReader(config.NGramOrder, indexer, directory)
 	model, err := reader.Read()
+
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	lm := NewLanguageModel(model, indexer, &config)
+	lm, err := NewLanguageModel(model, indexer, &config)
+
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+
 	testLM(lm, t)
 }
 
 func TestScoreSentenceFromBinary(t *testing.T) {
-	f, err := os.Open("testdata/config-example.json")
+	config, err := ReadConfig("testdata/config-example.json")
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	config, err := ReadConfig(f)
+	directory, err := store.NewFSDirectory(config.GetOutputPath())
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	lm, err := RetrieveLMFromBinary(config)
+	lm, err := RetrieveLMFromBinary(directory, config)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

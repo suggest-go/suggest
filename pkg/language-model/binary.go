@@ -4,91 +4,97 @@ import (
 	"bufio"
 	"encoding/gob"
 	"fmt"
-	"os"
+	"github.com/alldroll/suggest/pkg/store"
+	"strconv"
 	"strings"
 
+	"github.com/alldroll/go-datastructures/rbtree"
 	"github.com/alldroll/suggest/pkg/dictionary"
 	"github.com/alldroll/suggest/pkg/mph"
 )
 
 // StoreBinaryLMFromGoogleFormat creates a ngram language model from the google ngram format
-func StoreBinaryLMFromGoogleFormat(config *Config) error {
-	dict, err := buildDictionary(config)
+func StoreBinaryLMFromGoogleFormat(directory store.Directory, config *Config) error {
+	dict, err := buildDictionary(directory, config)
 
 	if err != nil {
 		return err
 	}
 
-	mph, err := buildMPH(dict)
+	table, err := buildMPH(dict)
 
 	if err != nil {
 		return err
 	}
 
-	reader := NewGoogleNGramReader(config.NGramOrder, NewIndexer(dict, mph), config.OutputPath)
+	reader := NewGoogleNGramReader(config.NGramOrder, NewIndexer(dict, table), directory)
 	model, err := reader.Read()
 
 	if err != nil {
-		return fmt.Errorf("Couldn't read ngrams: %v", err)
+		return fmt.Errorf("couldn't read ngrams: %v", err)
 	}
 
-	binaryFile, err := os.OpenFile(
-		config.GetBinaryPath(),
-		os.O_CREATE|os.O_RDWR|os.O_TRUNC,
-		0644,
-	)
+	out, err := directory.CreateOutput(config.GetBinaryPath())
 
 	if err != nil {
-		return fmt.Errorf("Failed to create a binary file: %v", err)
+		return fmt.Errorf("failed to create a binary file: %v", err)
 	}
 
-	enc := gob.NewEncoder(binaryFile)
+	enc := gob.NewEncoder(out)
 
 	if err := enc.Encode(&model); err != nil {
-		return fmt.Errorf("Failed to encode NGramModel in the binary format: %v", err)
+		return fmt.Errorf("failed to encode NGramModel in the binary format: %v", err)
 	}
 
-	if err := enc.Encode(&mph); err != nil {
-		return fmt.Errorf("Failed to encode MPH in the binary format: %v", err)
+	if _, err := table.Store(out); err != nil {
+		return fmt.Errorf("failed to encode MPH in the binary format: %v", err)
+	}
+
+	if err := out.Close(); err != nil {
+		return fmt.Errorf("failed to close a binary output: %v", err)
 	}
 
 	return nil
 }
 
-// RetrieveLMFromBinary retrives a language model from the binary format
-func RetrieveLMFromBinary(config *Config) (LanguageModel, error) {
+// RetrieveLMFromBinary retrieves a language model from the binary format
+func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageModel, error) {
 	dict, err := dictionary.OpenCDBDictionary(config.GetDictionaryPath())
 
 	if err != nil {
 		return nil, err
 	}
 
-	binaryFile, err := os.Open(config.GetBinaryPath())
+	in, err := directory.OpenInput(config.GetBinaryPath())
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open the lm binary file: %v", err)
+		return nil, fmt.Errorf("failed to open the lm binary file: %v", err)
 	}
 
 	var (
 		model NGramModel
-		mph   mph.MPH
-		dec   = gob.NewDecoder(binaryFile)
+		table = mph.New()
+		dec   = gob.NewDecoder(in)
 	)
 
 	if err := dec.Decode(&model); err != nil {
 		return nil, err
 	}
 
-	if err := dec.Decode(&mph); err != nil {
+	if _, err := table.Load(in); err != nil {
 		return nil, err
 	}
 
-	return NewLanguageModel(model, NewIndexer(dict, mph), config), nil
+	if err := in.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close a binary input: %v", err)
+	}
+
+	return NewLanguageModel(model, NewIndexer(dict, table), config)
 }
 
 // buildDictionary builds a dictionary for the given config
-func buildDictionary(config *Config) (dictionary.Dictionary, error) {
-	dictReader, err := newDictionaryReader(config)
+func buildDictionary(directory store.Directory, config *Config) (dictionary.Dictionary, error) {
+	dictReader, err := newDictionaryReader(directory)
 
 	if err != nil {
 		return nil, err
@@ -105,50 +111,89 @@ func buildDictionary(config *Config) (dictionary.Dictionary, error) {
 
 // newDictionaryReader creates an adapter to Iterable interface, that scans all lines
 // from the SourcePath and creates pairs of <DocID, Value>
-func newDictionaryReader(config *Config) (dictionary.Iterable, error) {
-	f, err := os.Open(fmt.Sprintf(fileFormat, config.OutputPath, 1))
+func newDictionaryReader(directory store.Directory) (dictionary.Iterable, error) {
+	in, err := directory.OpenInput(fmt.Sprintf(fileFormat, 1))
 
 	if err != nil {
-		return nil, fmt.Errorf("Could not open a source file %s", err)
+		return nil, fmt.Errorf("could not open a source file %s", err)
 	}
 
-	scanner := bufio.NewScanner(f)
-
 	return &dictionaryReader{
-		lineScanner: scanner,
+		in: in,
 	}, nil
 }
 
 // dictionaryReader is an adapter, that implements dictionary.Iterable for bufio.Scanner
 type dictionaryReader struct {
-	lineScanner *bufio.Scanner
+	in store.Input
+}
+
+type dictItem struct {
+	word  dictionary.Value
+	count WordCount
+}
+
+// Less tells is current elements is bigger than the other
+func (n *dictItem) Less(other rbtree.Item) bool {
+	o := other.(*dictItem)
+
+	if n.count > o.count {
+		return true
+	}
+
+	if n.count == o.count {
+		return n.word > o.word
+	}
+
+	return false
 }
 
 // Iterate iterates through each line of the corresponding dictionary
 func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
-	docID := dictionary.Key(0)
+	tree := rbtree.New()
+	lineScanner := bufio.NewScanner(dr.in)
 
-	for dr.lineScanner.Scan() {
-		line := dr.lineScanner.Text()
+	for lineScanner.Scan() {
+		line := lineScanner.Text()
 		tabIndex := strings.Index(line, "\t")
+		count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)
 
-		if err := iterator(docID, line[:tabIndex]); err != nil {
+		if err != nil {
 			return err
 		}
 
-		docID++
+		_, _ = tree.Insert(&dictItem{
+			word:  line[:tabIndex],
+			count: WordCount(count),
+		})
 	}
 
-	return dr.lineScanner.Err()
+	if err := lineScanner.Err(); err != nil {
+		return err
+	}
+
+	for docID, iter := dictionary.Key(0), tree.NewIterator(); iter.Next() != nil; docID++ {
+		item := iter.Get().(*dictItem)
+
+		if err := iterator(docID, item.word); err != nil {
+			return fmt.Errorf("failed to iterate through dictionary: %v",err)
+		}
+	}
+
+	if err := dr.in.Close(); err != nil {
+		return fmt.Errorf("failed to close a dictionary input: %v", err)
+	}
+
+	return nil
 }
 
 // buildMPH builds a mph from the given dictionary
 func buildMPH(dict dictionary.Dictionary) (mph.MPH, error) {
-	mph, err := mph.BuildMPH(dict)
+	table := mph.New()
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to build mph: %v", err)
+	if err := table.Build(dict); err != nil {
+		return nil, fmt.Errorf("failed to build a mph table: %v", err)
 	}
 
-	return mph, nil
+	return table, nil
 }

@@ -23,7 +23,6 @@ type Dictionary interface {
 }
 
 // Iterable tells that an implementation might be an object of for loop
-// TODO think about description
 type Iterable interface {
 	// Iterate walks through each kv pair and calls iterator on it
 	Iterate(iterator Iterator) error

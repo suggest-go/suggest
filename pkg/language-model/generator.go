@@ -5,8 +5,8 @@ type (
 	NGrams = [][]WordID
 )
 
-// SplitIntoNGrams splits the given sequence of WordID into a set of nGrams
-func SplitIntoNGrams(sequence []WordID, nGramOrder uint8) NGrams {
+// splitIntoNGrams splits the given sequence of WordID into a set of nGrams
+func splitIntoNGrams(sequence []WordID, nGramOrder uint8) NGrams {
 	k := int(nGramOrder)
 
 	if len(sequence) < k {

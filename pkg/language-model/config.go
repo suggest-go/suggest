@@ -3,8 +3,9 @@ package lm
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
+	"path"
 
 	"github.com/alldroll/suggest/pkg/alphabet"
 )
@@ -19,6 +20,7 @@ type Config struct {
 	Separators  []string `json:"separators"`
 	StartSymbol string   `json:"startSymbol"`
 	EndSymbol   string   `json:"endSymbol"`
+	basePath    string
 }
 
 // GetWordsAlphabet returns a word alphabet corresponding to the declaration
@@ -33,30 +35,55 @@ func (c *Config) GetSeparatorsAlphabet() alphabet.Alphabet {
 
 // GetDictionaryPath returns a stored path for the dictionary
 func (c *Config) GetDictionaryPath() string {
-	return fmt.Sprintf("%s/%s.cdb", c.OutputPath, c.Name)
-}
-
-// GetMPHPath returns a stored path for the mph
-func (c *Config) GetMPHPath() string {
-	return fmt.Sprintf("%s/%s.mph", c.OutputPath, c.Name)
+	return fmt.Sprintf("%s/%s.cdb", c.GetOutputPath(), c.Name)
 }
 
 // GetBinaryPath returns a stored path for the binary lm
 func (c *Config) GetBinaryPath() string {
-	return fmt.Sprintf("%s/%s.lm", c.OutputPath, c.Name)
+	return fmt.Sprintf("%s.lm", c.Name)
+}
+
+// GetOutputPath returns a output path of the builded index
+func (c *Config) GetOutputPath() string {
+	if !path.IsAbs(c.OutputPath) {
+		return fmt.Sprintf("%s/%s", c.basePath, c.OutputPath)
+	}
+
+	return c.OutputPath
+}
+
+// GetSourcePath returns a source path of the index description
+func (c *Config) GetSourcePath() string {
+	if !path.IsAbs(c.SourcePath) {
+		return fmt.Sprintf("%s/%s", c.basePath, c.SourcePath)
+	}
+
+	return c.SourcePath
 }
 
 // ReadConfig reads a language model config from the given reader
-func ReadConfig(reader io.Reader) (*Config, error) {
-	data, err := ioutil.ReadAll(reader)
+func ReadConfig(configPath string) (*Config, error) {
+	configFile, err := os.Open(configPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer configFile.Close()
+
+	data, err := ioutil.ReadAll(configFile)
+
 	if err != nil {
 		return nil, err
 	}
 
 	var config Config
+
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
+
+	config.basePath = path.Dir(configPath)
 
 	return &config, nil
 }

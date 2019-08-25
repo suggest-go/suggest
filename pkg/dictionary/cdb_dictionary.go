@@ -19,7 +19,7 @@ func NewCDBDictionary(r io.ReaderAt) (Dictionary, error) {
 	reader, err := handle.GetReader(r)
 
 	if err != nil {
-		return nil, fmt.Errorf("Fail to create cdb dictionary: %v", err)
+		return nil, fmt.Errorf("fail to create cdb dictionary: %v", err)
 	}
 
 	return &cdbDictionary{
@@ -65,17 +65,22 @@ func (d *cdbDictionary) Iterate(iterator Iterator) error {
 		record := cdbIterator.Record()
 		keyReader, keySize := record.Key()
 		key := make([]byte, keySize)
+
 		if _, err := keyReader.Read(key); err != nil {
 			return err
 		}
 
 		valueReader, valSize := record.Value()
 		value := make([]byte, valSize)
+
 		if _, err := valueReader.Read(value); err != nil {
 			return err
 		}
 
-		iterator(binary.LittleEndian.Uint32(key), Value(value))
+		if err := iterator(binary.LittleEndian.Uint32(key), Value(value)); err != nil {
+			return err
+		}
+
 		ok, err := cdbIterator.Next()
 
 		if err != nil {

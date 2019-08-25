@@ -1,7 +1,8 @@
 # Suggest
 
-Library for Top-k Approximate String Matching.
+Library for Top-k Approximate String Matching, autocomplete and spell checking.
 
+[![Build Status](https://travis-ci.com/alldroll/suggest.svg?branch=master)](https://travis-ci.com/alldroll/suggest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/alldroll/suggest)](https://goreportcard.com/report/github.com/alldroll/suggest)
 [![GoDoc](https://godoc.org/github.com/alldroll/suggest?status.svg)](https://godoc.org/github.com/alldroll/suggest)
 
@@ -15,16 +16,17 @@ The library was mostly inspired by
 
 ## Purpose
 
-Let's imagine you have a website, for instance a pharmacy website.
+Let's imagine you have a website, for instance, a pharmacy website.
 There could be a lot of dictionaries, such as a list of medical drugs,
 a list of cities (countries), where you can deliver your goods and so on.
-Some of these dictionaries could be a pretty large, and it might be a
+Some of these dictionaries could be pretty large, and it might be a
 tedious for a customer to choose the correct option from the dictionary.
 Having the possibility of `Top-k approximate string search` in a dictionary
-is a significant in these cases.
+is significant in these cases.
 
-This library provides API and the simple `http service` for such purposes.
+Also, the library provides spell checking functionality, that allows you to predict the next word.
 
+The library provides API and the simple `HTTP service` for such purposes.
 
 ## Demo
 
@@ -55,8 +57,9 @@ of choosing a similarity, type of metric and topK.
 ## Usage
 
 ```go
-// The dictionary, on which we expect fuzzy search
-dictionary := dictionary.NewInMemoryDictionary([]string{
+// we create InMemoryDictionary. Here we can use anything we want,
+// for example SqlDictionary, CDBDictionary and so on
+dict := dictionary.NewInMemoryDictionary([]string{
     "Nissan March",
     "Nissan Juke",
     "Nissan Maxima",
@@ -67,10 +70,7 @@ dictionary := dictionary.NewInMemoryDictionary([]string{
     "Toyota Corona",
 })
 
-// create suggest service
-service := suggest.NewService()
-
-// here we describe our index configuration
+// describe index configuration
 indexDescription := suggest.IndexDescription{
     Name:      "cars",                   // name of the dictionary
     NGramSize: 3,                        // size of the nGram
@@ -79,15 +79,17 @@ indexDescription := suggest.IndexDescription{
     Alphabet:  []string{"english", "$"}, // alphabet of allowed chars (other chars will be replaced with pad symbol)
 }
 
-// create runtime search index builder (because we don't have indexed data)
-builder, err := suggest.NewRAMBuilder(dictionary, indexDescription)
+// create runtime search index builder
+builder, err := suggest.NewRAMBuilder(dict, indexDescription)
 
 if err != nil {
     log.Fatalf("Unexpected error: %v", err)
 }
 
-// asking our service for adding a new search index with the given configuration
-if err := service.AddIndex(indexDescription.Name, dictionary, builder); err != nil {
+service := suggest.NewService()
+
+// add a new search index with the given configuration
+if err := service.AddIndex(indexDescription.Name, dict, builder); err != nil {
     log.Fatalf("Unexpected error: %v", err)
 }
 
@@ -116,16 +118,32 @@ fmt.Println(values)
 
 ## Suggest eval
 
-Eval command is a command line tool for approximate string search.
+Eval command is a command-line tool for approximate string search.
 
 ## Suggest indexer
 
 Indexer command builds a search index with the given [configuration](##index-description-format).
-Generated data is required by `DISC` implementation of a index driver.
+Generated data is required by `DISC` implementation of an index driver.
 
 ## Suggest service-run
 
-Runs a http web server with suggest methods.
+Runs HTTP webserver with suggest methods.
+
+## Language model ngram-count
+
+Creates Google n-grams format
+
+## Language model build-lm
+
+Builds a binary representation of a stupid-backoff language model and writes it to disk
+
+## Language model eval
+
+Eval command is a cli for lm scoring
+
+## Spellchecker
+
+Cli for spell checking
 
 ### REST API
 
@@ -221,9 +239,3 @@ Returns a list of managed dictionaries
 
   * **Code:** 500 SERVER ERROR <br />
     **Content:** `description`
-
-## TODO
-
-* Autocomplete (to improve initial prototype)
-* NGram language model
-* Spellchecker
