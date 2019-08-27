@@ -39,14 +39,14 @@ type mph struct {
 // Build builds a MPH for the given dictionary
 // Inspired by http://stevehanov.ca/blog/?id=119
 func (m *mph) Build(dict dictionary.Dictionary) error {
-	size := dict.Size()
+	size := uint32(dict.Size()) //cdb dictionary can not be more that uint32 size
 	buckets := make([][]dictionary.Key, size)
 	auxiliary := make([]int32, size, size)
 	values := make([]dictionary.Key, 0, size)
 
 	// Step 1: Place all of the keys into buckets
 	err := dict.Iterate(func(key dictionary.Key, value dictionary.Value) error {
-		d := int(hash(0, value)) % size
+		d := hash(0, value) % size
 		buckets[d] = append(buckets[d], key)
 		values = append(values, math.MaxUint32)
 
@@ -70,8 +70,8 @@ func (m *mph) Build(dict dictionary.Dictionary) error {
 		}
 
 		item := 0
-		d := int32(1)
-		slots := make([]int, 0, len(bucket))
+		d := uint32(1)
+		slots := make([]uint32, 0, len(bucket))
 
 		// Repeatedly try different values of d until we find a hash function
 		// that places all items in the bucket into free slots
@@ -147,13 +147,13 @@ func (m *mph) Build(dict dictionary.Dictionary) error {
 
 // Get returns a hash value for the given word
 func (m *mph) Get(word dictionary.Value) dictionary.Key {
-	d := m.auxiliary[hash(0, word)%len(m.auxiliary)]
+	d := m.auxiliary[hash(0, word)%uint32(len(m.auxiliary))]
 
 	if d < 0 {
 		return m.values[-d-1]
 	}
 
-	return m.values[hash(d, word)%len(m.values)]
+	return m.values[hash(uint32(d), word)%uint32(len(m.values))]
 }
 
 // Store stores the given MPH structure into output
@@ -230,26 +230,25 @@ func (m *mph) Load(in store.Input) (int, error) {
 		m.auxiliary[i] = int32(v)
 	}
 
-	return int(n + s) * 4 + 8, nil
+	return int(n+s)*4 + 8, nil
 }
 
 // hash encodes the given value and the salt
-func hash(d int32, value string) int {
-	h := uint64(d)
-
+func hash(h uint32, value string) uint32 {
 	if h == 0 {
-		h = 0x811C9DC5
+		h = 2166136261
 	}
 
 	for _, c := range []byte(value) {
-		h = ((h * 16777619) ^ uint64(c)) & 0xffffffff
+		h *= 16777619
+		h ^= uint32(c)
 	}
 
-	return int(h)
+	return h
 }
 
 // has tells is the given value in the slice
-func has(slice []int, value int) bool {
+func has(slice []uint32, value uint32) bool {
 	for _, v := range slice {
 		if v == value {
 			return true
