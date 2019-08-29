@@ -52,6 +52,7 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
+	// scanner := bufio.NewScanner(strings.NewReader("i ha"))
 	fmt.Print(">> ")
 
 	for scanner.Scan() {

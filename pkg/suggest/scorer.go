@@ -8,10 +8,3 @@ type Scorer interface {
 	Score(position index.Position) float64
 }
 
-type dummyScorer struct {
-}
-
-// Score returns the score of the given position
-func (d dummyScorer) Score(position index.Position) float64 {
-	return -float64(position)
-}

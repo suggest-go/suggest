@@ -103,7 +103,7 @@ func (lm *languageModel) Next(sequence []WordID) ([]WordID, error) {
 	if len(sequence)+1 < nGramOrder {
 		sequence = lm.leftWrapSentence(sequence)
 	} else if len(sequence) > nGramOrder {
-		sequence = sequence[len(sequence)-nGramOrder-1:]
+		sequence = sequence[len(sequence)-nGramOrder+1:]
 	} else if len(sequence) == nGramOrder {
 		sequence = sequence[:nGramOrder-1]
 	}

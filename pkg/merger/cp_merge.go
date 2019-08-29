@@ -9,26 +9,21 @@ import (
 // "Simple and Efficient Algorithm for Approximate Dictionary Matching"
 // inspired by https://github.com/chokkan/simstring
 func CPMerge() ListMerger {
-	return &cpMerge{}
+	return newMerger(&cpMerge{})
 }
 
 type cpMerge struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
+func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 	lenRid := len(rid)
-
-	if threshold > lenRid || lenRid == 0 {
-		return []MergeCandidate{}, nil
-	}
-
 	minQueries := lenRid - threshold + 1
 	j, endMergeCandidate := 0, 0
 
 	sort.Sort(rid)
 
 	tmp := bufPool.Get().([]MergeCandidate)
-	candidates := make([]MergeCandidate, 0, rid[minQueries-1].Len())
+	candidates := bufPool.Get().([]MergeCandidate)
 
 	for _, list := range rid[:minQueries] {
 		isValid := true
@@ -38,7 +33,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 			if err == ErrIteratorIsNotDereferencable {
 				isValid = false
 			} else {
-				return nil, err
+				return err
 			}
 		}
 
@@ -53,7 +48,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 					current, err = list.Next()
 
 					if err != nil {
-						return nil, err
+						return err
 					}
 				} else {
 					isValid = false
@@ -62,7 +57,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {
-				candidates[j].Increment()
+				candidates[j].increment()
 				tmp = append(tmp, candidates[j])
 				j++
 
@@ -70,7 +65,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 					current, err = list.Next()
 
 					if err != nil {
-						return nil, err
+						return err
 					}
 				} else {
 					isValid = false
@@ -88,11 +83,25 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 			current, err := rid[i].LowerBound(c.Position())
 
 			if err == nil && current == c.Position() {
-				c.Increment()
+				c.increment()
 			}
 
 			if err != nil && err != ErrIteratorIsNotDereferencable {
-				return nil, err
+				return err
+			}
+
+			if lenRid-1 == i && c.Overlap() >= threshold {
+				err = collector.Collect(c)
+
+				if err == ErrCollectionTerminated {
+					return nil
+				}
+
+				if err != nil {
+					return err
+				}
+
+				continue
 			}
 
 			if c.Overlap()+(lenRid-i-1) >= threshold {
@@ -107,17 +116,10 @@ func (cp *cpMerge) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		}
 	}
 
-	n, m := len(candidates), cap(candidates)
+	bufPool.Put(tmp[:0])
+	bufPool.Put(candidates[:0])
 
-	if m-n <= cap(tmp) {
-		bufPool.Put(tmp[:cap(tmp)])
-	} else {
-		tmp = candidates[:m]
-		bufPool.Put(tmp[n:])
-		candidates = tmp[:n]
-	}
-
-	return candidates, nil
+	return nil
 }
 
 var bufPool = sync.Pool{

@@ -10,7 +10,7 @@ func TestMerge(t *testing.T) {
 		ScanCount(),
 		CPMerge(),
 		MergeSkip(),
-		DivideSkip(0.01, MergeSkip()),
+		DivideSkip(0.01),
 	}
 
 	for _, merger := range mergers {
@@ -22,13 +22,14 @@ func TestMerge(t *testing.T) {
 				rid = append(rid, NewSliceIterator(slice))
 			}
 
-			candidates, err := merger.Merge(rid, c.t)
+			collector := &SimpleCollector{}
+			err := merger.Merge(rid, c.t, collector)
 
 			if err != nil {
 				t.Errorf("Unexpected error occurs: %v", err)
 			}
 
-			for _, candidate := range candidates {
+			for _, candidate := range collector.Candidates {
 				actual[candidate.Overlap()] = append(actual[candidate.Overlap()], candidate.Position())
 			}
 

@@ -5,50 +5,70 @@ import (
 
 	"github.com/alldroll/suggest/pkg/analysis"
 	"github.com/alldroll/suggest/pkg/index"
+	"golang.org/x/sync/errgroup"
 )
 
 // Autocomplete provides autocomplete functionality
 // for candidates search
 type Autocomplete interface {
 	// Autocomplete returns candidates where the query string is a substring of each candidate
-	Autocomplete(query string, limit int, scorer Scorer) ([]Candidate, error)
+	Autocomplete(query string, collectorManager CollectorManager) ([]Candidate, error)
 }
 
 // NewAutocomplete creates a new instance of Autocomplete
 func NewAutocomplete(
-	index index.InvertedIndex,
+	indices index.InvertedIndexIndices,
 	searcher index.Searcher,
 	tokenizer analysis.Tokenizer,
 ) Autocomplete {
 	return &nGramAutocomplete{
-		index:     index,
+		indices:   indices,
 		searcher:  searcher,
 		tokenizer: tokenizer,
-		ranker:    &idOrderRank{},
 	}
 }
 
 // nGramAutocomplete implements Autocomplete interface
 type nGramAutocomplete struct {
-	index     index.InvertedIndex
+	indices   index.InvertedIndexIndices
 	searcher  index.Searcher
 	tokenizer analysis.Tokenizer
-	ranker    Rank
 }
 
 // Autocomplete returns candidates where the query string is a substring of each candidate
-func (n *nGramAutocomplete) Autocomplete(query string, limit int, scorer Scorer) ([]Candidate, error) {
-	selector := NewTopKCollectorWithRanker(limit, n.ranker)
+func (n *nGramAutocomplete) Autocomplete(query string, collectorManager CollectorManager) ([]Candidate, error) {
 	set := n.tokenizer.Tokenize(query)
-	candidates, err := n.searcher.Search(n.index, set, len(set))
+	lenSet := len(set)
+	collectors := []Collector{}
+	workerPool := errgroup.Group{}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to search posting lists: %v", err)
+	for size := lenSet; size < n.indices.Size(); size++ {
+		index := n.indices.Get(size)
+
+		if index == nil {
+			continue
+		}
+
+		collector, err := collectorManager.Create()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to create a collector: %v", err)
+		}
+
+		workerPool.Go(func() error {
+			if err = n.searcher.Search(index, set, lenSet, collector); err != nil {
+				return fmt.Errorf("failed to search posting lists: %v", err)
+			}
+
+			return nil
+		})
+
+		collectors = append(collectors, collector)
 	}
 
-	for _, c := range candidates {
-		selector.Add(c.Position(), scorer.Score(c.Position()))
+	if err := workerPool.Wait(); err != nil {
+		return nil, err
 	}
 
-	return selector.GetCandidates(), nil
+	return collectorManager.Reduce(collectors), nil
 }
