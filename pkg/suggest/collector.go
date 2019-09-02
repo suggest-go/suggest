@@ -16,7 +16,7 @@ type Candidate struct {
 // Less tells is the given candidate is less that the provided
 func (c Candidate) Less(o Candidate) bool {
 	if c.Score == o.Score {
-		return c.Key > c.Key
+		return c.Key > o.Key
 	}
 
 	return c.Score < o.Score

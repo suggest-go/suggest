@@ -2,7 +2,6 @@ package suggest
 
 import (
 	"fmt"
-	"sync/atomic"
 
 	"github.com/alldroll/suggest/pkg/analysis"
 	"github.com/alldroll/suggest/pkg/merger"
@@ -61,32 +60,31 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 
 	// store similarity as atomic value
 	// we are going to update its value after search sub-work complete
-	similarityVal := atomic.Value{}
-	similarityVal.Store(config.similarity)
+	similarityHolder := utils.AtomicFloat64{}
+	similarityHolder.Store(config.similarity)
 
 	topKQueue := NewTopKQueue(config.topK)
-	// done notifies that
+	// done notifies that all subqueries were processed and we have top-k candidates
 	done := make(chan bool)
-	// channel that receives the finished collectors
-	colOutCh := make(chan Collector)
+	// channel that receives the collected candidates
+	subResultCh := make(chan []Candidate)
 
-	// update similarityVal value if the received score is greater than similarityVal
+	// update similarityVal value if the received score is greater than similarityHolders value
 	// this optimization prevents scanning the segments, where we couldn't reach the same similarityVal
 	go func() {
-		for collector := range colOutCh {
+		for subResult := range subResultCh {
 			// fill the topKQueue with new candidates
-			for _, item := range collector.GetCandidates() {
+			for _, item := range subResult {
 				topKQueue.Add(item.Key, item.Score)
 			}
 
 			// if we have achieved the top-k local candidates,
-			// try to update the similarity value with the lowest canidates score
+			// try to update the similarity value with the lowest candidates score
 			if topKQueue.IsFull() {
-				similarity := similarityVal.Load().(float64)
 				score := topKQueue.GetLowestScore()
 
-				if similarity < score {
-					similarityVal.Store(score)
+				if similarityHolder.Load() < score {
+					similarityHolder.Store(score)
 				}
 			}
 		}
@@ -95,74 +93,66 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 	}()
 
 	// channel that receives fuzzyCollector and performs a search on length segment
-	colInCh := make(chan *fuzzyCollector)
+	sizeCh := make(chan int)
 	workerPool := errgroup.Group{}
 
 	for i := 0; i < utils.Min(maxSearchQueriesAtOnce, bMax-bMin+1); i++ {
 		workerPool.Go(func() error {
-			for collector := range colInCh {
-				similarity := similarityVal.Load().(float64)
-				threshold := config.metric.Threshold(similarity, sizeA, collector.sizeB)
+			for sizeB := range sizeCh {
+				similarity := similarityHolder.Load()
+				threshold := config.metric.Threshold(similarity, sizeA, sizeB)
 
 				// this is an unusual case, we should skip it
-				if threshold == 0 || threshold > collector.sizeB {
+				if threshold == 0 || threshold > sizeB {
 					continue
 				}
 
-				invertedIndex := n.indices.Get(collector.sizeB)
+				invertedIndex := n.indices.Get(sizeB)
 
 				if invertedIndex == nil {
 					continue
+				}
+
+				collector := &fuzzyCollector{
+					sizeA:     sizeA,
+					sizeB:     sizeB,
+					metric:    config.metric,
+					topKQueue: NewTopKQueue(config.topK),
 				}
 
 				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
 					return fmt.Errorf("failed to search posting lists: %v", err)
 				}
 
-				colOutCh <- collector
+				subResultCh <- collector.GetCandidates()
 			}
 
 			return nil
 		})
 	}
 
-	buf := [2]int{}
-
 	// iteratively expand the slice with boundaries [i, j] in the interval [bMin, bMax]
-	for i, j := sizeA, sizeA; i >= bMin || j <= bMax; i, j = i-1, j+1 {
-		boundarySlice := buf[:0]
-
+	for i, j := sizeA, sizeA+1; i >= bMin || j <= bMax; i, j = i-1, j+1 {
 		if i >= bMin {
-			boundarySlice = append(boundarySlice, i)
+			sizeCh <- i
 		}
 
-		if j != i && j <= bMax {
-			boundarySlice = append(boundarySlice, j)
-		}
-
-		for _, sizeB := range boundarySlice {
-			collector := &fuzzyCollector{
-				metric:    config.metric,
-				sizeA:     sizeA,
-				sizeB:     sizeB,
-				topKQueue: NewTopKQueue(config.topK),
-			}
-
-			colInCh <- collector
+		if j <= bMax {
+			sizeCh <- j
 		}
 	}
 
-	// close collector in channel
-	close(colInCh)
+	// close input channel for worker pool
+	close(sizeCh)
 
 	if err := workerPool.Wait(); err != nil {
-		close(colOutCh)
+		close(subResultCh)
 		return nil, err
 	}
 
 	// close collector out channel
-	close(colOutCh)
-	// wait for result collected
+	close(subResultCh)
+	// wait for the result collected
 	<-done
 
 	return topKQueue.GetCandidates(), nil
