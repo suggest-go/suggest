@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+
 	"github.com/alldroll/suggest/pkg/analysis"
 
 	"github.com/alldroll/suggest/pkg/merger"

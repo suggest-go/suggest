@@ -2,6 +2,7 @@ package suggest
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/alldroll/suggest/pkg/analysis"
 	"github.com/alldroll/suggest/pkg/merger"
@@ -63,20 +64,19 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 	similarityHolder := utils.AtomicFloat64{}
 	similarityHolder.Store(config.similarity)
 
-	topKQueue := NewTopKQueue(config.topK)
+	topKQueue := topKQueuePool.Get().(TopKQueue)
+	topKQueue.Reset(config.topK)
 	// done notifies that all subqueries were processed and we have top-k candidates
 	done := make(chan bool)
 	// channel that receives the collected candidates
-	subResultCh := make(chan []Candidate)
+	subResultCh := make(chan TopKQueue)
 
 	// update similarityVal value if the received score is greater than similarityHolders value
 	// this optimization prevents scanning the segments, where we couldn't reach the same similarityVal
 	go func() {
 		for subResult := range subResultCh {
 			// fill the topKQueue with new candidates
-			for _, item := range subResult {
-				topKQueue.Add(item.Key, item.Score)
-			}
+			topKQueue.Merge(subResult)
 
 			// if we have achieved the top-k local candidates,
 			// try to update the similarity value with the lowest candidates score
@@ -87,13 +87,15 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 					similarityHolder.Store(score)
 				}
 			}
+
+			topKQueuePool.Put(subResult)
 		}
 
 		done <- true
 	}()
 
 	// channel that receives fuzzyCollector and performs a search on length segment
-	sizeCh := make(chan int)
+	sizeCh := make(chan int, bMax-bMin+1)
 	workerPool := errgroup.Group{}
 
 	for i := 0; i < utils.Min(maxSearchQueriesAtOnce, bMax-bMin+1); i++ {
@@ -102,8 +104,8 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 				similarity := similarityHolder.Load()
 				threshold := config.metric.Threshold(similarity, sizeA, sizeB)
 
-				// this is an unusual case, we should skip it
-				if threshold == 0 || threshold > sizeB {
+				// it means that the similarity has been changed and we will skeep this value processing
+				if threshold == 0 || threshold > sizeB || threshold > sizeA {
 					continue
 				}
 
@@ -113,18 +115,21 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 					continue
 				}
 
+				queue := topKQueuePool.Get().(TopKQueue)
+				queue.Reset(config.topK)
+
 				collector := &fuzzyCollector{
 					sizeA:     sizeA,
 					sizeB:     sizeB,
 					metric:    config.metric,
-					topKQueue: NewTopKQueue(config.topK),
+					topKQueue: queue,
 				}
 
 				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
 					return fmt.Errorf("failed to search posting lists: %v", err)
 				}
 
-				subResultCh <- collector.GetCandidates()
+				subResultCh <- queue
 			}
 
 			return nil
@@ -152,10 +157,18 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 
 	// close collector out channel
 	close(subResultCh)
+
 	// wait for the result collected
 	<-done
+	close(done)
 
 	return topKQueue.GetCandidates(), nil
+}
+
+var topKQueuePool = sync.Pool{
+	New: func() interface{} {
+		return NewTopKQueue(50)
+	},
 }
 
 type fuzzyCollector struct {

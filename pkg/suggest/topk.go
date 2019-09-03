@@ -19,6 +19,10 @@ type TopKQueue interface {
 	IsFull() bool
 	// GetCandidates returns `top k items`
 	GetCandidates() []Candidate
+	// Merge merges the given queue with the current
+	Merge(other TopKQueue)
+	// Reset resets the given queue with the provided topK
+	Reset(topK int)
 }
 
 // topKHeap implements heap.Interface
@@ -140,4 +144,32 @@ func (c *topKQueue) GetCandidates() []Candidate {
 	}
 
 	return sorted
+}
+
+// Merge merges the given queue with the current
+func (c *topKQueue) Merge(other TopKQueue) {
+	topK, ok := other.(*topKQueue)
+
+	if ok {
+		for _, item := range topK.h {
+			c.Add(item.Key, item.Score)
+		}
+
+		return
+	}
+
+	for _, item := range other.GetCandidates() {
+		c.Add(item.Key, item.Score)
+	}
+}
+
+// Reset resets the given queue with the provided topK
+func (c *topKQueue) Reset(topK int) {
+	c.topK = topK
+
+	if cap(c.h) < topK {
+		c.h = make(topKHeap, 0, topK)
+	}
+
+	c.h = c.h[:0]
 }
