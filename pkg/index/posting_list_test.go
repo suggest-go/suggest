@@ -16,7 +16,7 @@ func TestSkipping(t *testing.T) {
 
 	postings := []struct {
 		name    string
-		posting postingList
+		posting PostingList
 		encoder compression.Encoder
 	}{
 		{
@@ -26,7 +26,7 @@ func TestSkipping(t *testing.T) {
 		},
 		{
 			name:    "dummy",
-			posting: &postingListIterator{},
+			posting: &postingList{},
 			encoder: compression.VBEncoder(),
 		},
 		{
@@ -102,9 +102,9 @@ func TestSkipping(t *testing.T) {
 					t.Errorf("Unexpected error occurs: %v", err)
 				}
 
-				err := posting.init(&postingListContext{
-					listSize: len(c.list),
-					reader:   store.NewBytesInput(buf.Bytes()),
+				err := posting.Init(PostingListContext{
+					ListSize: len(c.list),
+					Reader:   store.NewBytesInput(buf.Bytes()),
 				})
 
 				if err != nil {
@@ -151,7 +151,7 @@ func TestSkipping(t *testing.T) {
 }
 
 func BenchmarkDummyNext(b *testing.B) {
-	benchmarkNext(b, &postingListIterator{}, compression.VBEncoder())
+	benchmarkNext(b, &postingList{}, compression.VBEncoder())
 }
 
 func BenchmarkSkippingNext(b *testing.B) {
@@ -163,7 +163,7 @@ func BenchmarkBitmapNext(b *testing.B) {
 	benchmarkNext(b, &bitmapPostingList{}, compression.BitmapEncoder())
 }
 
-func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encoder) {
+func benchmarkNext(b *testing.B, posting PostingList, encoder compression.Encoder) {
 	for _, n := range []int{65, 256, 650, 6500, 65000, 650000} {
 		b.Run(fmt.Sprintf("Iterate %d", n), func(b *testing.B) {
 			list := make([]uint32, 0, n)
@@ -185,9 +185,9 @@ func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encode
 			for i := 0; i < b.N; i++ {
 				_, _ = in.Seek(0, io.SeekStart)
 
-				err := posting.init(&postingListContext{
-					listSize: len(list),
-					reader:   in,
+				err := posting.Init(PostingListContext{
+					ListSize: len(list),
+					Reader:   in,
 				})
 
 				if err != nil {
@@ -211,7 +211,7 @@ func benchmarkNext(b *testing.B, posting postingList, encoder compression.Encode
 }
 
 func BenchmarkDummyLowerBound(b *testing.B) {
-	benchmarkLowerBound(b, &postingListIterator{}, compression.VBEncoder())
+	benchmarkLowerBound(b, &postingList{}, compression.VBEncoder())
 }
 
 func BenchmarkSkippingLowerBound(b *testing.B) {
@@ -223,7 +223,7 @@ func BenchmarkBitmapLowerBound(b *testing.B) {
 	benchmarkLowerBound(b, &bitmapPostingList{}, compression.BitmapEncoder())
 }
 
-func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.Encoder) {
+func benchmarkLowerBound(b *testing.B, posting PostingList, encoder compression.Encoder) {
 	for _, n := range []int{65, 256, 650, 6500, 65000, 650000} {
 		b.Run(fmt.Sprintf("LowerBound %d", n), func(b *testing.B) {
 			list := make([]uint32, 0, n)
@@ -245,9 +245,9 @@ func benchmarkLowerBound(b *testing.B, posting postingList, encoder compression.
 			for i := 0; i < b.N; i++ {
 				_, _ = in.Seek(0, io.SeekStart)
 
-				err := posting.init(&postingListContext{
-					listSize: n,
-					reader:   in,
+				err := posting.Init(PostingListContext{
+					ListSize: n,
+					Reader:   in,
 				})
 
 				if err != nil {

@@ -6,6 +6,8 @@ github.com/RoaringBitmap/roaring v0.4.19 h1:xy932fRqfJ3qXVm8XKymSfwSnv3bXvC0n4TN
 github.com/RoaringBitmap/roaring v0.4.19/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrXIr8KVNvRsDi1NI=
 github.com/RoaringBitmap/roaring v0.4.20-0.20190817170538-bbe4f2294041 h1:GK5P5ifNfzDuL2esaecvWZVw4imbvpVTe+/EFYg7RLI=
 github.com/RoaringBitmap/roaring v0.4.20-0.20190817170538-bbe4f2294041/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrXIr8KVNvRsDi1NI=
+github.com/RoaringBitmap/roaring v0.4.20 h1:PKmAFTkw47a5khFKgTdu64iObahLTBwTJnVOCN9dg3M=
+github.com/RoaringBitmap/roaring v0.4.20/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrXIr8KVNvRsDi1NI=
 github.com/alldroll/cdb v1.0.1 h1:aJz2knMVlkLhMFariicMlevHQTyzJh7gpkecGz46NHg=
 github.com/alldroll/cdb v1.0.1/go.mod h1:1gzu+TPb5T0xc/3jEnipJrl62ZV9HyAw5kAVh03Lm2E=
 github.com/alldroll/cdb v1.0.2 h1:pSB3BphsF0m2DqOZm+IFyNm38nz1R8kCg3DPCusPLQE=

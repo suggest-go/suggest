@@ -8,7 +8,7 @@ import (
 	"github.com/alldroll/suggest/pkg/store"
 )
 
-// postingListIterator is a dummy implementation of merger.ListIterator
+// bitmapPostingList is a bitmap PostingList implementation
 type bitmapPostingList struct {
 	iterator roaring.IntPeekable
 	bitmap   *roaring.Bitmap
@@ -70,15 +70,15 @@ func (i *bitmapPostingList) Len() int {
 	return i.length
 }
 
-// init initialize the iterator by the given PostingList context
-func (i *bitmapPostingList) init(context PostingListContext) error {
+// Init initialize the iterator by the given PostingList context
+func (i *bitmapPostingList) Init(context PostingListContext) error {
 	var err error
 
 	if i.bitmap == nil {
 		i.bitmap = roaring.NewBitmap()
 	}
 
-	reader := context.GetReader()
+	reader := context.Reader
 
 	if buf, ok := reader.(store.SliceAccessible); ok {
 		_, err = i.bitmap.FromBuffer(buf.Data())

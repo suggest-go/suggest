@@ -10,7 +10,7 @@ import (
 )
 
 // IndexVersion tells that the inverted index structure has the provided below version
-const IndexVersion = "v5"
+const IndexVersion = "v5.1"
 
 // Writer creates and maintains an inverted index
 type Writer struct {
@@ -78,13 +78,8 @@ func (iw *Writer) AddDocument(id DocumentID, term []Term) error {
 		iw.indices[cardinality] = index
 	}
 
-	if iw.indices[0] == nil {
-		iw.indices[0] = make(Index)
-	}
-
 	for _, term := range term {
 		index[term] = append(index[term], id)
-		iw.indices[0][term] = append(iw.indices[0][term], id)
 	}
 
 	return nil

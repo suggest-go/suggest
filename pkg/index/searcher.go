@@ -58,13 +58,13 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 
 		list := resolvePostingList(postingListContext)
 
-		defer func(list postingList) {
+		defer func(list PostingList) {
 			if closeErr := releasePostingList(list); err != nil {
 				err = closeErr
 			}
 		}(list)
 
-		if err := list.init(postingListContext); err != nil {
+		if err := list.Init(postingListContext); err != nil {
 			return fmt.Errorf("failed to initialize a posting list iterator: %v", err)
 		}
 
