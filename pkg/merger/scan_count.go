@@ -5,13 +5,13 @@ package merger
 // corresponding to the string by 1. We report the string ids that
 // appear at least `threshold` times on the lists.
 func ScanCount() ListMerger {
-	return &scanCount{}
+	return newMerger(&scanCount{})
 }
 
 type scanCount struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (lm *scanCount) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
+func (lm *scanCount) Merge(rid Rid, threshold int, collector Collector) error {
 	size := len(rid)
 	candidates := make([]MergeCandidate, 0, size)
 	tmp := make([]MergeCandidate, 0, size)
@@ -25,7 +25,7 @@ func (lm *scanCount) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 			if err == ErrIteratorIsNotDereferencable {
 				isValid = false
 			} else {
-				return nil, err
+				return err
 			}
 		}
 
@@ -40,7 +40,7 @@ func (lm *scanCount) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 					current, err = list.Next()
 
 					if err != nil {
-						return nil, err
+						return err
 					}
 				} else {
 					isValid = false
@@ -49,7 +49,7 @@ func (lm *scanCount) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 				tmp = append(tmp, candidates[j])
 				j++
 			} else {
-				candidates[j].Increment()
+				candidates[j].increment()
 				tmp = append(tmp, candidates[j])
 				j++
 
@@ -57,7 +57,7 @@ func (lm *scanCount) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 					current, err = list.Next()
 
 					if err != nil {
-						return nil, err
+						return err
 					}
 				} else {
 					isValid = false
@@ -72,9 +72,17 @@ func (lm *scanCount) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 
 	for _, c := range candidates {
 		if c.Overlap() >= threshold {
-			tmp = append(tmp, c)
+			err := collector.Collect(c)
+
+			if err == ErrCollectionTerminated {
+				return nil
+			}
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	return tmp, nil
+	return nil
 }

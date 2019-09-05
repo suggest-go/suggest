@@ -43,13 +43,13 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 	}
 
 	word, seq := tokens[len(tokens)-1], tokens[:len(tokens)-1]
-	scorer, err := s.createScorer(seq)
+	collectorManager, err := s.createCollectorManager(seq, topK)
 
 	if err != nil {
 		return nil, err
 	}
 
-	candidates, err := s.index.Autocomplete(word, topK, scorer)
+	candidates, err := s.index.Autocomplete(word, collectorManager)
 
 	if err != nil {
 		return nil, err
@@ -77,6 +77,8 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 	}
 
 	if len(seq) > 0 {
+		scorer := collectorManager.scorer
+
 		sort.SliceStable(candidates, func(i, j int) bool {
 			return scorer.Score(candidates[i].Key) > scorer.Score(candidates[j].Key)
 		})
@@ -98,7 +100,7 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 }
 
 // createScorer creates scorer for the given sentence
-func (s *SpellChecker) createScorer(seq []string) (suggest.Scorer, error) {
+func (s *SpellChecker) createCollectorManager(seq []string, topK int) (*lmCollectorManager, error) {
 	seqIds, err := lm.MapIntoListOfWordIDs(s.model, seq)
 
 	if err != nil {
@@ -115,10 +117,13 @@ func (s *SpellChecker) createScorer(seq []string) (suggest.Scorer, error) {
 		}
 	}
 
-	return &lmScorer{
-		model:    s.model,
-		sentence: seqIds,
-		next:     next,
+	return &lmCollectorManager{
+		topK: topK,
+		scorer: &lmScorer{
+			model:    s.model,
+			sentence: seqIds,
+		},
+		next: next,
 	}, nil
 }
 

@@ -53,7 +53,7 @@ func (e *encoder) Encode(list []uint32, out store.Output) (int, error) {
 var (
 	vbEncPostingListPool = sync.Pool{
 		New: func() interface{} {
-			return &postingListIterator{}
+			return &postingList{}
 		},
 	}
 
@@ -73,24 +73,24 @@ var (
 )
 
 // resolvePostingList returns the appropriate posting list for the provided context
-func resolvePostingList(context PostingListContext) postingList {
-	n := context.GetListSize()
+func resolvePostingList(context PostingListContext) PostingList {
+	n := context.ListSize
 
 	if n <= (skippingGapSize + 1) {
-		return vbEncPostingListPool.Get().(postingList)
+		return vbEncPostingListPool.Get().(PostingList)
 	}
 
 	if n <= maxSkippingLen {
-		return skippingPostingListPool.Get().(postingList)
+		return skippingPostingListPool.Get().(PostingList)
 	}
 
-	return bitmapPostingListPool.Get().(postingList)
+	return bitmapPostingListPool.Get().(PostingList)
 }
 
 // releasePostingList puts the given postingList to the corresponding pool
-func releasePostingList(list postingList) (err error) {
+func releasePostingList(list PostingList) (err error) {
 	switch v := list.(type) {
-	case *postingListIterator:
+	case *postingList:
 		vbEncPostingListPool.Put(v)
 	case *skippingPostingList:
 		skippingPostingListPool.Put(v)

@@ -71,7 +71,7 @@ func (b *builderImpl) Build() (NGramIndex, error) {
 	)
 
 	autocomplete := NewAutocomplete(
-		invertedIndices.GetWholeIndex(),
+		invertedIndices,
 		index.NewSearcher(merger.CPMerge()),
 		NewAutocompleteTokenizer(b.description),
 	)

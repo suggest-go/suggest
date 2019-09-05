@@ -5,15 +5,15 @@ import (
 	"github.com/alldroll/suggest/pkg/store"
 )
 
-//
-type postingList interface {
+// PostingList represents a list of documents ids, that belongs to the certain index term
+type PostingList interface {
 	merger.ListIterator
-	// init initialize the given posting list with the provided context
-	init(context PostingListContext) error
+	// Init initialize the given posting list with the provided context
+	Init(context PostingListContext) error
 }
 
-// postingListIterator is a dummy implementation of merger.ListIterator
-type postingListIterator struct {
+// postingList is a sequential implementation of PostingList interface
+type postingList struct {
 	input   store.Input
 	index   int
 	size    int
@@ -21,7 +21,7 @@ type postingListIterator struct {
 }
 
 // Get returns the current pointed element of the list
-func (i *postingListIterator) Get() (uint32, error) {
+func (i *postingList) Get() (uint32, error) {
 	if !i.isValid() {
 		return 0, merger.ErrIteratorIsNotDereferencable
 	}
@@ -30,12 +30,12 @@ func (i *postingListIterator) Get() (uint32, error) {
 }
 
 // HasNext tells if the given iterator can be moved to the next record
-func (i *postingListIterator) HasNext() bool {
+func (i *postingList) HasNext() bool {
 	return i.index+1 < i.size
 }
 
 // Next moves the given iterator to the next record
-func (i *postingListIterator) Next() (uint32, error) {
+func (i *postingList) Next() (uint32, error) {
 	if !i.HasNext() {
 		return 0, merger.ErrIteratorIsNotDereferencable
 	}
@@ -54,7 +54,7 @@ func (i *postingListIterator) Next() (uint32, error) {
 
 // LowerBound moves the given iterator to the smallest record x
 // in corresponding list such that x >= to
-func (i *postingListIterator) LowerBound(to uint32) (uint32, error) {
+func (i *postingList) LowerBound(to uint32) (uint32, error) {
 	if !i.isValid() {
 		return 0, merger.ErrIteratorIsNotDereferencable
 	}
@@ -81,19 +81,19 @@ func (i *postingListIterator) LowerBound(to uint32) (uint32, error) {
 }
 
 // Len returns the actual size of the list
-func (i *postingListIterator) Len() int {
+func (i *postingList) Len() int {
 	return i.size
 }
 
 // isValid returns true if the given iterator is dereferencable, otherwise returns false
-func (i *postingListIterator) isValid() bool {
+func (i *postingList) isValid() bool {
 	return i.index < i.size
 }
 
-// init initialize the iterator by the given PostingList context
-func (i *postingListIterator) init(context PostingListContext) error {
-	i.input = context.GetReader()
-	i.size = context.GetListSize()
+// Init initialize the iterator by the given PostingList context
+func (i *postingList) Init(context PostingListContext) error {
+	i.input = context.Reader
+	i.size = context.ListSize
 	i.index = 0
 
 	current, err := i.input.ReadVUInt32()

@@ -2,11 +2,15 @@ package suggest
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/alldroll/suggest/pkg/analysis"
+	"github.com/alldroll/suggest/pkg/merger"
+	"github.com/alldroll/suggest/pkg/metric"
 	"github.com/alldroll/suggest/pkg/utils"
 
 	"github.com/alldroll/suggest/pkg/index"
+	"golang.org/x/sync/errgroup"
 )
 
 // Suggester is the interface that provides the access to
@@ -16,12 +20,14 @@ type Suggester interface {
 	Suggest(config *SearchConfig) ([]Candidate, error)
 }
 
+// maxSearchQueriesAtOnce tells how many goroutines can be used at once for a search query
+const maxSearchQueriesAtOnce = 5
+
 // nGramSuggester implements Suggester
 type nGramSuggester struct {
 	indices   index.InvertedIndexIndices
 	searcher  index.Searcher
 	tokenizer analysis.Tokenizer
-	ranker    Rank
 }
 
 // NewSuggester returns a new Suggester instance
@@ -34,13 +40,11 @@ func NewSuggester(
 		indices:   indices,
 		searcher:  searcher,
 		tokenizer: tokenizer,
-		ranker:    &idOrderRank{},
 	}
 }
 
 // Suggest returns top-k similar candidates
 func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
-	selector := NewTopKCollectorWithRanker(config.topK, n.ranker)
 	set := n.tokenizer.Tokenize(config.query)
 
 	if len(set) == 0 {
@@ -48,85 +52,147 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 	}
 
 	sizeA := len(set)
-	metric := config.metric
-	similarity := config.similarity
-
-	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
+	bMin, bMax := config.metric.MinY(config.similarity, sizeA), config.metric.MaxY(config.similarity, sizeA)
 	lenIndices := n.indices.Size()
 
 	if bMax >= lenIndices {
 		bMax = lenIndices - 1
 	}
 
-	buf := [2]int{}
-	i, j := sizeA, sizeA
+	// store similarity as atomic value
+	// we are going to update its value after search sub-work complete
+	similarityHolder := utils.AtomicFloat64{}
+	similarityHolder.Store(config.similarity)
 
-	// iteratively expand the slice with boundaries [i, j] in the interval [bMin, bMax]
-	for {
-		boundarySlice := buf[:0]
+	topKQueue := topKQueuePool.Get().(TopKQueue)
+	topKQueue.Reset(config.topK)
+	// done notifies that all subqueries were processed and we have top-k candidates
+	done := make(chan bool)
+	// channel that receives the collected candidates
+	subResultCh := make(chan TopKQueue)
 
-		if i >= bMin {
-			boundarySlice = append(boundarySlice, i)
-		}
+	// update similarityVal value if the received score is greater than similarityHolders value
+	// this optimization prevents scanning the segments, where we couldn't reach the same similarityVal
+	go func() {
+		for subResult := range subResultCh {
+			// fill the topKQueue with new candidates
+			topKQueue.Merge(subResult)
 
-		if j != i && j <= bMax {
-			boundarySlice = append(boundarySlice, j)
-		}
+			// if we have achieved the top-k local candidates,
+			// try to update the similarity value with the lowest candidates score
+			if topKQueue.IsFull() {
+				score := topKQueue.GetLowestScore()
 
-		if len(boundarySlice) == 0 {
-			break
-		}
-
-		j++
-		i--
-
-		for _, sizeB := range boundarySlice {
-			threshold := metric.Threshold(similarity, sizeA, sizeB)
-
-			// this is an unusual case, we should skip it
-			if threshold == 0 {
-				continue
-			}
-
-			// no reason to continue (the lowest candidate is more suitable even if we have complete intersection)
-			if !selector.CanTakeWithScore(1 - metric.Distance(utils.Min(sizeA, sizeB), sizeA, sizeB)) {
-				continue
-			}
-
-			// maybe the lowest candidate's score in the selector will give us a bigger threshold
-			// here we should use new threshold, only if selector has collected topK elements
-			if selector.IsFull() {
-				lowestScore := selector.GetLowestScore()
-				thresholdForLowestScore := metric.Threshold(lowestScore, sizeA, sizeB)
-
-				if thresholdForLowestScore > threshold {
-					threshold = thresholdForLowestScore
+				if similarityHolder.Load() < score {
+					similarityHolder.Store(score)
 				}
 			}
 
-			// no reason to continue: threshold is more than the right border of out viewable interval
-			if threshold > sizeB {
-				continue
+			topKQueuePool.Put(subResult)
+		}
+
+		done <- true
+	}()
+
+	// channel that receives fuzzyCollector and performs a search on length segment
+	sizeCh := make(chan int, bMax-bMin+1)
+	workerPool := errgroup.Group{}
+
+	for i := 0; i < utils.Min(maxSearchQueriesAtOnce, bMax-bMin+1); i++ {
+		workerPool.Go(func() error {
+			for sizeB := range sizeCh {
+				similarity := similarityHolder.Load()
+				threshold := config.metric.Threshold(similarity, sizeA, sizeB)
+
+				// it means that the similarity has been changed and we will skeep this value processing
+				if threshold == 0 || threshold > sizeB || threshold > sizeA {
+					continue
+				}
+
+				invertedIndex := n.indices.Get(sizeB)
+
+				if invertedIndex == nil {
+					continue
+				}
+
+				queue := topKQueuePool.Get().(TopKQueue)
+				queue.Reset(config.topK)
+
+				collector := &fuzzyCollector{
+					sizeA:     sizeA,
+					sizeB:     sizeB,
+					metric:    config.metric,
+					topKQueue: queue,
+				}
+
+				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
+					return fmt.Errorf("failed to search posting lists: %v", err)
+				}
+
+				subResultCh <- queue
 			}
 
-			invertedIndex := n.indices.Get(sizeB)
+			return nil
+		})
+	}
 
-			if invertedIndex == nil {
-				continue
-			}
+	// iteratively expand the slice with boundaries [i, j] in the interval [bMin, bMax]
+	for i, j := sizeA, sizeA+1; i >= bMin || j <= bMax; i, j = i-1, j+1 {
+		if i >= bMin {
+			sizeCh <- i
+		}
 
-			candidates, err := n.searcher.Search(invertedIndex, set, threshold)
-
-			if err != nil {
-				return nil, fmt.Errorf("failed to search posting lists: %v", err)
-			}
-
-			for _, c := range candidates {
-				score := 1 - metric.Distance(c.Overlap(), sizeA, sizeB)
-				selector.Add(c.Position(), score)
-			}
+		if j <= bMax {
+			sizeCh <- j
 		}
 	}
 
-	return selector.GetCandidates(), nil
+	// close input channel for worker pool
+	close(sizeCh)
+
+	if err := workerPool.Wait(); err != nil {
+		close(subResultCh)
+		return nil, err
+	}
+
+	// close collector out channel
+	close(subResultCh)
+
+	// wait for the result collected
+	<-done
+	close(done)
+
+	return topKQueue.GetCandidates(), nil
+}
+
+var topKQueuePool = sync.Pool{
+	New: func() interface{} {
+		return NewTopKQueue(50)
+	},
+}
+
+type fuzzyCollector struct {
+	metric    metric.Metric
+	sizeA     int
+	sizeB     int
+	topKQueue TopKQueue
+}
+
+// Collect collects the given merge candidate
+// calculates the distance, and tries to add this document with it's score to the collector
+func (c *fuzzyCollector) Collect(item merger.MergeCandidate) error {
+	score := 1 - c.metric.Distance(item.Overlap(), c.sizeA, c.sizeB)
+	c.topKQueue.Add(item.Position(), score)
+
+	return nil
+}
+
+// GetCandidates returns `top k items`
+func (c *fuzzyCollector) GetCandidates() []Candidate {
+	return c.topKQueue.GetCandidates()
+}
+
+// Score returns the score of the given position
+func (c *fuzzyCollector) SetScorer(scorer Scorer) {
+	return
 }

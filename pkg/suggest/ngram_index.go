@@ -26,6 +26,6 @@ func (n *nGramIndex) Suggest(config *SearchConfig) ([]Candidate, error) {
 }
 
 // Autocomplete returns candidates where the query string is a substring of each candidate
-func (n *nGramIndex) Autocomplete(query string, limit int, scorer Scorer) ([]Candidate, error) {
-	return n.autocomplete.Autocomplete(query, limit, scorer)
+func (n *nGramIndex) Autocomplete(query string, collectorManager CollectorManager) ([]Candidate, error) {
+	return n.autocomplete.Autocomplete(query, collectorManager)
 }

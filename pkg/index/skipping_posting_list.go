@@ -9,6 +9,7 @@ import (
 )
 
 // skippingPostingList is a posting list which has the ability to use skip pointers for faster intersection
+// https://nlp.stanford.edu/IR-book/html/htmledition/faster-postings-list-intersection-via-skip-pointers-1.html
 type skippingPostingList struct {
 	input               store.Input
 	index               int
@@ -165,10 +166,10 @@ func (i *skippingPostingList) moveToPosition(position int) error {
 	return nil
 }
 
-// init initialize the iterator by the given PostingList context
-func (i *skippingPostingList) init(context PostingListContext) error {
-	i.input = context.GetReader()
-	i.size = context.GetListSize()
+// Init initialize the iterator by the given PostingList context
+func (i *skippingPostingList) Init(context PostingListContext) error {
+	i.input = context.Reader
+	i.size = context.ListSize
 	i.index = 0
 	i.currentSkipValue = 0
 	i.nextSkipPosition = 0

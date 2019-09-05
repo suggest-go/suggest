@@ -9,11 +9,11 @@ import (
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
 // We have to choose `good` parameter mu, for improving speed. So, mu depends
 // only on given dictionary, so we can find it
-func DivideSkip(mu float64, merger ListMerger) ListMerger {
-	return &divideSkip{
+func DivideSkip(mu float64) ListMerger {
+	return newMerger(&divideSkip{
 		mu:     mu,
-		merger: merger,
-	}
+		merger: MergeSkip(),
+	})
 }
 
 type divideSkip struct {
@@ -22,7 +22,7 @@ type divideSkip struct {
 }
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (ds *divideSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
+func (ds *divideSkip) Merge(rid Rid, threshold int, collector Collector) error {
 	sort.Sort(sort.Reverse(rid))
 
 	M := float64(rid[0].Len())
@@ -32,39 +32,43 @@ func (ds *divideSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 	lShort := rid[l:]
 
 	if len(lShort) == 0 {
-		return ds.merger.Merge(rid, threshold)
+		return ds.merger.Merge(rid, threshold, collector)
 	}
 
-	candidates, err := ds.merger.Merge(lShort, threshold-l)
+	mergeRes := &SimpleCollector{}
+	err := ds.merger.Merge(lShort, threshold-l, mergeRes)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var (
-		position   uint32
-		result     = make([]MergeCandidate, 0, len(candidates))
-	)
-
-	for _, c := range candidates {
-		position = c.Position()
+	for _, c := range mergeRes.Candidates {
+		position := c.Position()
 
 		for _, longList := range lLong {
 			r, err := longList.LowerBound(position)
 
 			if err != nil && err != ErrIteratorIsNotDereferencable {
-				return nil, err
+				return err
 			}
 
 			if err == nil && r == position {
-				c.Increment()
+				c.increment()
 			}
 		}
 
 		if c.Overlap() >= threshold {
-			result = append(result, c)
+			err = collector.Collect(c)
+
+			if err == ErrCollectionTerminated {
+				return nil
+			}
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	return result, nil
+	return nil
 }

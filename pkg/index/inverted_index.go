@@ -5,7 +5,7 @@ import (
 )
 
 type (
-	// DocumentID is a unique indentificator of a indexed document
+	// DocumentID is a unique identifier of a indexed document
 	DocumentID = uint32
 	// Term represents an independent search element in a search document
 	Term = string
@@ -57,18 +57,18 @@ func (i *invertedIndex) Get(term Term) (PostingListContext, error) {
 	s, ok := i.table[term]
 
 	if !ok {
-		return nil, nil
+		return PostingListContext{}, nil
 	}
 
 	reader, err := i.reader.Slice(int64(s.position), int64(s.size))
 
 	if err != nil {
-		return nil, err
+		return PostingListContext{}, err
 	}
 
-	return &postingListContext{
-		listSize: int(s.length),
-		reader:   reader,
+	return PostingListContext{
+		ListSize: int(s.length),
+		Reader:   reader,
 	}, nil
 }
 

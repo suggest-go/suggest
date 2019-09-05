@@ -7,7 +7,7 @@ import "github.com/alldroll/suggest/pkg/utils"
 // `threshold` times.
 type ListMerger interface {
 	// Merge returns list of candidates, that appears at least `threshold` times.
-	Merge(rid Rid, threshold int) ([]MergeCandidate, error)
+	Merge(rid Rid, threshold int, collector Collector) error
 }
 
 // Rid represents inverted lists for ListMerger
@@ -43,7 +43,35 @@ func (m MergeCandidate) Overlap() int {
 	return int(overlap)
 }
 
-// Increment increments the overlap value of the candidate
-func (m *MergeCandidate) Increment() {
+// increment increments the overlap value of the candidate
+func (m *MergeCandidate) increment() {
 	*m = NewMergeCandidate(m.Position(), m.Overlap()+1)
+}
+
+// mergerOptimizer internal merger that is aimed to optimize merge workflow
+type mergerOptimizer struct {
+	merger      ListMerger
+	intersector ListIntersector
+}
+
+func newMerger(merger ListMerger) ListMerger {
+	return &mergerOptimizer{
+		merger:      merger,
+		intersector: Intersector(),
+	}
+}
+
+// Merge returns list of candidates, that appears at least `threshold` times.
+func (m *mergerOptimizer) Merge(rid Rid, threshold int, collector Collector) error {
+	n := len(rid)
+
+	if n < threshold || n == 0 {
+		return nil
+	}
+
+	if n == threshold {
+		return m.intersector.Intersect(rid, collector)
+	}
+
+	return m.merger.Merge(rid, threshold, collector)
 }

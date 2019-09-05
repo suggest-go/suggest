@@ -39,20 +39,19 @@ func (h recordHeap) top() *record { return h[0] }
 // Formally, main idea is to skip on the lists those record ids that cannot be in
 // the answer to the query, by utilizing the threshold
 func MergeSkip() ListMerger {
-	return &mergeSkip{}
+	return newMerger(&mergeSkip{})
 }
 
 // mergeSkip implements MergeSkip algorithm
 type mergeSkip struct{}
 
 // Merge returns list of candidates, that appears at least `threshold` times.
-func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
+func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 	var (
 		lenRid      = len(rid)
 		h           = make(recordHeap, 0, lenRid)
 		poppedItems = make([]*record, 0, lenRid)
 		tops        = make([]record, lenRid)
-		result      = make([]MergeCandidate, 0, lenRid)
 		item        *record
 	)
 
@@ -61,7 +60,7 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		r, err := rid[i].Get()
 
 		if err != nil && err != ErrIteratorIsNotDereferencable {
-			return nil, err
+			return err
 		}
 
 		item.ridID, item.position = i, r
@@ -84,7 +83,15 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		n := len(poppedItems)
 
 		if n >= threshold {
-			result = append(result, NewMergeCandidate(t.position, n))
+			err := collector.Collect(NewMergeCandidate(t.position, n))
+
+			if err == ErrCollectionTerminated {
+				return nil
+			}
+
+			if err != nil {
+				return err
+			}
 
 			for _, item := range poppedItems {
 				cur := rid[item.ridID]
@@ -93,7 +100,7 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 					r, err := cur.Next()
 
 					if err != nil {
-						return nil, err
+						return err
 					}
 
 					item.position = r
@@ -122,7 +129,7 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 				r, err := cur.LowerBound(topPos)
 
 				if err != nil && err != ErrIteratorIsNotDereferencable {
-					return nil, err
+					return err
 				}
 
 				if err == nil {
@@ -133,5 +140,5 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int) ([]MergeCandidate, error) {
 		}
 	}
 
-	return result, nil
+	return nil
 }
