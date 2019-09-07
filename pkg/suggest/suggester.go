@@ -66,6 +66,7 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 
 	topKQueue := topKQueuePool.Get().(TopKQueue)
 	topKQueue.Reset(config.topK)
+	defer topKQueuePool.Put(topKQueue)
 
 	// channel that receives fuzzyCollector and performs a search on length segment
 	sizeCh := make(chan int, bMax-bMin+1)
