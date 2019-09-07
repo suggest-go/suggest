@@ -66,37 +66,12 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 
 	topKQueue := topKQueuePool.Get().(TopKQueue)
 	topKQueue.Reset(config.topK)
-	// done notifies that all subqueries were processed and we have top-k candidates
-	done := make(chan bool)
-	// channel that receives the collected candidates
-	subResultCh := make(chan TopKQueue)
-
-	// update similarityVal value if the received score is greater than similarityHolders value
-	// this optimization prevents scanning the segments, where we couldn't reach the same similarityVal
-	go func() {
-		for subResult := range subResultCh {
-			// fill the topKQueue with new candidates
-			topKQueue.Merge(subResult)
-
-			// if we have achieved the top-k local candidates,
-			// try to update the similarity value with the lowest candidates score
-			if topKQueue.IsFull() {
-				score := topKQueue.GetLowestScore()
-
-				if similarityHolder.Load() < score {
-					similarityHolder.Store(score)
-				}
-			}
-
-			topKQueuePool.Put(subResult)
-		}
-
-		done <- true
-	}()
+	defer topKQueuePool.Put(topKQueue)
 
 	// channel that receives fuzzyCollector and performs a search on length segment
 	sizeCh := make(chan int, bMax-bMin+1)
 	workerPool := errgroup.Group{}
+	lock := sync.Mutex{}
 
 	for i := 0; i < utils.Min(maxSearchQueriesAtOnce, bMax-bMin+1); i++ {
 		workerPool.Go(func() error {
@@ -129,7 +104,17 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 					return fmt.Errorf("failed to search posting lists: %v", err)
 				}
 
-				subResultCh <- queue
+				lock.Lock()
+
+				topKQueue.Merge(queue)
+
+				if topKQueue.IsFull() && similarityHolder.Load() < topKQueue.GetLowestScore() {
+					similarityHolder.Store(topKQueue.GetLowestScore())
+				}
+
+				lock.Unlock()
+
+				topKQueuePool.Put(queue)
 			}
 
 			return nil
@@ -151,16 +136,8 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 	close(sizeCh)
 
 	if err := workerPool.Wait(); err != nil {
-		close(subResultCh)
 		return nil, err
 	}
-
-	// close collector out channel
-	close(subResultCh)
-
-	// wait for the result collected
-	<-done
-	close(done)
 
 	return topKQueue.GetCandidates(), nil
 }
