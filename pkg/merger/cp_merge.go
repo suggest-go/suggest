@@ -90,20 +90,6 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 				return err
 			}
 
-			if lenRid-1 == i && c.Overlap() >= threshold {
-				err = collector.Collect(c)
-
-				if err == ErrCollectionTerminated {
-					return nil
-				}
-
-				if err != nil {
-					return err
-				}
-
-				continue
-			}
-
 			if c.Overlap()+(lenRid-i-1) >= threshold {
 				tmp = append(tmp, c)
 			}
@@ -113,6 +99,20 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 
 		if len(candidates) == 0 {
 			break
+		}
+	}
+
+	for _, c := range candidates {
+		if c.Overlap() >= threshold {
+			err := collector.Collect(c)
+
+			if err == ErrCollectionTerminated {
+				return nil
+			}
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 
