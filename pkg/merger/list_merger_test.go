@@ -6,14 +6,17 @@ import (
 )
 
 func TestMerge(t *testing.T) {
-	mergers := []ListMerger{
-		ScanCount(),
-		CPMerge(),
-		MergeSkip(),
-		DivideSkip(0.01),
+	mergers := []struct {
+		name   string
+		merger ListMerger
+	}{
+		{"scan_count", ScanCount()},
+		{"cp_merge", CPMerge()},
+		{"merge_skip", MergeSkip()},
+		{"divide_skip", DivideSkip(0.01)},
 	}
 
-	for _, merger := range mergers {
+	for _, data := range mergers {
 		for _, c := range dataProvider() {
 			actual := make(map[int][]uint32, len(c.rid))
 			rid := make(Rid, 0, len(c.rid))
@@ -23,7 +26,7 @@ func TestMerge(t *testing.T) {
 			}
 
 			collector := &SimpleCollector{}
-			err := merger.Merge(rid, c.t, collector)
+			err := data.merger.Merge(rid, c.t, collector)
 
 			if err != nil {
 				t.Errorf("Unexpected error occurs: %v", err)
@@ -34,7 +37,7 @@ func TestMerge(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(actual, c.expected) {
-				t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
+				t.Errorf("Test Fail [%s], expected %v, got %v", data.name, c.expected, actual)
 			}
 		}
 	}
@@ -121,6 +124,22 @@ func dataProvider() []oneCase {
 			},
 			2,
 			map[int][]uint32{
+				2: {10, 60, 100},
+				4: {50},
+			},
+		},
+		// issue#28
+		{
+			[][]uint32{
+				{1, 2, 3, 5, 7, 10, 30, 50},
+				{10, 11, 13, 16, 50, 60, 131},
+				{40, 50, 60},
+				{50, 100},
+				{100, 200},
+			},
+			1,
+			map[int][]uint32{
+				1: {1, 2, 3, 5, 7, 11, 13, 16, 30, 40, 131, 200},
 				2: {10, 60, 100},
 				4: {50},
 			},
