@@ -2,11 +2,9 @@
 package spellchecker
 
 import (
-	"sort"
-
 	"github.com/alldroll/suggest/pkg/analysis"
 	"github.com/alldroll/suggest/pkg/dictionary"
-	lm "github.com/alldroll/suggest/pkg/language-model"
+	"github.com/alldroll/suggest/pkg/lm"
 	"github.com/alldroll/suggest/pkg/metric"
 	"github.com/alldroll/suggest/pkg/suggest"
 )
@@ -77,11 +75,11 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 	}
 
 	if len(seq) > 0 {
-		scorer := collectorManager.scorer
-
-		sort.SliceStable(candidates, func(i, j int) bool {
-			return scorer.Score(candidates[i].Key) > scorer.Score(candidates[j].Key)
-		})
+		//scorer := collectorManager.scorer
+		//
+		//sort.SliceStable(candidates, func(i, j int) bool {
+		//	return scorer.Score(candidates[i].Key) > scorer.Score(candidates[j].Key)
+		//})
 	}
 
 	result := make([]string, 0, len(candidates))

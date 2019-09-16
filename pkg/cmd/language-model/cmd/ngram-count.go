@@ -6,7 +6,7 @@ import (
 	"github.com/alldroll/suggest/pkg/store"
 	"os"
 
-	lm "github.com/alldroll/suggest/pkg/language-model"
+	"github.com/alldroll/suggest/pkg/lm"
 	"github.com/spf13/cobra"
 )
 

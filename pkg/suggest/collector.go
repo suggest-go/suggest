@@ -93,13 +93,15 @@ func (m *firstKCollectorManager) Create() (Collector, error) {
 
 // Reduce reduces the result from the given list of collectors
 func (m *firstKCollectorManager) Reduce(collectors []Collector) []Candidate {
-	resultCollector := NewTopKQueue(m.limit)
+	topKQueue := NewTopKQueue(m.limit)
 
-	for _, collector := range collectors {
-		for _, item := range collector.GetCandidates() {
-			resultCollector.Add(item.Key, -float64(item.Key))
+	for _, c := range collectors {
+		if collector, ok := c.(*firstKCollector); ok {
+			for _, item := range collector.items {
+				topKQueue.Add(item.Position(), -float64(item.Position()))
+			}
 		}
 	}
 
-	return resultCollector.GetCandidates()
+	return topKQueue.GetCandidates()
 }

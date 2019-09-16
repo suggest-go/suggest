@@ -6,7 +6,6 @@ import (
 
 	"github.com/alldroll/suggest/pkg/analysis"
 	"github.com/alldroll/suggest/pkg/merger"
-	"github.com/alldroll/suggest/pkg/metric"
 	"github.com/alldroll/suggest/pkg/utils"
 
 	"github.com/alldroll/suggest/pkg/index"
@@ -94,10 +93,8 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 				queue.Reset(config.topK)
 
 				collector := &fuzzyCollector{
-					sizeA:     sizeA,
-					sizeB:     sizeB,
-					metric:    config.metric,
 					topKQueue: queue,
+					scorer: NewMetricScorer(config.metric, sizeA, sizeB),
 				}
 
 				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
@@ -149,17 +146,14 @@ var topKQueuePool = sync.Pool{
 }
 
 type fuzzyCollector struct {
-	metric    metric.Metric
-	sizeA     int
-	sizeB     int
 	topKQueue TopKQueue
+	scorer Scorer
 }
 
 // Collect collects the given merge candidate
 // calculates the distance, and tries to add this document with it's score to the collector
 func (c *fuzzyCollector) Collect(item merger.MergeCandidate) error {
-	score := 1 - c.metric.Distance(item.Overlap(), c.sizeA, c.sizeB)
-	c.topKQueue.Add(item.Position(), score)
+	c.topKQueue.Add(item.Position(), c.scorer.Score(item))
 
 	return nil
 }
@@ -171,5 +165,4 @@ func (c *fuzzyCollector) GetCandidates() []Candidate {
 
 // Score returns the score of the given position
 func (c *fuzzyCollector) SetScorer(scorer Scorer) {
-	return
 }
