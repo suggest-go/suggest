@@ -17,7 +17,7 @@ type lmCollector struct {
 // lmCollectorManager implements CollectorManager interface
 type lmCollectorManager struct {
 	topK   int
-	scorer suggest.Scorer
+	scorer *lmScorer
 	next   []lm.WordCount
 }
 

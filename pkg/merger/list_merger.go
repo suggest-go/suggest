@@ -1,3 +1,6 @@
+// Package merger provides a different set of algorithms for solving T-overlap occurrence problem of sorted lists of integers.
+// T-occurrence problem can be described next:
+// - Find the set of string ids that appear at least T times on the inverted lists, where T is a constant.
 package merger
 
 import "github.com/alldroll/suggest/pkg/utils"

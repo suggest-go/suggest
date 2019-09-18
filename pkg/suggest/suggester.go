@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/alldroll/suggest/pkg/analysis"
-	"github.com/alldroll/suggest/pkg/merger"
 	"github.com/alldroll/suggest/pkg/utils"
 
 	"github.com/alldroll/suggest/pkg/index"
@@ -16,7 +15,7 @@ import (
 // approximate string search
 type Suggester interface {
 	// Suggest returns top-k similar candidates
-	Suggest(config *SearchConfig) ([]Candidate, error)
+	Suggest(config SearchConfig) ([]Candidate, error)
 }
 
 // maxSearchQueriesAtOnce tells how many goroutines can be used at once for a search query
@@ -43,7 +42,7 @@ func NewSuggester(
 }
 
 // Suggest returns top-k similar candidates
-func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
+func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 	set := n.tokenizer.Tokenize(config.query)
 
 	if len(set) == 0 {
@@ -78,7 +77,7 @@ func (n *nGramSuggester) Suggest(config *SearchConfig) ([]Candidate, error) {
 				similarity := similarityHolder.Load()
 				threshold := config.metric.Threshold(similarity, sizeA, sizeB)
 
-				// it means that the similarity has been changed and we will skeep this value processing
+				// it means that the similarity has been changed and we will skip this value processing
 				if threshold == 0 || threshold > sizeB || threshold > sizeA {
 					continue
 				}
@@ -143,26 +142,4 @@ var topKQueuePool = sync.Pool{
 	New: func() interface{} {
 		return NewTopKQueue(50)
 	},
-}
-
-type fuzzyCollector struct {
-	topKQueue TopKQueue
-	scorer Scorer
-}
-
-// Collect collects the given merge candidate
-// calculates the distance, and tries to add this document with it's score to the collector
-func (c *fuzzyCollector) Collect(item merger.MergeCandidate) error {
-	c.topKQueue.Add(item.Position(), c.scorer.Score(item))
-
-	return nil
-}
-
-// GetCandidates returns `top k items`
-func (c *fuzzyCollector) GetCandidates() []Candidate {
-	return c.topKQueue.GetCandidates()
-}
-
-// Score returns the score of the given position
-func (c *fuzzyCollector) SetScorer(scorer Scorer) {
 }

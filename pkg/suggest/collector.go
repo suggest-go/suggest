@@ -105,3 +105,25 @@ func (m *firstKCollectorManager) Reduce(collectors []Collector) []Candidate {
 
 	return topKQueue.GetCandidates()
 }
+
+type fuzzyCollector struct {
+	topKQueue TopKQueue
+	scorer Scorer
+}
+
+// Collect collects the given merge candidate
+// calculates the distance, and tries to add this document with it's score to the collector
+func (c *fuzzyCollector) Collect(item merger.MergeCandidate) error {
+	c.topKQueue.Add(item.Position(), c.scorer.Score(item))
+
+	return nil
+}
+
+// GetCandidates returns `top k items`
+func (c *fuzzyCollector) GetCandidates() []Candidate {
+	return c.topKQueue.GetCandidates()
+}
+
+// Score returns the score of the given position
+func (c *fuzzyCollector) SetScorer(scorer Scorer) {
+}

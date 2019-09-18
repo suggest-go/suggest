@@ -80,16 +80,16 @@ func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 // buildSearchConfig builds a search config for the given list of parameters
-func buildSearchConfig(query, metricName, sim string, k int) (*suggest.SearchConfig, error) {
+func buildSearchConfig(query, metricName, sim string, k int) (suggest.SearchConfig, error) {
 	if _, ok := metrics[metricName]; !ok {
-		return nil, errors.New("Metric not found")
+		return suggest.SearchConfig{}, errors.New("Metric not found")
 	}
 
 	metric := metrics[metricName]
 	similarity, err := strconv.ParseFloat(sim, 64)
 
 	if err != nil {
-		return nil, err
+		return suggest.SearchConfig{}, err
 	}
 
 	return suggest.NewSearchConfig(query, k, metric, similarity)

@@ -1,3 +1,4 @@
+// Package metric holds different metrics for sets similarity compare
 package metric
 
 // Metric defined here, is not pure mathematics metric definition as distance between each pair of elements of a set.
