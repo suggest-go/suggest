@@ -1,3 +1,4 @@
+// Package store provides an abstract way to work with i/o
 package store
 
 import "io"

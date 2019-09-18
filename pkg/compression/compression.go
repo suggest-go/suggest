@@ -1,3 +1,4 @@
+// Package compression holds the algorithms for compressing the list of sorted lists of integers
 package compression
 
 import "github.com/alldroll/suggest/pkg/store"

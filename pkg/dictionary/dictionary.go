@@ -1,3 +1,4 @@
+// Package dictionary represents storage for keeping an index vocabulary
 package dictionary
 
 const (

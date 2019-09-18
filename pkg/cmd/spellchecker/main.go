@@ -11,7 +11,7 @@ import (
 	"github.com/alldroll/suggest/pkg/store"
 
 	"github.com/alldroll/suggest/pkg/dictionary"
-	lm "github.com/alldroll/suggest/pkg/language-model"
+	"github.com/alldroll/suggest/pkg/lm"
 	"github.com/alldroll/suggest/pkg/spellchecker"
 	"github.com/alldroll/suggest/pkg/suggest"
 )
@@ -52,7 +52,6 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
-	// scanner := bufio.NewScanner(strings.NewReader("i ha"))
 	fmt.Print(">> ")
 
 	for scanner.Scan() {

@@ -1,3 +1,4 @@
+// Package alphabet provides API for manipulating with the list of defined characters
 package alphabet
 
 // Alphabet is abstract for manipulating with set of symbols

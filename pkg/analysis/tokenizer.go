@@ -1,3 +1,4 @@
+// Package analysis represents API to convert text into indexable/searchable tokens
 package analysis
 
 // Token is a string with an assigned and thus identified meaning

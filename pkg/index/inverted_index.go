@@ -1,3 +1,4 @@
+// Package index provides an inverted index implementation and basic functionality for work with this data structure
 package index
 
 import (

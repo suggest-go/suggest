@@ -21,7 +21,7 @@ type nGramIndex struct {
 }
 
 // Suggest returns top-k similar candidates
-func (n *nGramIndex) Suggest(config *SearchConfig) ([]Candidate, error) {
+func (n *nGramIndex) Suggest(config SearchConfig) ([]Candidate, error) {
 	return n.suggester.Suggest(config)
 }
 

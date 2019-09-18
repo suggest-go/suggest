@@ -1,3 +1,4 @@
+// Package utils holds the list of code helpers
 package utils
 
 import (

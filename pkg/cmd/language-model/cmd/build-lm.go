@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/alldroll/suggest/pkg/lm"
 	"github.com/alldroll/suggest/pkg/store"
-
-	lm "github.com/alldroll/suggest/pkg/language-model"
 	"github.com/spf13/cobra"
 )
 

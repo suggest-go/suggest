@@ -1,3 +1,4 @@
+// Package suggest provides fuzzy search and autocomplete functionality
 package suggest
 
 import (
@@ -101,7 +102,7 @@ func (s *Service) GetDictionaries() []string {
 }
 
 // Suggest returns Top-k approximate strings for the given query in the dict
-func (s *Service) Suggest(dictName string, config *SearchConfig) ([]ResultItem, error) {
+func (s *Service) Suggest(dictName string, config SearchConfig) ([]ResultItem, error) {
 	s.RLock()
 	index, okIndex := s.indexes[dictName]
 	dict, okDict := s.dictionaries[dictName]
