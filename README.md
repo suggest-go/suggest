@@ -30,9 +30,14 @@ The library provides API and the simple `HTTP service` for such purposes.
 
 ## Demo
 
-Please, see [demo](http://54.183.244.111:8000/) as a complete example.
-This example provides a fuzzy search in a list of dictionaries, with ability
-of choosing a similarity, type of metric and topK.
+The demo shows approximate string search in a dictionary with more than 200k English words
+
+```
+$ make build
+$ ./build/suggest eval -c pkg/suggest/testdata/config.json -d words -s 0.5 -k 5
+```
+
+![Suggest eval Demo](suggest-eval.gif)
 
 ## Index description format
 
