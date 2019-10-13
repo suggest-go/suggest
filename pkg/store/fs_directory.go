@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"bufio"
 
-	"github.com/alldroll/suggest/pkg/utils"
+	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 // fsDirectory is a implementation that stores index

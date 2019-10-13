@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/alldroll/suggest/pkg/utils"
+	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 type (

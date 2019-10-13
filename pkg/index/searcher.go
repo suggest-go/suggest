@@ -3,9 +3,9 @@ package index
 import (
 	"fmt"
 
-	"github.com/alldroll/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/analysis"
 
-	"github.com/alldroll/suggest/pkg/merger"
+	"github.com/suggest-go/suggest/pkg/merger"
 )
 
 // Searcher is responsible for searching

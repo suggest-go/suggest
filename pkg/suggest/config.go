@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/alldroll/suggest/pkg/analysis"
-	"github.com/alldroll/suggest/pkg/index"
+	"github.com/suggest-go/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/index"
 )
 
 // Driver represents storage type of an inverted index

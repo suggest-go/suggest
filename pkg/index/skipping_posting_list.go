@@ -3,9 +3,9 @@ package index
 import (
 	"io"
 
-	"github.com/alldroll/suggest/pkg/compression"
-	"github.com/alldroll/suggest/pkg/merger"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/compression"
+	"github.com/suggest-go/suggest/pkg/merger"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 // skippingPostingList is a posting list which has the ability to use skip pointers for faster intersection

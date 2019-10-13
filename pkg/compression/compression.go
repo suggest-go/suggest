@@ -1,7 +1,7 @@
 // Package compression holds the algorithms for compressing the list of sorted lists of integers
 package compression
 
-import "github.com/alldroll/suggest/pkg/store"
+import "github.com/suggest-go/suggest/pkg/store"
 
 // Encoder represents entity for encoding given posting list to byte array
 type Encoder interface {

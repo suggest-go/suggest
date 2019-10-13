@@ -1,4 +1,4 @@
-module github.com/alldroll/suggest
+module github.com/suggest-go/suggest
 
 go 1.12
 

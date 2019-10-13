@@ -3,10 +3,10 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/store"
 	"os"
 
-	"github.com/alldroll/suggest/pkg/lm"
+	"github.com/suggest-go/suggest/pkg/lm"
 	"github.com/spf13/cobra"
 )
 

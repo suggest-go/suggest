@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/alldroll/suggest/pkg/analysis"
-	"github.com/alldroll/suggest/pkg/utils"
+	"github.com/suggest-go/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/utils"
 
-	"github.com/alldroll/suggest/pkg/index"
+	"github.com/suggest-go/suggest/pkg/index"
 	"golang.org/x/sync/errgroup"
 )
 

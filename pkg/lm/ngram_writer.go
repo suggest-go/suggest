@@ -2,7 +2,7 @@ package lm
 
 import (
 	"fmt"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/store"
 	"strings"
 )
 

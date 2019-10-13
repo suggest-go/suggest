@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/suggest-go/suggest/pkg/suggest"
 )
 
 // dictionaryHandler handles requests with dictionaries purpose

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/alldroll/suggest/pkg/compression"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/compression"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 const skippingGapSize = 64

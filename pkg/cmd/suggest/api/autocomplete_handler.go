@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/suggest-go/suggest/pkg/suggest"
 	"github.com/gorilla/mux"
 )
 

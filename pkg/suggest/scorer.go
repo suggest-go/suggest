@@ -1,8 +1,8 @@
 package suggest
 
 import (
-	"github.com/alldroll/suggest/pkg/merger"
-	"github.com/alldroll/suggest/pkg/metric"
+	"github.com/suggest-go/suggest/pkg/merger"
+	"github.com/suggest-go/suggest/pkg/metric"
 )
 
 // Scorer is responsible for scoring an index position

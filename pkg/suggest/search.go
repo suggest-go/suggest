@@ -3,7 +3,7 @@ package suggest
 import (
 	"fmt"
 
-	"github.com/alldroll/suggest/pkg/metric"
+	"github.com/suggest-go/suggest/pkg/metric"
 )
 
 // SearchConfig is a config for NGramIndex Suggest method

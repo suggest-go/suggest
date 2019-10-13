@@ -3,7 +3,7 @@ package analysis
 import (
 	"unicode/utf8"
 
-	"github.com/alldroll/suggest/pkg/alphabet"
+	"github.com/suggest-go/suggest/pkg/alphabet"
 )
 
 // NewWordTokenizer creates a new instance of Tokenizer

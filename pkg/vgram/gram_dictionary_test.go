@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/suggest-go/suggest/pkg/dictionary"
 )
 
 func TestBuildFrequencyTree(t *testing.T) {

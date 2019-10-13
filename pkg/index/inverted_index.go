@@ -2,7 +2,7 @@
 package index
 
 import (
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 type (

@@ -2,7 +2,7 @@ package compression
 
 import (
 	"encoding/binary"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/store"
 	"io"
 )
 

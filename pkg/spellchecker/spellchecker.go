@@ -2,11 +2,11 @@
 package spellchecker
 
 import (
-	"github.com/alldroll/suggest/pkg/analysis"
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/lm"
-	"github.com/alldroll/suggest/pkg/metric"
-	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/suggest-go/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/dictionary"
+	"github.com/suggest-go/suggest/pkg/lm"
+	"github.com/suggest-go/suggest/pkg/metric"
+	"github.com/suggest-go/suggest/pkg/suggest"
 )
 
 // SpellChecker describe me!

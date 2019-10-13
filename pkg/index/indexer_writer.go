@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alldroll/suggest/pkg/compression"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/compression"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 // IndexVersion tells that the inverted index structure has the provided below version

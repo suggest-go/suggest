@@ -1,8 +1,8 @@
 package index
 
 import (
-	"github.com/alldroll/suggest/pkg/merger"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/merger"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 // PostingList represents a list of documents ids, that belongs to the certain index term

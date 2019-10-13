@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/alldroll/suggest/pkg/metric"
+	"github.com/suggest-go/suggest/pkg/metric"
 )
 
 func TestConcurrencyOnDisc(t *testing.T) {

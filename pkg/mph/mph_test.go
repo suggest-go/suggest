@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/alldroll/suggest/pkg/dictionary"
+	"github.com/suggest-go/suggest/pkg/dictionary"
 )
 
 func TestFlow(t *testing.T) {

@@ -3,7 +3,7 @@
 // - Find the set of string ids that appear at least T times on the inverted lists, where T is a constant.
 package merger
 
-import "github.com/alldroll/suggest/pkg/utils"
+import "github.com/suggest-go/suggest/pkg/utils"
 
 // ListMerger solves `threshold`-occurrence problem:
 // For given inverted lists find the set of strings ids, that appears at least

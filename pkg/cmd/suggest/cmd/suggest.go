@@ -3,7 +3,7 @@ package cmd
 import (
 	"log"
 
-	"github.com/alldroll/suggest/pkg/cmd/suggest/api"
+	"github.com/suggest-go/suggest/pkg/cmd/suggest/api"
 	"github.com/spf13/cobra"
 )
 

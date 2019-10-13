@@ -1,8 +1,8 @@
 package suggest
 
 import (
-	"github.com/alldroll/suggest/pkg/alphabet"
-	"github.com/alldroll/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/alphabet"
+	"github.com/suggest-go/suggest/pkg/analysis"
 )
 
 // NewSuggestTokenizer creates a tokenizer for suggester service

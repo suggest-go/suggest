@@ -3,10 +3,10 @@ package suggest
 import (
 	"fmt"
 
-	"github.com/alldroll/suggest/pkg/analysis"
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/dictionary"
+	"github.com/suggest-go/suggest/pkg/index"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 // Index builds a search index by using the given config and the dictionary

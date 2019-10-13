@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/metric"
+	"github.com/suggest-go/suggest/pkg/dictionary"
+	"github.com/suggest-go/suggest/pkg/index"
+	"github.com/suggest-go/suggest/pkg/metric"
 )
 
 func TestSuggestAuto(t *testing.T) {

@@ -1,9 +1,9 @@
 package spellchecker
 
 import (
-	"github.com/alldroll/suggest/pkg/lm"
-	"github.com/alldroll/suggest/pkg/merger"
-	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/suggest-go/suggest/pkg/lm"
+	"github.com/suggest-go/suggest/pkg/merger"
+	"github.com/suggest-go/suggest/pkg/suggest"
 	"sort"
 )
 

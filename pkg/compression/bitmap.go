@@ -2,7 +2,7 @@ package compression
 
 import (
 	"github.com/RoaringBitmap/roaring"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 func BitmapEncoder() Encoder {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/alldroll/suggest/pkg/alphabet"
+	"github.com/suggest-go/suggest/pkg/alphabet"
 )
 
 // Config represents a configuration of a language model

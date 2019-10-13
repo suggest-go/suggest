@@ -1,8 +1,8 @@
 package suggest
 
 import (
-	"github.com/alldroll/suggest/pkg/index"
-	"github.com/alldroll/suggest/pkg/merger"
+	"github.com/suggest-go/suggest/pkg/index"
+	"github.com/suggest-go/suggest/pkg/merger"
 )
 
 // Candidate is an item of Collector

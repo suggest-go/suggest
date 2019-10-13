@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 func TestEncodeDecode(t *testing.T) {

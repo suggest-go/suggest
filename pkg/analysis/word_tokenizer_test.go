@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alldroll/suggest/pkg/alphabet"
+	"github.com/suggest-go/suggest/pkg/alphabet"
 )
 
 func TestTokenize(t *testing.T) {

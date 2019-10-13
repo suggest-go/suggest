@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alldroll/suggest/pkg/compression"
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/compression"
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 func TestSkipping(t *testing.T) {

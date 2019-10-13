@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/mph"
+	"github.com/suggest-go/suggest/pkg/dictionary"
+	"github.com/suggest-go/suggest/pkg/mph"
 )
 
 // WordID is an index of the corresponding word

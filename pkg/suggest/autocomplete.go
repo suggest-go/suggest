@@ -3,8 +3,8 @@ package suggest
 import (
 	"fmt"
 
-	"github.com/alldroll/suggest/pkg/analysis"
-	"github.com/alldroll/suggest/pkg/index"
+	"github.com/suggest-go/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/index"
 	"golang.org/x/sync/errgroup"
 )
 

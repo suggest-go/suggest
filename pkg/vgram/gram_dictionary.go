@@ -3,8 +3,8 @@
 package vgram
 
 import (
-	"github.com/alldroll/suggest/pkg/dictionary"
-	"github.com/alldroll/suggest/pkg/index"
+	"github.com/suggest-go/suggest/pkg/dictionary"
+	"github.com/suggest-go/suggest/pkg/index"
 )
 
 type VGramDictionaryBuilder struct {

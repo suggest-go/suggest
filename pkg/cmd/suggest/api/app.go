@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/alldroll/suggest/pkg/suggest"
+	"github.com/suggest-go/suggest/pkg/suggest"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )

@@ -1,7 +1,7 @@
 package lm
 
 import (
-	"github.com/alldroll/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/store"
 	"math"
 	"testing"
 )
