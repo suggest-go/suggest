@@ -19,7 +19,9 @@ See the [documentation](https://suggest-go.github.io/) with examples demo and AP
 
 ## Demo
 
-The demo shows approximate string search in a dictionary with more than 200k English words
+The [demo](https://suggest-go.github.io/docs/demo.html) shows approximate string search in a dictionary with more than 200k English words.
+
+You can also run it locally
 
 ```
 $ make build
