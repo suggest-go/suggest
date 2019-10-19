@@ -28,6 +28,13 @@ $ make build
 $ ./build/suggest eval -c pkg/suggest/testdata/config.json -d words -s 0.5 -k 5
 ```
 
+or by using Docker
+
+```
+$ make build-docker
+$ docker run -p 8080:8080 -v $(pwd)/pkg/suggest/testdata:/data/testdata suggest /data/build/suggest service-run -c /data/testdata/config.json
+```
+
 ![Suggest eval Demo](suggest-eval.gif)
 
 ## Contributions

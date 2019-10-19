@@ -2,17 +2,18 @@
 
 .PHONY: build test vet clean
 
-GO_BUILD = go build -mod=vendor
+BUILD_FLAGS = -mod=vendor $(GO_BUILD_FLAGS)
 
 default: build
 
 build-suggest:
-	$(GO_BUILD) -o build/suggest ./pkg/cmd/suggest/
+	go build $(BUILD_FLAGS) -o build/suggest ./pkg/cmd/suggest/
 
 build-lm:
-	$(GO_BUILD) -o build/lm ./pkg/cmd/language-model/
+	go build $(BUILD_FLAGS) -o build/lm ./pkg/cmd/language-model/
 
 build: download test vet build-suggest build-lm
+build-bin: download build-suggest build-lm
 
 build-docker:
 	docker build --no-cache -t suggest:latest .
