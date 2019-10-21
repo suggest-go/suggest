@@ -131,7 +131,6 @@ func (r *byteInput) ReadVUInt32() (uint32, error) {
 	var (
 		i = r.i
 		l = int64(len(r.buf))
-		v = uint32(0)
 		b byte
 	)
 
@@ -144,7 +143,7 @@ func (r *byteInput) ReadVUInt32() (uint32, error) {
 		return r.readVarUInt32Slow()
 	}
 
-	v = uint32(r.buf[i]) - 0x80
+	v := uint32(r.buf[i]) - 0x80
 	i++
 
 	b = r.buf[i]

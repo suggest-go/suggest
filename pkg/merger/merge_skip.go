@@ -83,7 +83,7 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 		n := len(poppedItems)
 
 		if n >= threshold {
-			err := collector.Collect(NewMergeCandidate(t.position, n))
+			err := collector.Collect(NewMergeCandidate(t.position, uint32(n)))
 
 			if err == ErrCollectionTerminated {
 				return nil

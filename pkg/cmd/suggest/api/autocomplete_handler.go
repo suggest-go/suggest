@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/suggest-go/suggest/pkg/suggest"
 	"github.com/gorilla/mux"
+	"github.com/suggest-go/suggest/pkg/suggest"
 )
 
 // autocompleteHandler is responsible for query autocomplete

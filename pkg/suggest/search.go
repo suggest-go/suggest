@@ -31,4 +31,3 @@ func NewSearchConfig(query string, topK int, metric metric.Metric, similarity fl
 		similarity: similarity,
 	}, nil
 }
-

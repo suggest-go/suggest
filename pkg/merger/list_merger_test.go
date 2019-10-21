@@ -1,9 +1,45 @@
 package merger
 
 import (
+	"github.com/suggest-go/suggest/pkg/utils"
 	"reflect"
 	"testing"
 )
+
+func TestMergeOverlapOverflow(t *testing.T) {
+	m := NewMergeCandidate(1, MaxOverlap)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Test Fail, the code did not panic")
+		}
+	}()
+
+	m.increment()
+}
+
+func BenchmarkMergeCandidate(b *testing.B) {
+	m := NewMergeCandidate(1, 1)
+	p, o := uint32(0), int(0)
+	c := utils.Max(100, b.N/MaxOverlap+1)
+	e := int(1)
+
+	for i := 0; i < b.N; i++ {
+		if i%c == 0 {
+			m.increment()
+			e++
+		}
+
+		for j := 0; j < 100; j++ {
+			p = m.Position()
+			o = m.Overlap()
+		}
+	}
+
+	if p != 1 || o != e {
+		b.Errorf("Test fail, expected p = 1 && o = %d, got p = %d && o = %d", e, p, o)
+	}
+}
 
 func TestMerge(t *testing.T) {
 	mergers := []struct {
@@ -37,7 +73,7 @@ func TestMerge(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(actual, c.expected) {
-				t.Errorf("Test Fail [%s], expected %v, got %v", data.name, c.expected, actual)
+				t.Errorf("Test fail [%s], expected %v, got %v", data.name, c.expected, actual)
 			}
 		}
 	}

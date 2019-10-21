@@ -13,15 +13,15 @@ type Scorer interface {
 
 type metricScorer struct {
 	sizeA, sizeB int
-	metric metric.Metric
+	metric       metric.Metric
 }
 
 // NewMetricScorer creates a new scorer that uses metric as a score value
 func NewMetricScorer(metric metric.Metric, sizeA, sizeB int) Scorer {
 	return &metricScorer{
 		metric: metric,
-		sizeA: sizeA,
-		sizeB: sizeB,
+		sizeA:  sizeA,
+		sizeB:  sizeB,
 	}
 }
 

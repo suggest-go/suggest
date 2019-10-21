@@ -20,7 +20,7 @@ func BinaryDecoder() Decoder {
 }
 
 // Encode encodes the given positing list into the buf array
-// Returns number of elements encoded, number of bytes readed
+// Returns a number of written bytes
 func (b *binaryEnc) Encode(list []uint32, out store.Output) (int, error) {
 	chunk := make([]byte, 4)
 	total := 0

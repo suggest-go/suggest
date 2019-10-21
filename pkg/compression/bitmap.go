@@ -5,15 +5,16 @@ import (
 	"github.com/suggest-go/suggest/pkg/store"
 )
 
+// BitmapEncoder returns new instance of bitmapEnc which compress the uint32 list with the roaring bitmap library
 func BitmapEncoder() Encoder {
 	return &bitmapEnc{}
 }
 
-// vbEnc implements BitmapEncoder
+// bitmapEnc implements BitmapEncoder
 type bitmapEnc struct{}
 
 // Encode encodes the given positing list into the buf array
-// Returns number of elements encoded, number of bytes readed
+// Returns a number of written bytes
 func (b *bitmapEnc) Encode(list []uint32, out store.Output) (int, error) {
 	bitmap := roaring.New()
 

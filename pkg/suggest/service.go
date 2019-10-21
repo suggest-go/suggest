@@ -133,7 +133,7 @@ func (s *Service) Suggest(dictName string, config SearchConfig) ([]ResultItem, e
 	return result, nil
 }
 
-// Autocomplete returns first limit
+// Autocomplete returns limit candidates where the query string is a prefix of each candidate
 func (s *Service) Autocomplete(dictName string, query string, limit int) ([]ResultItem, error) {
 	s.RLock()
 	index, okIndex := s.indexes[dictName]

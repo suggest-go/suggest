@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime"
 
-	mmap "github.com/edsrzf/mmap-go"
+	"github.com/edsrzf/mmap-go"
 )
 
 var (
@@ -16,7 +16,7 @@ var (
 
 	// ErrMMapInvalidOffset means that it was an attempt to read data
 	// from the invalid offset
-	ErrMMapInvalidOffset = errors.New("Out of range")
+	ErrMMapInvalidOffset = errors.New("out of range")
 )
 
 // NewMMapReader returns new instance of MMapReader
@@ -49,7 +49,7 @@ type MMapReader struct {
 	data mmap.MMap
 }
 
-// Close releases unmap of the choosen region
+// Close releases unmap of the chosen region
 func (r *MMapReader) Close() error {
 	if r.data == nil {
 		return ErrMMapIsClosed

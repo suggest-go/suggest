@@ -3,8 +3,8 @@ package cmd
 import (
 	"log"
 
-	"github.com/suggest-go/suggest/pkg/cmd/suggest/api"
 	"github.com/spf13/cobra"
+	"github.com/suggest-go/suggest/pkg/cmd/suggest/api"
 )
 
 var (

@@ -63,7 +63,7 @@ type skippingEnc struct {
 }
 
 // Encode encodes the given positing list into the buf array
-// Returns number of elements encoded, number of bytes readed
+// Returns a number of written bytes
 func (b *skippingEnc) Encode(list []uint32, out store.Output) (int, error) {
 	if len(list) < b.gap {
 		return 0, ErrGapShouldBeGreaterThanListLen

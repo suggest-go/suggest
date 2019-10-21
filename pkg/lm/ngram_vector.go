@@ -17,7 +17,7 @@ import (
 type (
 	// ContextOffset represents the id of parent nGram path
 	ContextOffset = uint32
-	key           = uint64
+	key = uint64
 )
 
 // NGramVector represents one level of nGram trie
@@ -79,7 +79,7 @@ func (s *sortedArray) Next(context ContextOffset) []WordID {
 	maxChild := makeKey(maxContextOffset-2, context)
 
 	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= minChild })
-	words := []WordID{}
+	var words []WordID
 
 	if i < 0 || i >= len(s.keys) {
 		return words
@@ -143,7 +143,7 @@ func (s *sortedArray) UnmarshalBinary(data []byte) error {
 	s.keys = make([]key, valSize/4)
 	prev := uint64(0)
 
-	// 0, 1, 3, 6, 7 -> 0, 1, 4, 10, 17
+	// 0, 1, 3, 6, 7 -> 0, 1, 4, 10, 17 (delta decoding)
 	for i := 0; i < len(s.keys); i++ {
 		s.keys[i], n = binary.Uvarint(encodedKeys[keyEndPos:])
 		s.keys[i] += prev
@@ -183,8 +183,7 @@ func makeKey(word WordID, context ContextOffset) key {
 
 // getWordID returns the word id for the given key
 func getWordID(key key) WordID {
-	_, wordID := utils.Unpack(key)
-	return wordID
+	return utils.UnpackRight(key)
 }
 
 func init() {

@@ -6,8 +6,8 @@ import (
 	"github.com/suggest-go/suggest/pkg/store"
 	"os"
 
-	"github.com/suggest-go/suggest/pkg/lm"
 	"github.com/spf13/cobra"
+	"github.com/suggest-go/suggest/pkg/lm"
 )
 
 func init() {

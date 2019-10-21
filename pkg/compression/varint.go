@@ -22,7 +22,7 @@ func VBDecoder() Decoder {
 type vbEnc struct{}
 
 // Encode encodes the given positing list into the buf array
-// Returns number of elements encoded, number of bytes readed
+// Returns a number of written bytes
 func (b *vbEnc) Encode(list []uint32, out store.Output) (int, error) {
 	return varIntEncode(list, out, 0)
 }
@@ -34,13 +34,10 @@ func (b *vbEnc) Decode(in store.Input, buf []uint32) (int, error) {
 }
 
 func varIntEncode(list []uint32, out store.Output, prev uint32) (int, error) {
-	var (
-		delta = uint32(0)
-		total = 0
-	)
+	total := 0
 
 	for _, v := range list {
-		delta = v - prev
+		delta := v - prev
 		prev = v
 
 		n, err := out.WriteVUInt32(delta)

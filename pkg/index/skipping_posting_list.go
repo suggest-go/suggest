@@ -11,14 +11,14 @@ import (
 // skippingPostingList is a posting list which has the ability to use skip pointers for faster intersection
 // https://nlp.stanford.edu/IR-book/html/htmledition/faster-postings-list-intersection-via-skip-pointers-1.html
 type skippingPostingList struct {
-	input               store.Input
-	index               int
-	size                int
-	current             uint32
-	currentSkipValue    uint32
-	nextSkipPosition    int
-	skippingGap         int
-	isLastBlock         bool
+	input            store.Input
+	index            int
+	size             int
+	current          uint32
+	currentSkipValue uint32
+	nextSkipPosition int
+	skippingGap      int
+	isLastBlock      bool
 }
 
 // Get returns the current pointed element of the list
