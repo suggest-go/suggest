@@ -19,6 +19,7 @@ import (
 var (
 	configPath string
 
+	// TODO move it to config
 	indexDescription = suggest.IndexDescription{
 		Driver:    suggest.RAMDriver,
 		Name:      "words",
