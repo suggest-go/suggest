@@ -21,7 +21,7 @@ func Intersector() ListIntersector {
 // Intersect performs intersection operation for the given rid and
 // transmits the result to collector
 func (i *intersector) Intersect(rid Rid, collector Collector) error {
-	n := len(rid)
+	n := uint32(len(rid))
 
 	if n == 0 {
 		return nil

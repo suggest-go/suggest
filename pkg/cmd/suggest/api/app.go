@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/suggest-go/suggest/pkg/suggest"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/suggest-go/suggest/pkg/suggest"
 )
 
 // App is our application

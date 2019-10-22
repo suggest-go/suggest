@@ -1,10 +1,10 @@
 package store
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"runtime"
-	"bufio"
 
 	"github.com/suggest-go/suggest/pkg/utils"
 )

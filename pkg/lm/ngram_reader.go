@@ -19,7 +19,7 @@ type NGramReader interface {
 type googleNGramFormatReader struct {
 	indexer    Indexer
 	nGramOrder uint8
-	directory store.Directory
+	directory  store.Directory
 }
 
 // NewGoogleNGramReader creates new instance of NGramReader
@@ -27,7 +27,7 @@ func NewGoogleNGramReader(nGramOrder uint8, indexer Indexer, directory store.Dir
 	return &googleNGramFormatReader{
 		nGramOrder: nGramOrder,
 		indexer:    indexer,
-		directory: directory,
+		directory:  directory,
 	}
 }
 
@@ -42,8 +42,8 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 	for i := 0; i < int(gr.nGramOrder); i++ {
 		builder := NewNGramVectorBuilder(vectors)
 
-		if err := gr.readNGramVector(builder, i + 1); err != nil {
-			return nil, fmt.Errorf("failed to read %d ngram vector: %v", i + 1, err)
+		if err := gr.readNGramVector(builder, i+1); err != nil {
+			return nil, fmt.Errorf("failed to read %d ngram vector: %v", i+1, err)
 		}
 
 		vectors = append(vectors, builder.Build())
@@ -96,4 +96,3 @@ func (gr *googleNGramFormatReader) readNGramVector(builder NGramVectorBuilder, o
 
 	return nil
 }
-

@@ -1,10 +1,17 @@
 {
-    "name": "test",
-    "nGramOrder": 3,
-    "source": "test.txt",
-    "output": "fixtures",
-    "alphabet": ["english", "russian", "numbers", "-."],
-    "separators": ["\n"],
-    "startSymbol": "<S>",
-    "endSymbol": "</S>"
+  "name": "test",
+  "nGramOrder": 3,
+  "source": "test.txt",
+  "output": "fixtures",
+  "alphabet": [
+    "english",
+    "russian",
+    "numbers",
+    "-."
+  ],
+  "separators": [
+    "\n"
+  ],
+  "startSymbol": "<S>",
+  "endSymbol": "</S>"
 }

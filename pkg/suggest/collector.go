@@ -108,7 +108,7 @@ func (m *firstKCollectorManager) Reduce(collectors []Collector) []Candidate {
 
 type fuzzyCollector struct {
 	topKQueue TopKQueue
-	scorer Scorer
+	scorer    Scorer
 }
 
 // Collect collects the given merge candidate

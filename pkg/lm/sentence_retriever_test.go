@@ -16,12 +16,12 @@ func TestSentenceRetrieve(t *testing.T) {
 		{
 			"i wanna rock. hello my friend. what? dab. чтоооо. ты - не я",
 			[]Sentence{
-				Sentence{"i", "wanna", "rock"},
-				Sentence{"hello", "my", "friend"},
-				Sentence{"what"},
-				Sentence{"dab"},
-				Sentence{"чтоооо"},
-				Sentence{"ты", "не", "я"},
+				{"i", "wanna", "rock"},
+				{"hello", "my", "friend"},
+				{"what"},
+				{"dab"},
+				{"чтоооо"},
+				{"ты", "не", "я"},
 			},
 		},
 	}

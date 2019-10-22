@@ -5,6 +5,9 @@ package merger
 
 import "github.com/suggest-go/suggest/pkg/utils"
 
+// MaxOverlap is the largest value of an overlap count for a merge candidate
+const MaxOverlap = 0xFFFF
+
 // ListMerger solves `threshold`-occurrence problem:
 // For given inverted lists find the set of strings ids, that appears at least
 // `threshold` times.
@@ -30,25 +33,27 @@ func (p Rid) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 type MergeCandidate uint64
 
 // NewMergeCandidate creates a new instance of MergeCandidate
-func NewMergeCandidate(position uint32, overlap int) MergeCandidate {
-	return MergeCandidate(utils.Pack(position, uint32(overlap)))
+func NewMergeCandidate(position, overlap uint32) MergeCandidate {
+	return MergeCandidate(utils.Pack(position, overlap))
 }
 
 // Position returns the given position of the candidate
 func (m MergeCandidate) Position() uint32 {
-	position, _ := utils.Unpack(uint64(m))
-	return position
+	return utils.UnpackLeft(uint64(m))
 }
 
 // Overlap returns the current overlap count of the candidate
 func (m MergeCandidate) Overlap() int {
-	_, overlap := utils.Unpack(uint64(m))
-	return int(overlap)
+	return int(utils.UnpackRight(uint64(m)))
 }
 
 // increment increments the overlap value of the candidate
 func (m *MergeCandidate) increment() {
-	*m = NewMergeCandidate(m.Position(), m.Overlap()+1)
+	if overlap := utils.UnpackRight(uint64(*m)); overlap == MaxOverlap {
+		panic("overlap overflow")
+	}
+
+	*m++
 }
 
 // mergerOptimizer internal merger that is aimed to optimize merge workflow

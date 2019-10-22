@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/suggest-go/suggest/pkg/metric"
 	"github.com/suggest-go/suggest/pkg/suggest"
-	"github.com/gorilla/mux"
 )
 
 const (

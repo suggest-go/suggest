@@ -10,4 +10,3 @@ type PostingListContext struct {
 	ListSize int
 	Reader   store.Input
 }
-

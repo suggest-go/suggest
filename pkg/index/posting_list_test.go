@@ -135,9 +135,7 @@ func TestSkipping(t *testing.T) {
 						break
 					}
 
-					v, err = posting.Next()
-
-					if err != nil {
+					if _, err = posting.Next(); err != nil {
 						t.Errorf("Unexpected error: %v", err)
 					}
 				}

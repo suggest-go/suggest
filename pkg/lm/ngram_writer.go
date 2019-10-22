@@ -22,7 +22,7 @@ type NGramWriter interface {
 func NewGoogleNGramWriter(nGramOrder uint8, directory store.Directory) NGramWriter {
 	return &googleNGramFormatWriter{
 		nGramOrder: nGramOrder,
-		directory: directory,
+		directory:  directory,
 	}
 }
 
@@ -30,7 +30,7 @@ func NewGoogleNGramWriter(nGramOrder uint8, directory store.Directory) NGramWrit
 type googleNGramFormatWriter struct {
 	indexer    Indexer
 	nGramOrder uint8
-	directory store.Directory
+	directory  store.Directory
 }
 
 // Write persists the given trie into a storage

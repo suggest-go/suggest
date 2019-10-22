@@ -93,7 +93,7 @@ func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 
 				collector := &fuzzyCollector{
 					topKQueue: queue,
-					scorer: NewMetricScorer(config.metric, sizeA, sizeB),
+					scorer:    NewMetricScorer(config.metric, sizeA, sizeB),
 				}
 
 				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
