@@ -3,12 +3,11 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
-	"strconv"
-
 	"github.com/gorilla/mux"
+	httputil "github.com/suggest-go/suggest/internal/http"
 	"github.com/suggest-go/suggest/pkg/metric"
 	"github.com/suggest-go/suggest/pkg/suggest"
+	"net/http"
 )
 
 const (
@@ -17,6 +16,9 @@ const (
 	dice    = "Dice"
 	exact   = "Exact"
 	overlap = "Overlap"
+
+	defaultSimilarity = 0.5
+	defaultTopK = 5
 )
 
 var metrics map[string]metric.Metric
@@ -41,19 +43,9 @@ func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 	var (
 		vars       = mux.Vars(r)
 		dict       = vars["dict"]
-		query      = vars["query"]
-		metricName = r.FormValue("metric")
-		similarity = r.FormValue("similarity")
-		k          = r.FormValue("topK")
 	)
 
-	i64, err := strconv.ParseInt(k, 10, 0)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	searchConf, err := buildSearchConfig(query, metricName, similarity, int(i64))
+	searchConf, err := buildSearchConfig(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -76,21 +68,34 @@ func (h *suggestHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+
+	if _, err := w.Write(data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // buildSearchConfig builds a search config for the given list of parameters
-func buildSearchConfig(query, metricName, sim string, k int) (suggest.SearchConfig, error) {
-	if _, ok := metrics[metricName]; !ok {
-		return suggest.SearchConfig{}, errors.New("Metric not found")
-	}
-
-	metric := metrics[metricName]
-	similarity, err := strconv.ParseFloat(sim, 64)
+func buildSearchConfig(r *http.Request) (suggest.SearchConfig, error) {
+	vars := mux.Vars(r)
+	topK, err := httputil.FormTopKValue(r, "topK", defaultTopK)
 
 	if err != nil {
 		return suggest.SearchConfig{}, err
 	}
 
-	return suggest.NewSearchConfig(query, k, metric, similarity)
+	metricName := r.FormValue("metric")
+	m, ok := metrics[metricName]
+
+	if !ok {
+		return suggest.SearchConfig{}, errors.New("metric is not found")
+	}
+
+	similarity, err := httputil.FormSimilarityValue(r, "similarity", defaultSimilarity)
+
+	if err != nil {
+		return suggest.SearchConfig{}, err
+	}
+
+	return suggest.NewSearchConfig(vars["query"], topK, m, similarity)
 }

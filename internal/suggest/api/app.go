@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/suggest-go/suggest/internal/http"
 	"io/ioutil"
 	"log"
 	"os"
@@ -79,7 +80,7 @@ func (a App) Run() error {
 
 	handler := handlers.LoggingHandler(os.Stdout, r)
 	handler = handlers.CORS(corsHeaders, corsMethods)(handler)
-	httpServer := newHTTPServer(handler, "0.0.0.0:"+a.config.Port)
+	httpServer := http.NewServer(handler, "0.0.0.0:"+a.config.Port)
 
 	return httpServer.Run(ctx)
 }

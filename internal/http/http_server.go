@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"context"
@@ -7,21 +7,21 @@ import (
 	"time"
 )
 
-type httpServer struct {
+type Server struct {
 	r    http.Handler
 	addr string
 }
 
-// newHttpServer creates new instance of httpServer
-func newHTTPServer(r http.Handler, addr string) *httpServer {
-	return &httpServer{
+// NewServer creates new instance of HttpServer
+func NewServer(r http.Handler, addr string) *Server {
+	return &Server{
 		r:    r,
 		addr: addr,
 	}
 }
 
 // Run starts serving http requests
-func (h *httpServer) Run(ctx context.Context) error {
+func (h *Server) Run(ctx context.Context) error {
 	srv := &http.Server{
 		Addr:         h.addr,
 		WriteTimeout: time.Second * 15,

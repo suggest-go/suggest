@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"github.com/suggest-go/suggest/internal/suggest/api"
 	"log"
 
 	"github.com/spf13/cobra"
-	"github.com/suggest-go/suggest/pkg/cmd/suggest/api"
 )
 
 var (
