@@ -12,7 +12,10 @@ build-suggest:
 build-lm:
 	go build $(BUILD_FLAGS) -o build/lm ./pkg/cmd/language-model/
 
-build: download test vet build-suggest build-lm
+build-spellchecker:
+	go build $(BUILD_FLAGS) -o build/spellchecker ./pkg/cmd/spellchecker/
+
+build: download test vet build-suggest build-lm build-spellchecker
 build-bin: download build-suggest build-lm
 
 build-docker:
