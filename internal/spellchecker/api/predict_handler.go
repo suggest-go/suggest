@@ -2,9 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	_ "github.com/suggest-go/suggest/internal/http"
+	httputil "github.com/suggest-go/suggest/internal/http"
 	"github.com/suggest-go/suggest/pkg/spellchecker"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -19,17 +20,23 @@ func (h *predictHandler) handle(w http.ResponseWriter, r *http.Request) {
 	var (
 		vars  = mux.Vars(r)
 		query = vars["query"]
-		k     = r.FormValue("topK")
 	)
 
-	i64, err := strconv.ParseInt(k, 10, 0)
+	topK, err := httputil.FormTopKValue(r, "topK", 5)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resultItems, err := h.spellchecker.Predict(query, int(i64), 0.3)
+	similarity, err := httputil.FormSimilarityValue(r, "similarity", 0.5)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	resultItems, err := h.spellchecker.Predict(query, topK, similarity)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -44,5 +51,9 @@ func (h *predictHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+
+	if _, err := w.Write(data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

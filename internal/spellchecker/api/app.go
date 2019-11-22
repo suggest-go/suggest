@@ -71,23 +71,6 @@ func (a App) Run() error {
 	return httpServer.Run(ctx)
 }
 
-// configureService tries to retrieve index descriptions and to setup the suggest service
-func (a App) configureService(suggestService *suggest.Service) error {
-	description, err := suggest.ReadConfigs(a.config.ConfigPath)
-
-	if err != nil {
-		return err
-	}
-
-	for _, config := range description {
-		if err := suggestService.AddIndexByDescription(config); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // listenToSystemSignals handles OS signals
 func (a App) listenToSystemSignals(cancelFn context.CancelFunc) {
 	signalChan := make(chan os.Signal, 1)

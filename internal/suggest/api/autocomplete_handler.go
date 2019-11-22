@@ -2,8 +2,8 @@ package api
 
 import (
 	"encoding/json"
+	httputil "github.com/suggest-go/suggest/internal/http"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/suggest-go/suggest/pkg/suggest"
@@ -20,17 +20,16 @@ func (h *autocompleteHandler) handle(w http.ResponseWriter, r *http.Request) {
 		vars  = mux.Vars(r)
 		dict  = vars["dict"]
 		query = vars["query"]
-		k     = r.FormValue("topK")
 	)
 
-	i64, err := strconv.ParseInt(k, 10, 0)
+	topK, err := httputil.FormTopKValue(r, "topK", defaultTopK)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resultItems, err := h.suggestService.Autocomplete(dict, query, int(i64))
+	resultItems, err := h.suggestService.Autocomplete(dict, query, topK)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -45,5 +44,9 @@ func (h *autocompleteHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+
+	if _, err := w.Write(data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
