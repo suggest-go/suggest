@@ -19,6 +19,8 @@ See the [documentation](https://suggest-go.github.io/) with examples demo and AP
 
 ## Demo
 
+#### Fuzzy string search in a dictionary
+
 The [demo](https://suggest-go.github.io/docs/demo/suggest.html) shows approximate string search in a dictionary with more than 200k English words.
 
 You can also run it locally
@@ -36,6 +38,19 @@ $ docker run -p 8080:8080 -v $(pwd)/pkg/suggest/testdata:/data/testdata suggest 
 ```
 
 ![Suggest eval Demo](suggest-eval.gif)
+
+#### Spellchecker
+
+In order to run spellchecker demo for language, do the next
+
+* Download an English [language model](https://app.box.com/s/elogon8jdimqjdvfncr06b0qjngasljc) built on [Blog Authorship Corpus](http://u.cs.biu.ac.il/~koppel/BlogCorpus.htm)
+* Extract downloaded language model and perform
+```
+$ make build
+$ ./build/./spellchecker eval -c lm-folder/config.json
+```
+
+![Spellchecker eval Demo](spellchecker-eval.gif)
 
 ## Contributions
 
