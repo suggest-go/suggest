@@ -162,10 +162,16 @@ func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
 			return err
 		}
 
-		_, _ = tree.Insert(&dictItem{
+		if len(line[:tabIndex]) == 0 {
+			continue
+		}
+
+		item := &dictItem{
 			word:  line[:tabIndex],
 			count: WordCount(count),
-		})
+		}
+
+		_, _ = tree.Insert(item)
 	}
 
 	if err := lineScanner.Err(); err != nil {

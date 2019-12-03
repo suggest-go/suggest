@@ -66,6 +66,7 @@ func (gr *googleNGramFormatReader) readNGramVector(builder NGramVectorBuilder, o
 	for scanner.Scan() {
 		line := scanner.Text()
 		tabIndex := strings.Index(line, "\t")
+		nGrams = nGrams[:0]
 
 		for _, word := range strings.Split(line[:tabIndex], " ") {
 			index, err := gr.indexer.Get(word)
@@ -86,8 +87,6 @@ func (gr *googleNGramFormatReader) readNGramVector(builder NGramVectorBuilder, o
 		if err := builder.Put(nGrams, WordCount(count)); err != nil {
 			return fmt.Errorf("failed to add nGrams to a builder: %v", err)
 		}
-
-		nGrams = nGrams[:0]
 	}
 
 	if err := scanner.Err(); err != nil {
