@@ -13,7 +13,7 @@ type LanguageModel interface {
 	// GetWordID returns id for the given token
 	GetWordID(token Token) (WordID, error)
 	// Next returns the list of candidates for the given sequence
-	Next(sequence []WordID) ([]WordID, error)
+	Next(sequence []WordID) (ScorerNext, error)
 }
 
 // languageModel implements LanguageModel interface
@@ -97,7 +97,7 @@ func (lm *languageModel) GetWordID(token Token) (WordID, error) {
 }
 
 // Next returns the list of next candidates for the given sequence
-func (lm *languageModel) Next(sequence []WordID) ([]WordID, error) {
+func (lm *languageModel) Next(sequence []WordID) (ScorerNext, error) {
 	nGramOrder := int(lm.config.NGramOrder)
 
 	if len(sequence)+1 < nGramOrder {

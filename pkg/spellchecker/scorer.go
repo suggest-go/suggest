@@ -9,8 +9,7 @@ import (
 
 // lmScorer implements the scorer interface
 type lmScorer struct {
-	model    lm.LanguageModel
-	sentence []lm.WordID
+	scorer  lm.ScorerNext
 }
 
 // Score returns the score of the given position
@@ -20,7 +19,7 @@ func (s *lmScorer) Score(candidate merger.MergeCandidate) float64 {
 
 // score returns the lm score for the given word ID
 func (s *lmScorer) score(id lm.WordID) float64 {
-	return s.model.ScoreWordIDs(append(s.sentence, id))
+	return s.scorer.ScoreNext(id)
 }
 
 // sortCandidates performs sort of the given candidates using lm

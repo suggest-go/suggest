@@ -28,8 +28,8 @@ type NGramVector interface {
 	GetContextOffset(word WordID, context ContextOffset) ContextOffset
 	// CorpusCount returns size of all counts in the collection
 	CorpusCount() WordCount
-	// Next returns next words for the given context
-	Next(context ContextOffset) []WordID
+	// SubVector returns NGramVector for the given context
+	SubVector(context ContextOffset) NGramVector
 }
 
 const (
@@ -65,6 +65,7 @@ func (s *sortedArray) GetCount(word WordID, context ContextOffset) (WordCount, C
 // GetContextOffset returns the given node context offset
 func (s *sortedArray) GetContextOffset(word WordID, context ContextOffset) ContextOffset {
 	key := makeKey(word, context)
+
 	return s.find(key)
 }
 
@@ -73,23 +74,24 @@ func (s *sortedArray) CorpusCount() WordCount {
 	return s.total
 }
 
-// Next returns next words for the given context
-func (s *sortedArray) Next(context ContextOffset) []WordID {
+// SubVector returns NGramVector for the given context
+func (s *sortedArray) SubVector(context ContextOffset) NGramVector {
 	minChild := makeKey(0, context)
 	maxChild := makeKey(maxContextOffset-2, context)
 
 	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= minChild })
-	var words []WordID
 
 	if i < 0 || i >= len(s.keys) {
-		return words
+		return nil
 	}
 
-	for ; s.keys[i] <= maxChild; i++ {
-		words = append(words, getWordID(s.keys[i]))
-	}
+	j := sort.Search(len(s.keys)-i, func(j int) bool { return s.keys[j+i] >= maxChild })
 
-	return words
+	return &sortedArray{
+		keys:   s.keys[i:i+j],
+		values: s.values[i:i+j],
+		total:  s.total,
+	}
 }
 
 // MarshalBinary encodes the receiver into a binary form and returns the result.
@@ -163,6 +165,10 @@ func (s *sortedArray) UnmarshalBinary(data []byte) error {
 
 // find finds the given key in the collection. Returns ContextOffset if the key exists, otherwise returns InvalidContextOffset
 func (s *sortedArray) find(key uint64) ContextOffset {
+	if len(s.keys) == 0 || s.keys[0] > key || s.keys[len(s.keys) - 1] < key {
+		return InvalidContextOffset
+	}
+
 	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= key })
 
 	if i < 0 || i >= len(s.keys) || s.keys[i] != key {

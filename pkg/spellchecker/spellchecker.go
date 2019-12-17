@@ -74,8 +74,10 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 		candidates = merge(candidates, fuzzyCandidates)
 	}
 
-	if len(seq) > 0 {
-		sortCandidates(collectorManager.scorer, candidates)
+	scorer, ok := collectorManager.scorer.(*lmScorer)
+
+	if len(seq) > 0 && ok {
+		sortCandidates(scorer, candidates)
 	}
 
 	result := make([]string, 0, len(candidates))
@@ -101,23 +103,25 @@ func (s *SpellChecker) createCollectorManager(seq []string, topK int) (*lmCollec
 		return nil, err
 	}
 
-	next := []lm.WordID{}
+	var scorer suggest.Scorer
 
 	if len(seqIds) > 0 {
-		next, err = s.model.Next(seqIds)
+		next, err := s.model.Next(seqIds)
 
 		if err != nil {
 			return nil, err
 		}
+
+		if next != nil {
+			scorer = &lmScorer{
+				scorer: next,
+			}
+		}
 	}
 
 	return &lmCollectorManager{
-		topK: topK,
-		scorer: &lmScorer{
-			model:    s.model,
-			sentence: seqIds,
-		},
-		next: next,
+		topK:   topK,
+		scorer: scorer,
 	}, nil
 }
 
