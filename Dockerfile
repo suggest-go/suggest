@@ -9,7 +9,7 @@ COPY . /data
 WORKDIR /data
 
 # Build binaries
-RUN CGO_ENABLED=0 make build-bin BUILD_FLAGS='-ldflags="-w -s"'
+RUN CGO_ENABLED=0 make build BUILD_FLAGS='-ldflags="-w -s"'
 
 FROM scratch
 

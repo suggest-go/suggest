@@ -7,6 +7,7 @@ require (
 	github.com/alldroll/cdb v1.0.2
 	github.com/alldroll/go-datastructures v0.0.0-20190322060030-1d3a19ff3b29
 	github.com/djimenez/iconv-go v0.0.0-20160305225143-8960e66bd3da
+	github.com/dvyukov/go-fuzz v0.0.0-20191206100749-a378175e205c // indirect
 	github.com/edsrzf/mmap-go v0.0.0-20190108065903-904c4ced31cd
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.1

@@ -1,13 +1,43 @@
 language: go
+sudo: false
 
 go:
- - "1.12.x"
+- 1.12.x
+- 1.13.x
+- tip
+
+env:
+  global:
+    - GO111MODULE=on
 
 script:
-  - env GO111MODULE=on make download
-  - env GO111MODULE=on make test
   - make vet
+  - GOARCH=arm64 make test
+  - GOARCH=arm64 make build
+  - GOARCH=386 make test
+  - GOARCH=386 make build
+  - GOARCH=arm make test
+  - GOARCH=arm make build
+
+jobs:
+  include:
+    - stage: fuzzit
+      os:
+        - linux
+      go:
+        - 1.13
+      script:
+        - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then ./fuzzit.sh fuzzing; fi
+        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then ./fuzzit.sh local-regression; fi
 
 notifications:
   email:
     - alldroll@gmail.com
+
+# Docker is required for fuzzit regression tests
+services:
+  - docker
+
+matrix:
+  allow_failures:
+    - go: tip
