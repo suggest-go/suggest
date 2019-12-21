@@ -21,7 +21,7 @@ See the [documentation](https://suggest-go.github.io/) with examples demo and AP
 
 #### Fuzzy string search in a dictionary
 
-The [demo](https://suggest-go.github.io/docs/demo/suggest.html) shows approximate string search in a dictionary with more than 200k English words.
+The [demo](https://suggest-go.github.io/docs/demo/suggest-words.html) shows approximate string search in a dictionary with more than 200k English words.
 
 You can also run it locally
 
