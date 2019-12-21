@@ -13,7 +13,7 @@ type NGramModel interface {
 	// Score returns a lm value of the given sequence of WordID
 	Score(nGrams []WordID) float64
 	// Next returns a list of WordID which follow after the given sequence of nGrams
-	Next(nGrams []WordID) ([]WordID, error)
+	Next(nGrams []WordID) (ScorerNext, error)
 }
 
 const (
@@ -61,12 +61,13 @@ func (m *nGramModel) Score(nGrams []WordID) float64 {
 }
 
 // Next returns a list of WordID where each candidate follows after the given sequence of nGrams
-func (m *nGramModel) Next(nGrams []WordID) ([]WordID, error) {
-	if int(m.nGramOrder) <= len(nGrams) {
+func (m *nGramModel) Next(nGrams []WordID) (ScorerNext, error) {
+	if int(m.nGramOrder) <= len(nGrams) || len(nGrams) == 0 {
 		return nil, errors.New("nGrams length should be less than the nGramModel order")
 	}
 
 	order := 0
+	counts := make([]WordCount, 0, len(nGrams))
 	count := WordCount(0)
 	parent := InvalidContextOffset
 
@@ -75,11 +76,23 @@ func (m *nGramModel) Next(nGrams []WordID) ([]WordID, error) {
 		count, parent = vector.GetCount(nGrams[order], parent)
 
 		if count == 0 {
-			return []WordID{}, nil
+			return nil, nil
 		}
+
+		counts = append(counts, count)
 	}
 
-	return m.indices[order].Next(parent), nil
+	subVector := m.indices[order].SubVector(parent)
+
+	if subVector == nil {
+		return nil, nil
+	}
+
+	return &scorerNext{
+		contextCounts: counts,
+		nGramVector: subVector,
+		context: parent,
+	}, nil
 }
 
 // MarshalBinary encodes the receiver into a binary form and returns the result.
