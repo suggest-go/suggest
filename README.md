@@ -5,6 +5,7 @@ Library for Top-k Approximate String Matching, autocomplete and spell checking.
 [![Build Status](https://travis-ci.com/suggest-go/suggest.svg?branch=master)](https://travis-ci.com/suggest-go/suggest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/suggest-go/suggest)](https://goreportcard.com/report/github.com/suggest-go/suggest)
 [![GoDoc](https://godoc.org/github.com/suggest-go/suggest?status.svg)](https://godoc.org/github.com/suggest-go/suggest)
+[![fuzzit](https://app.fuzzit.dev/badge?org_id=suggest-go-gh)](https://app.fuzzit.dev/orgs/suggest-go-gh/dashboard)
 
 The library was mostly inspired by
 - http://www.chokkan.org/software/simstring/
