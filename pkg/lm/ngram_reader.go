@@ -43,7 +43,7 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 		builder := NewNGramVectorBuilder(vectors)
 
 		if err := gr.readNGramVector(builder, i+1); err != nil {
-			return nil, fmt.Errorf("failed to read %d ngram vector: %v", i+1, err)
+			return nil, fmt.Errorf("failed to read %d ngram vector: %w", i+1, err)
 		}
 
 		vectors = append(vectors, builder.Build())
@@ -57,7 +57,7 @@ func (gr *googleNGramFormatReader) readNGramVector(builder NGramVectorBuilder, o
 	in, err := gr.directory.OpenInput(fmt.Sprintf(fileFormat, order))
 
 	if err != nil {
-		return fmt.Errorf("failed to open a ngram input: %v", err)
+		return fmt.Errorf("failed to open a ngram input: %w", err)
 	}
 
 	nGrams := make([]WordID, 0, order)
@@ -81,16 +81,16 @@ func (gr *googleNGramFormatReader) readNGramVector(builder NGramVectorBuilder, o
 		count, err := strconv.ParseUint(line[tabIndex+1:], 10, 32)
 
 		if err != nil {
-			return fmt.Errorf("ngram file is corrupted, expected number: %v", err)
+			return fmt.Errorf("ngram file is corrupted, expected number: %w", err)
 		}
 
 		if err := builder.Put(nGrams, WordCount(count)); err != nil {
-			return fmt.Errorf("failed to add nGrams to a builder: %v", err)
+			return fmt.Errorf("failed to add nGrams to a builder: %w", err)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("failed to scan ngram file format: %v", err)
+		return fmt.Errorf("failed to scan ngram file format: %w", err)
 	}
 
 	return nil

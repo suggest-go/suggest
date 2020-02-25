@@ -41,7 +41,7 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) error {
 		out, err := gw.directory.CreateOutput(fmt.Sprintf(fileFormat, i+1))
 
 		if err != nil {
-			return fmt.Errorf("failed to create an output: %v", err)
+			return fmt.Errorf("failed to create an output: %w", err)
 		}
 
 		outs[i] = out
@@ -55,7 +55,7 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) error {
 		joined := strings.Join(nGrams, " ")
 
 		if _, err := fmt.Fprintf(outs[len(nGrams)-1], nGramFormat, joined, count); err != nil {
-			return fmt.Errorf("failed to print nGrams: %v", err)
+			return fmt.Errorf("failed to print nGrams: %w", err)
 		}
 
 		return nil
@@ -67,7 +67,7 @@ func (gw *googleNGramFormatWriter) Write(trie CountTrie) error {
 
 	for _, out := range outs {
 		if err := out.Close(); err != nil {
-			return fmt.Errorf("failed to close an output: %v", err)
+			return fmt.Errorf("failed to close an output: %w", err)
 		}
 	}
 

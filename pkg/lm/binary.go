@@ -31,27 +31,27 @@ func StoreBinaryLMFromGoogleFormat(directory store.Directory, config *Config) er
 	model, err := reader.Read()
 
 	if err != nil {
-		return fmt.Errorf("couldn't read ngrams: %v", err)
+		return fmt.Errorf("couldn't read ngrams: %w", err)
 	}
 
 	out, err := directory.CreateOutput(config.GetBinaryPath())
 
 	if err != nil {
-		return fmt.Errorf("failed to create a binary file: %v", err)
+		return fmt.Errorf("failed to create a binary file: %w", err)
 	}
 
 	enc := gob.NewEncoder(out)
 
 	if err := enc.Encode(&model); err != nil {
-		return fmt.Errorf("failed to encode NGramModel in the binary format: %v", err)
+		return fmt.Errorf("failed to encode NGramModel in the binary format: %w", err)
 	}
 
 	if _, err := table.Store(out); err != nil {
-		return fmt.Errorf("failed to encode MPH in the binary format: %v", err)
+		return fmt.Errorf("failed to encode MPH in the binary format: %w", err)
 	}
 
 	if err := out.Close(); err != nil {
-		return fmt.Errorf("failed to close a binary output: %v", err)
+		return fmt.Errorf("failed to close a binary output: %w", err)
 	}
 
 	return nil
@@ -68,7 +68,7 @@ func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageMo
 	in, err := directory.OpenInput(config.GetBinaryPath())
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to open the lm binary file: %v", err)
+		return nil, fmt.Errorf("failed to open the lm binary file: %w", err)
 	}
 
 	var (
@@ -86,7 +86,7 @@ func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageMo
 	}
 
 	if err := in.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close a binary input: %v", err)
+		return nil, fmt.Errorf("failed to close a binary input: %w", err)
 	}
 
 	return NewLanguageModel(model, NewIndexer(dict, table), config)
@@ -115,7 +115,7 @@ func newDictionaryReader(directory store.Directory) (dictionary.Iterable, error)
 	in, err := directory.OpenInput(fmt.Sprintf(fileFormat, 1))
 
 	if err != nil {
-		return nil, fmt.Errorf("could not open a source file %s", err)
+		return nil, fmt.Errorf("could not open a source file %w", err)
 	}
 
 	return &dictionaryReader{
@@ -182,12 +182,12 @@ func (dr *dictionaryReader) Iterate(iterator dictionary.Iterator) error {
 		item := iter.Get().(*dictItem)
 
 		if err := iterator(docID, item.word); err != nil {
-			return fmt.Errorf("failed to iterate through dictionary: %v", err)
+			return fmt.Errorf("failed to iterate through dictionary: %w", err)
 		}
 	}
 
 	if err := dr.in.Close(); err != nil {
-		return fmt.Errorf("failed to close a dictionary input: %v", err)
+		return fmt.Errorf("failed to close a dictionary input: %w", err)
 	}
 
 	return nil
@@ -198,7 +198,7 @@ func buildMPH(dict dictionary.Dictionary) (mph.MPH, error) {
 	table := mph.New()
 
 	if err := table.Build(dict); err != nil {
-		return nil, fmt.Errorf("failed to build a mph table: %v", err)
+		return nil, fmt.Errorf("failed to build a mph table: %w", err)
 	}
 
 	return table, nil

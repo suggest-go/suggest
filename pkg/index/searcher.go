@@ -53,7 +53,7 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 		postingListContext, err := invertedIndex.Get(term)
 
 		if err != nil {
-			return fmt.Errorf("failed to retrieve a posting list context: %v", err)
+			return fmt.Errorf("failed to retrieve a posting list context: %w", err)
 		}
 
 		list := resolvePostingList(postingListContext)
@@ -65,14 +65,14 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 		}(list)
 
 		if err := list.Init(postingListContext); err != nil {
-			return fmt.Errorf("failed to initialize a posting list iterator: %v", err)
+			return fmt.Errorf("failed to initialize a posting list iterator: %w", err)
 		}
 
 		rid = append(rid, list)
 	}
 
 	if err := s.merger.Merge(rid, threshold, collector); err != nil {
-		return fmt.Errorf("failed to merge posting lists: %v", err)
+		return fmt.Errorf("failed to merge posting lists: %w", err)
 	}
 
 	return nil

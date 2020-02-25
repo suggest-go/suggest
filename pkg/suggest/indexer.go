@@ -20,7 +20,7 @@ func Index(
 	encoder, err := index.NewEncoder()
 
 	if err != nil {
-		return fmt.Errorf("failed to create Encoder: %v", err)
+		return fmt.Errorf("failed to create Encoder: %w", err)
 	}
 
 	indexWriter := index.NewIndexWriter(

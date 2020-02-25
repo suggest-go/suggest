@@ -34,13 +34,13 @@ func NewLanguageModel(
 	startSymbol, err := indexer.Get(config.StartSymbol)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get wordID of startSymbol: %v", err)
+		return nil, fmt.Errorf("failed to get wordID of startSymbol: %w", err)
 	}
 
 	endSymbol, err := indexer.Get(config.EndSymbol)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get wordID of endSymbol: %v", err)
+		return nil, fmt.Errorf("failed to get wordID of endSymbol: %w", err)
 	}
 
 	return &languageModel{

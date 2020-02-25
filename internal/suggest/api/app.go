@@ -49,7 +49,7 @@ func (a App) Run() error {
 	}
 
 	if err := reindexJob(); err != nil {
-		return fmt.Errorf("Fail to configure service: %s", err)
+		return fmt.Errorf("Fail to configure service: %w", err)
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -93,13 +93,13 @@ func (a App) writePIDFile() error {
 
 	err := os.MkdirAll(filepath.Dir(a.config.PidPath), 0700)
 	if err != nil {
-		return fmt.Errorf("There is no such file for %s, %s", a.config.PidPath, err)
+		return fmt.Errorf("There is no such file for %s, %w", a.config.PidPath, err)
 	}
 
 	// Retrieve the PID and write it.
 	pid := strconv.Itoa(os.Getpid())
 	if err := ioutil.WriteFile(a.config.PidPath, []byte(pid), 0644); err != nil {
-		return fmt.Errorf("Fail to write pid file to %s, %s", a.config.PidPath, err)
+		return fmt.Errorf("Fail to write pid file to %s, %w", a.config.PidPath, err)
 	}
 
 	return nil

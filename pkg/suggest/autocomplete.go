@@ -52,12 +52,12 @@ func (n *nGramAutocomplete) Autocomplete(query string, collectorManager Collecto
 		collector, err := collectorManager.Create()
 
 		if err != nil {
-			return nil, fmt.Errorf("failed to create a collector: %v", err)
+			return nil, fmt.Errorf("failed to create a collector: %w", err)
 		}
 
 		workerPool.Go(func() error {
 			if err = n.searcher.Search(invertedIndex, set, lenSet, collector); err != nil {
-				return fmt.Errorf("failed to search posting lists: %v", err)
+				return fmt.Errorf("failed to search posting lists: %w", err)
 			}
 
 			return nil

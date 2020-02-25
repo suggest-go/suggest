@@ -79,7 +79,7 @@ func (m *mph) Build(dict dictionary.Dictionary) error {
 			value, err := dict.Get(bucket[item])
 
 			if err != nil {
-				return fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
+				return fmt.Errorf("Failed to get bucket's key from the dictionary: %w", err)
 			}
 
 			slot := hash(d, value) % size
@@ -97,7 +97,7 @@ func (m *mph) Build(dict dictionary.Dictionary) error {
 		val, err := dict.Get(bucket[0])
 
 		if err != nil {
-			return fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
+			return fmt.Errorf("Failed to get bucket's key from the dictionary: %w", err)
 		}
 
 		auxiliary[hash(0, val)%size] = int32(d)
@@ -130,7 +130,7 @@ func (m *mph) Build(dict dictionary.Dictionary) error {
 		val, err := dict.Get(bucket[0])
 
 		if err != nil {
-			return fmt.Errorf("Failed to get bucket's key from the dictionary: %v", err)
+			return fmt.Errorf("Failed to get bucket's key from the dictionary: %w", err)
 		}
 
 		// We subtract one to ensure it's negative even if the zeroeth slot was
@@ -161,7 +161,7 @@ func (m *mph) Store(out store.Output) (int, error) {
 	n, err := out.WriteUInt32(uint32(len(m.values)))
 
 	if err != nil {
-		return n, fmt.Errorf("failed to write the length of values: %v", err)
+		return n, fmt.Errorf("failed to write the length of values: %w", err)
 	}
 
 	for _, v := range m.values {
@@ -169,7 +169,7 @@ func (m *mph) Store(out store.Output) (int, error) {
 		n += s
 
 		if err != nil {
-			return n, fmt.Errorf("failed to write a value: %v", err)
+			return n, fmt.Errorf("failed to write a value: %w", err)
 		}
 	}
 
@@ -177,7 +177,7 @@ func (m *mph) Store(out store.Output) (int, error) {
 	n += s
 
 	if err != nil {
-		return n, fmt.Errorf("failed to write the length of auxiliary: %v", err)
+		return n, fmt.Errorf("failed to write the length of auxiliary: %w", err)
 	}
 
 	for _, v := range m.auxiliary {
@@ -185,7 +185,7 @@ func (m *mph) Store(out store.Output) (int, error) {
 		n += s
 
 		if err != nil {
-			return n, fmt.Errorf("failed to writer a value: %v", err)
+			return n, fmt.Errorf("failed to writer a value: %w", err)
 		}
 	}
 
@@ -197,7 +197,7 @@ func (m *mph) Load(in store.Input) (int, error) {
 	n, err := in.ReadUInt32()
 
 	if err != nil {
-		return 0, fmt.Errorf("failed to read the length of values: %v", err)
+		return 0, fmt.Errorf("failed to read the length of values: %w", err)
 	}
 
 	m.values = make([]dictionary.Key, n)
@@ -206,7 +206,7 @@ func (m *mph) Load(in store.Input) (int, error) {
 		v, err := in.ReadUInt32()
 
 		if err != nil {
-			return 0, fmt.Errorf("failed to read a value: %v", err)
+			return 0, fmt.Errorf("failed to read a value: %w", err)
 		}
 
 		m.values[i] = v
@@ -215,7 +215,7 @@ func (m *mph) Load(in store.Input) (int, error) {
 	s, err := in.ReadUInt32()
 
 	if err != nil {
-		return 0, fmt.Errorf("failed to read the length of auxiliary: %v", err)
+		return 0, fmt.Errorf("failed to read the length of auxiliary: %w", err)
 	}
 
 	m.auxiliary = make([]int32, s)
@@ -224,7 +224,7 @@ func (m *mph) Load(in store.Input) (int, error) {
 		v, err := in.ReadUInt32()
 
 		if err != nil {
-			return 0, fmt.Errorf("failed to read a value: %v", err)
+			return 0, fmt.Errorf("failed to read a value: %w", err)
 		}
 
 		m.auxiliary[i] = int32(v)

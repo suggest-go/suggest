@@ -3,16 +3,17 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/suggest-go/suggest/internal/http"
 	"github.com/suggest-go/suggest/internal/spellchecker/dep"
 	"github.com/suggest-go/suggest/pkg/lm"
 	"github.com/suggest-go/suggest/pkg/suggest"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 // App is our application
@@ -22,9 +23,9 @@ type App struct {
 
 // AppConfig is an application config
 type AppConfig struct {
-	Port       string
-	ConfigPath string
-	PidPath    string
+	Port             string
+	ConfigPath       string
+	PidPath          string
 	IndexDescription suggest.IndexDescription
 }
 
@@ -41,7 +42,7 @@ func (a App) Run() error {
 	config, err := lm.ReadConfig(a.config.ConfigPath)
 
 	if err != nil {
-		return fmt.Errorf("failed to read config file: %v", err)
+		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	spellchecker, err := dep.BuildSpellChecker(config, a.config.IndexDescription)
