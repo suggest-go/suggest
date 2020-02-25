@@ -82,7 +82,7 @@ func configureService() (*suggest.Service, error) {
 	description, err := suggest.ReadConfigs(configPath)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read configs: %v", err)
+		return nil, fmt.Errorf("Failed to read configs: %w", err)
 	}
 
 	suggestService := suggest.NewService()

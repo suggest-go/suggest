@@ -45,13 +45,13 @@ func (s *Service) AddRunTimeIndex(description IndexDescription) error {
 	dict, err := dictionary.OpenRAMDictionary(description.GetSourcePath())
 
 	if err != nil {
-		return fmt.Errorf("failed to create RAMDriver builder: %v", err)
+		return fmt.Errorf("failed to create RAMDriver builder: %w", err)
 	}
 
 	builder, err := NewRAMBuilder(dict, description)
 
 	if err != nil {
-		return fmt.Errorf("failed to create RAMDriver builder: %v", err)
+		return fmt.Errorf("failed to create RAMDriver builder: %w", err)
 	}
 
 	return s.AddIndex(description.Name, dict, builder)
@@ -62,13 +62,13 @@ func (s *Service) AddOnDiscIndex(description IndexDescription) error {
 	dict, err := dictionary.OpenCDBDictionary(description.GetDictionaryFile())
 
 	if err != nil {
-		return fmt.Errorf("failed to create CDB dictionary: %v", err)
+		return fmt.Errorf("failed to create CDB dictionary: %w", err)
 	}
 
 	builder, err := NewFSBuilder(description)
 
 	if err != nil {
-		return fmt.Errorf("failed to open FS inverted index: %v", err)
+		return fmt.Errorf("failed to open FS inverted index: %w", err)
 	}
 
 	return s.AddIndex(description.Name, dict, builder)
@@ -79,7 +79,7 @@ func (s *Service) AddIndex(name string, dict dictionary.Dictionary, builder Buil
 	nGramIndex, err := builder.Build()
 
 	if err != nil {
-		return fmt.Errorf("failed to build NGramIndex: %v", err)
+		return fmt.Errorf("failed to build NGramIndex: %w", err)
 	}
 
 	s.Lock()

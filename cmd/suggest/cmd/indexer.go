@@ -89,7 +89,7 @@ func readConfigs() ([]suggest.IndexDescription, error) {
 	configs, err := suggest.ReadConfigs(configPath)
 
 	if err != nil {
-		return nil, fmt.Errorf("invalid config file format %s", err)
+		return nil, fmt.Errorf("invalid config file format %w", err)
 	}
 
 	return configs, nil
@@ -111,7 +111,7 @@ func indexJob(description suggest.IndexDescription) error {
 	dict, err := buildDictionaryJob(description)
 
 	if err != nil {
-		return fmt.Errorf("failed to build a dictionary: %v", err)
+		return fmt.Errorf("failed to build a dictionary: %w", err)
 	}
 
 	log.Printf("Time spent %s", time.Since(start))
@@ -123,7 +123,7 @@ func indexJob(description suggest.IndexDescription) error {
 	directory, err := store.NewFSDirectory(description.GetIndexPath())
 
 	if err != nil {
-		return fmt.Errorf("failed to create a directory: %v", err)
+		return fmt.Errorf("failed to create a directory: %w", err)
 	}
 
 	if err = suggest.Index(directory, dict, description.GetWriterConfig(), description.GetIndexTokenizer()); err != nil {
@@ -179,7 +179,7 @@ func newDictionaryReader(config suggest.IndexDescription) (dictionary.Iterable, 
 	f, err := os.Open(config.GetSourcePath())
 
 	if err != nil {
-		return nil, fmt.Errorf("could not open a source file %s", err)
+		return nil, fmt.Errorf("could not open a source file %w", err)
 	}
 
 	scanner := bufio.NewScanner(f)
@@ -194,17 +194,17 @@ func tryToSendReindexSignal() error {
 	d, err := ioutil.ReadFile(pidPath)
 
 	if err != nil {
-		return fmt.Errorf("error parsing pid from %s: %s", pidPath, err)
+		return fmt.Errorf("error parsing pid from %s: %w", pidPath, err)
 	}
 
 	pid, err := strconv.Atoi(string(bytes.TrimSpace(d)))
 
 	if err != nil {
-		return fmt.Errorf("error parsing pid from %s: %s", pidPath, err)
+		return fmt.Errorf("error parsing pid from %s: %w", pidPath, err)
 	}
 
 	if err := syscall.Kill(pid, syscall.SIGHUP); err != nil {
-		return fmt.Errorf("fail to send reindex signal to %d, %s", pid, err)
+		return fmt.Errorf("fail to send reindex signal to %d, %w", pid, err)
 	}
 
 	return nil
@@ -215,14 +215,14 @@ func tryToSendReindexRequest() error {
 	resp, err := http.Post(host, "text/plain", nil)
 
 	if err != nil {
-		return fmt.Errorf("fail to send reindex request to %s, %s", host, err)
+		return fmt.Errorf("fail to send reindex request to %s, %w", host, err)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		return fmt.Errorf("fail to read response body %s", err)
+		return fmt.Errorf("fail to read response body %w", err)
 	}
 
 	if string(body) != "OK" {

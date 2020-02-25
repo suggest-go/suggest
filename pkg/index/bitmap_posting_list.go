@@ -87,7 +87,7 @@ func (i *bitmapPostingList) Init(context PostingListContext) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to create bitmap: %v", err)
+		return fmt.Errorf("failed to create bitmap: %w", err)
 	}
 
 	iterator := i.bitmap.Iterator()

@@ -53,7 +53,7 @@ func (m *nGramVectorBuilder) Put(nGrams []WordID, count WordCount) error {
 				(prev.(*nGramNode)).value += count
 			} else {
 				if _, err := m.tree.Insert(node); err != nil {
-					return fmt.Errorf("failed to insert the node: %v", err)
+					return fmt.Errorf("failed to insert the node: %w", err)
 				}
 			}
 		} else {

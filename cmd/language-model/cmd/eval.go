@@ -23,13 +23,13 @@ var evalCmd = &cobra.Command{
 		config, err := lm.ReadConfig(configPath)
 
 		if err != nil {
-			return fmt.Errorf("failed to read config file: %v", err)
+			return fmt.Errorf("failed to read config file: %w", err)
 		}
 
 		directory, err := store.NewFSDirectory(config.GetOutputPath())
 
 		if err != nil {
-			return fmt.Errorf("failed to create a fs directory: %v", err)
+			return fmt.Errorf("failed to create a fs directory: %w", err)
 		}
 
 		languageModel, err := lm.RetrieveLMFromBinary(directory, config)

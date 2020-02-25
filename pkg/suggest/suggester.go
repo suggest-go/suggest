@@ -97,7 +97,7 @@ func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 				}
 
 				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
-					return fmt.Errorf("failed to search posting lists: %v", err)
+					return fmt.Errorf("failed to search posting lists: %w", err)
 				}
 
 				lock.Lock()

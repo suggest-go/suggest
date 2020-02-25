@@ -28,7 +28,7 @@ func NewRAMBuilder(dict dictionary.Dictionary, description IndexDescription) (Bu
 	directory := store.NewRAMDirectory()
 
 	if err := Index(directory, dict, description.GetWriterConfig(), description.GetIndexTokenizer()); err != nil {
-		return nil, fmt.Errorf("failed to create a ram search index: %v", err)
+		return nil, fmt.Errorf("failed to create a ram search index: %w", err)
 	}
 
 	return NewBuilder(directory, description)
@@ -39,7 +39,7 @@ func NewFSBuilder(description IndexDescription) (Builder, error) {
 	directory, err := store.NewFSDirectory(description.GetIndexPath())
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create a fs directory: %v", err)
+		return nil, fmt.Errorf("failed to create a fs directory: %w", err)
 	}
 
 	return NewBuilder(directory, description)
@@ -61,7 +61,7 @@ func (b *builderImpl) Build() (NGramIndex, error) {
 	invertedIndices, err := b.indexReader.Read()
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to build NGramIndex: %v", err)
+		return nil, fmt.Errorf("failed to build NGramIndex: %w", err)
 	}
 
 	suggester := NewSuggester(

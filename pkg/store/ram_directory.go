@@ -30,7 +30,7 @@ func (rd *ramDirectory) CreateOutput(name string) (Output, error) {
 // OpenInput returns a reader for the given name
 func (rd *ramDirectory) OpenInput(name string) (Input, error) {
 	if _, ok := rd.files[name]; !ok {
-		return nil, fmt.Errorf("Failed to open input reader: there is no such input with the name %v", name)
+		return nil, fmt.Errorf("Failed to open input reader: there is no such input with the name %w", name)
 	}
 
 	data := rd.files[name].Bytes()

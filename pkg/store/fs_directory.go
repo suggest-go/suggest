@@ -24,7 +24,7 @@ func NewFSDirectory(path string) (Directory, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to receive stat for the path %v", err)
+		return nil, fmt.Errorf("Failed to receive stat for the path %w", err)
 	}
 
 	if !stat.IsDir() {
@@ -45,7 +45,7 @@ func (fs *fsDirectory) CreateOutput(name string) (Output, error) {
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create output: %v", err)
+		return nil, fmt.Errorf("Failed to create output: %w", err)
 	}
 
 	return NewBytesOutput(bufio.NewWriter(file)), nil
@@ -56,13 +56,13 @@ func (fs *fsDirectory) OpenInput(name string) (Input, error) {
 	file, err := utils.NewMMapReader(fs.path + "/" + name)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open input: %v", err)
+		return nil, fmt.Errorf("Failed to open input: %w", err)
 	}
 
 	data, err := file.Bytes()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch content: %v", err)
+		return nil, fmt.Errorf("Failed to fetch content: %w", err)
 	}
 
 	input := NewBytesInput(data)

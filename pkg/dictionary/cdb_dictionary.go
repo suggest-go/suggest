@@ -19,7 +19,7 @@ func NewCDBDictionary(r io.ReaderAt) (Dictionary, error) {
 	reader, err := handle.GetReader(r)
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to create cdb dictionary: %v", err)
+		return nil, fmt.Errorf("fail to create cdb dictionary: %w", err)
 	}
 
 	return &cdbDictionary{

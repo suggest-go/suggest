@@ -19,13 +19,13 @@ var buildLMCmd = &cobra.Command{
 		config, err := lm.ReadConfig(configPath)
 
 		if err != nil {
-			return fmt.Errorf("couldn't read a config %v", err)
+			return fmt.Errorf("couldn't read a config %w", err)
 		}
 
 		directory, err := store.NewFSDirectory(config.GetOutputPath())
 
 		if err != nil {
-			return fmt.Errorf("failed to create a fs directory: %v", err)
+			return fmt.Errorf("failed to create a fs directory: %w", err)
 		}
 
 		return lm.StoreBinaryLMFromGoogleFormat(directory, config)

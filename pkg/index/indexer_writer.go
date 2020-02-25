@@ -90,7 +90,7 @@ func (iw *Writer) Commit() error {
 	documentWriter, err := iw.directory.CreateOutput(iw.config.DocumentListFileName)
 
 	if err != nil {
-		return fmt.Errorf("failed to create document list: %v", err)
+		return fmt.Errorf("failed to create document list: %w", err)
 	}
 
 	// mapValueOffset stores current posting list offset
@@ -138,7 +138,7 @@ func (iw *Writer) Commit() error {
 	}
 
 	if err = documentWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close document list: %v", err)
+		return fmt.Errorf("failed to close document list: %w", err)
 	}
 
 	return nil
@@ -149,18 +149,18 @@ func (iw *Writer) writeHeader(header header) error {
 	headerWriter, err := iw.directory.CreateOutput(iw.config.HeaderFileName)
 
 	if err != nil {
-		return fmt.Errorf("failed to create header: %v", err)
+		return fmt.Errorf("failed to create header: %w", err)
 	}
 
 	encoder := gob.NewEncoder(headerWriter)
 	err = encoder.Encode(header)
 
 	if err != nil {
-		return fmt.Errorf("failed to encode header: %v", err)
+		return fmt.Errorf("failed to encode header: %w", err)
 	}
 
 	if err = headerWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close header file: %v", err)
+		return fmt.Errorf("failed to close header file: %w", err)
 	}
 
 	return nil

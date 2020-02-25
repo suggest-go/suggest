@@ -15,7 +15,7 @@ func OpenCDBDictionary(path string) (Dictionary, error) {
 	dictionaryFile, err := utils.NewMMapReader(path)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to open cdb dictionary file: %v", err)
+		return nil, fmt.Errorf("failed to open cdb dictionary file: %w", err)
 	}
 
 	return NewCDBDictionary(dictionaryFile)
@@ -26,7 +26,7 @@ func OpenRAMDictionary(path string) (dict Dictionary, err error) {
 	dictionaryFile, err := os.Open(path)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to open dictionary file: %v", err)
+		return nil, fmt.Errorf("failed to open dictionary file: %w", err)
 	}
 
 	defer func() {
@@ -57,14 +57,14 @@ func BuildCDBDictionary(iterator Iterable, destinationPath string) (Dictionary, 
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dictionary file %v", err)
+		return nil, fmt.Errorf("failed to create dictionary file %w", err)
 	}
 
 	cdbHandle := cdb.New()
 	cdbWriter, err := cdbHandle.GetWriter(destinationFile)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create cdb writer %v", err)
+		return nil, fmt.Errorf("failed to create cdb writer %w", err)
 	}
 
 	key := make([]byte, 4)
@@ -73,22 +73,22 @@ func BuildCDBDictionary(iterator Iterable, destinationPath string) (Dictionary, 
 		binary.LittleEndian.PutUint32(key, docID)
 
 		if err := cdbWriter.Put(key, []byte(word)); err != nil {
-			return fmt.Errorf("failed to put record to cdb: %v", err)
+			return fmt.Errorf("failed to put record to cdb: %w", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to iterate through a dictionary: %v", err)
+		return nil, fmt.Errorf("failed to iterate through a dictionary: %w", err)
 	}
 
 	if err := cdbWriter.Close(); err != nil {
-		return nil, fmt.Errorf("failed to save cdb dictionary %v", err)
+		return nil, fmt.Errorf("failed to save cdb dictionary %w", err)
 	}
 
 	if err := destinationFile.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close cdb file %v", err)
+		return nil, fmt.Errorf("failed to close cdb file %w", err)
 	}
 
 	return OpenCDBDictionary(destinationPath)

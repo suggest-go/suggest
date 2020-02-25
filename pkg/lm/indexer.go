@@ -60,7 +60,7 @@ func (i *indexerImpl) Get(token Token) (WordID, error) {
 	stored, err := i.dictionary.Get(index)
 
 	if err != nil {
-		return UnknownWordID, fmt.Errorf("failed to get index from the dictionary: %v", err)
+		return UnknownWordID, fmt.Errorf("failed to get index from the dictionary: %w", err)
 	}
 
 	if stored != token {
@@ -75,7 +75,7 @@ func (i *indexerImpl) Find(index WordID) (Token, error) {
 	val, err := i.dictionary.Get(index)
 
 	if err != nil {
-		return UnknownWordSymbol, fmt.Errorf("failed to get index from the dictionary: %v", err)
+		return UnknownWordSymbol, fmt.Errorf("failed to get index from the dictionary: %w", err)
 	}
 
 	if val == dictionary.NilValue {
