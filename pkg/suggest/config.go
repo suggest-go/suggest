@@ -31,6 +31,7 @@ type IndexDescription struct {
 	Alphabet   []string  `json:"alphabet"`
 	Pad        string    `json:"pad"`
 	Wrap       [2]string `json:"wrap"`
+	Phonetic   bool      `json:"phonetic"`
 	basePath   string
 }
 
@@ -67,6 +68,10 @@ func (d *IndexDescription) GetWriterConfig() index.WriterConfig {
 
 // GetIndexTokenizer returns a tokenizer for indexing
 func (d *IndexDescription) GetIndexTokenizer() analysis.Tokenizer {
+	if d.Phonetic {
+		return NewPhoneticTokenizer(*d)
+	}
+
 	return NewSuggestTokenizer(*d)
 }
 

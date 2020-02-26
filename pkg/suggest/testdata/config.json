@@ -18,7 +18,7 @@
     ]
   },
   {
-    "driver": "DISC",
+    "driver": "RAM",
     "name": "words",
     "nGramSize": 3,
     "alphabet": [
@@ -32,6 +32,7 @@
     "wrap": [
       "^",
       "$"
-    ]
+    ],
+    "phonetic": true
   }
 ]

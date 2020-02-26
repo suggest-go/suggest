@@ -67,13 +67,13 @@ func (b *builderImpl) Build() (NGramIndex, error) {
 	suggester := NewSuggester(
 		invertedIndices,
 		index.NewSearcher(merger.CPMerge()),
-		NewSuggestTokenizer(b.description),
+		NewPhoneticTokenizer(b.description),
 	)
 
 	autocomplete := NewAutocomplete(
 		invertedIndices,
 		index.NewSearcher(merger.CPMerge()),
-		NewAutocompleteTokenizer(b.description),
+		NewPhoneticTokenizer(b.description),
 	)
 
 	return NewNGramIndex(

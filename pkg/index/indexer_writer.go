@@ -66,6 +66,10 @@ type termDescription struct {
 func (iw *Writer) AddDocument(id DocumentID, term []Term) error {
 	cardinality := len(term)
 
+	if cardinality == 0 {
+		return nil
+	}
+
 	if len(iw.indices) <= cardinality {
 		tmp := make(Indices, cardinality+1, cardinality*2)
 		copy(tmp, iw.indices)
