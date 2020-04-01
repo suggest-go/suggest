@@ -3,36 +3,39 @@ package merger
 import "container/heap"
 
 type record struct {
-	ridID    int
+	ridID    uint32
 	position uint32
 }
 
-type recordHeap []*record
+type recordHeap struct {
+	slice []record
+	size  int
+}
 
 // Len is the number of elements in the collection.
-func (h recordHeap) Len() int { return len(h) }
+func (h recordHeap) Len() int { return h.size }
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-func (h recordHeap) Less(i, j int) bool { return h[i].position < h[j].position }
+func (h recordHeap) Less(i, j int) bool { return h.slice[i].position < h.slice[j].position }
 
 // Swap swaps the elements with indexes i and j.
-func (h recordHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h recordHeap) Swap(i, j int) { h.slice[i], h.slice[j] = h.slice[j], h.slice[i] }
 
 // Push add x as element Len()
-func (h *recordHeap) Push(x interface{}) { *h = append(*h, x.(*record)) }
+func (h *recordHeap) Push(x interface{}) {
+	h.size++
+}
 
 // Pop remove and return element Len() - 1.
 func (h *recordHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[:n-1]
-	return x
+	h.size--
+
+	return nil
 }
 
 // top returns the top element of heap
-func (h recordHeap) top() *record { return h[0] }
+func (h recordHeap) top() record { return h.slice[0] }
 
 // MergeSkip was described in paper
 // "Efficient Merging and Filtering Algorithms for Approximate String Searches"
@@ -48,42 +51,37 @@ type mergeSkip struct{}
 // Merge returns list of candidates, that appears at least `threshold` times.
 func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 	var (
-		lenRid      = len(rid)
-		h           = make(recordHeap, 0, lenRid)
-		poppedItems = make([]*record, 0, lenRid)
-		tops        = make([]record, lenRid)
-		item        *record
+		lenRid = len(rid)
+		h      = recordHeap{
+			slice: make([]record, lenRid),
+			size:  lenRid,
+		}
+		poppedItems = 0
 	)
 
 	for i := 0; i < lenRid; i++ {
-		item = &tops[i]
 		r, err := rid[i].Get()
 
 		if err != nil && err != ErrIteratorIsNotDereferencable {
 			return err
 		}
 
-		item.ridID, item.position = i, r
-		h.Push(item)
+		h.slice[i].ridID, h.slice[i].position = uint32(i), r
 	}
 
 	heap.Init(&h)
-	item = nil
 
 	for h.Len() > 0 {
-		// reset slice
-		poppedItems = poppedItems[:0]
+		poppedItems = 0
 		t := h.top()
 
 		for h.Len() > 0 && t.position >= h.top().position {
-			item = heap.Pop(&h).(*record)
-			poppedItems = append(poppedItems, item)
+			_ = heap.Pop(&h)
+			poppedItems++
 		}
 
-		n := len(poppedItems)
-
-		if n >= threshold {
-			err := collector.Collect(NewMergeCandidate(t.position, uint32(n)))
+		if poppedItems >= threshold {
+			err := collector.Collect(NewMergeCandidate(t.position, uint32(poppedItems)))
 
 			if err == ErrCollectionTerminated {
 				return nil
@@ -93,7 +91,11 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 				return err
 			}
 
-			for _, item := range poppedItems {
+			start := h.size
+
+			for i := 0; i < poppedItems; i++ {
+				index := start + i
+				item := h.slice[index]
 				cur := rid[item.ridID]
 
 				if cur.HasNext() {
@@ -103,14 +105,15 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 						return err
 					}
 
-					item.position = r
-					heap.Push(&h, item)
+					h.slice[h.size].ridID = item.ridID
+					h.slice[h.size].position = r
+					heap.Push(&h, nil)
 				}
 			}
 		} else {
-			for j := threshold - 1 - n; j > 0 && h.Len() > 0; j-- {
-				item = heap.Pop(&h).(*record)
-				poppedItems = append(poppedItems, item)
+			for j := threshold - 1 - poppedItems; j > 0 && h.Len() > 0; j-- {
+				_ = heap.Pop(&h)
+				poppedItems++
 			}
 
 			if h.Len() == 0 {
@@ -118,8 +121,11 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 			}
 
 			topPos := h.top().position
+			start := h.size
 
-			for _, item := range poppedItems {
+			for i := 0; i < poppedItems; i++ {
+				index := start + i
+				item := h.slice[index]
 				cur := rid[item.ridID]
 
 				if cur.Len() == 0 {
@@ -133,8 +139,9 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 				}
 
 				if err == nil {
-					item.position = r
-					heap.Push(&h, item)
+					h.slice[h.size].ridID = item.ridID
+					h.slice[h.size].position = r
+					heap.Push(&h, nil)
 				}
 			}
 		}
