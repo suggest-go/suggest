@@ -22,6 +22,7 @@ func (b *bitmapEnc) Encode(list []uint32, out store.Output) (int, error) {
 		bitmap.Add(i)
 	}
 
+	bitmap.RunOptimize()
 	n, err := bitmap.WriteTo(out)
 
 	return int(n), err
