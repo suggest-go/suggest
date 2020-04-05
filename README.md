@@ -21,13 +21,13 @@ See the [documentation](https://suggest-go.github.io/) with examples demo and AP
 
 #### Fuzzy string search in a dictionary
 
-The [demo](https://suggest-go.github.io/docs/demo/suggest-words.html) shows approximate string search in a dictionary with more than 200k English words.
++The [demo](https://suggest-go.github.io/docs/purpose.html) shows an approximate string search in a vehicle dictionary with more than 20k model names.
 
 You can also run it locally
 
 ```
 $ make build
-$ ./build/suggest eval -c pkg/suggest/testdata/config.json -d words -s 0.5 -k 5
+$ ./build/suggest eval -c pkg/suggest/testdata/config.json -d cars -s 0.5 -k 5
 ```
 
 or by using Docker
