@@ -21,7 +21,7 @@ See the [documentation](https://suggest-go.github.io/) with examples demo and AP
 
 #### Fuzzy string search in a dictionary
 
-+The [demo](https://suggest-go.github.io/docs/purpose.html) shows an approximate string search in a vehicle dictionary with more than 20k model names.
+The [demo](https://suggest-go.github.io/docs/purpose.html) shows an approximate string search in a vehicle dictionary with more than 20k model names.
 
 You can also run it locally
 
@@ -41,7 +41,8 @@ $ docker run -p 8080:8080 -v $(pwd)/pkg/suggest/testdata:/data/testdata suggest 
 
 #### Spellchecker
 
-In order to run spellchecker demo for language, do the next
+Spellchecker recognizes a misspelled word based on the context of the surrounding words.
+In order to run a spellchecker [demo](https://suggest-go.github.io/docs/demo/spellchecker.html), please do the next
 
 * Download an English [language model](https://app.box.com/s/elogon8jdimqjdvfncr06b0qjngasljc) built on [Blog Authorship Corpus](http://u.cs.biu.ac.il/~koppel/BlogCorpus.htm)
 * Extract downloaded language model and perform
