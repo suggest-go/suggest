@@ -70,6 +70,7 @@ func (a App) Run() error {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
+	r.HandleFunc("/", (&homeHandler{}).handle).Methods("GET")
 	r.HandleFunc("/autocomplete/{dict}/{query}/", (&autocompleteHandler{suggestService}).handle).Methods("GET")
 	r.HandleFunc("/suggest/{dict}/{query}/", (&suggestHandler{suggestService}).handle).Methods("GET")
 	r.HandleFunc("/dict/list/", (&dictionaryHandler{suggestService}).handle).Methods("GET")

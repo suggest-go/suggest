@@ -16,7 +16,7 @@ build-spellchecker:
 	go build $(BUILD_FLAGS) -o build/spellchecker ./cmd/spellchecker/
 
 build: test vet build-suggest build-lm build-spellchecker
-build-bin: build-suggest build-lm
+build-bin: build-suggest build-lm build-spellchecker
 
 build-docker:
 	docker build --no-cache -t suggest:latest .

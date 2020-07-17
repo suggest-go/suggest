@@ -60,6 +60,7 @@ func (a App) Run() error {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
+	r.HandleFunc("/", (&homeHandler{}).handle).Methods("GET")
 	r.HandleFunc("/predict/{query}/", (&predictHandler{spellchecker}).handle).Methods("GET")
 
 	corsHeaders := handlers.AllowedOrigins([]string{"*"})
