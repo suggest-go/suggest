@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/suggest-go/suggest/pkg/store"
 	"strconv"
 	"strings"
+
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 // NGramReader is responsible for creating NGramModel from the files
@@ -40,7 +41,7 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 	vectors := make([]NGramVector, 0, int(gr.nGramOrder))
 
 	for i := 0; i < int(gr.nGramOrder); i++ {
-		builder := NewNGramVectorBuilder(vectors)
+		builder := NewNGramVectorBuilder(vectors, CreateSortedArray)
 
 		if err := gr.readNGramVector(builder, i+1); err != nil {
 			return nil, fmt.Errorf("failed to read %d ngram vector: %w", i+1, err)

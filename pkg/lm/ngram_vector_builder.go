@@ -15,19 +15,24 @@ type NGramVectorBuilder interface {
 	Build() NGramVector
 }
 
+// NGramVectorFactory represents a factory method for creating a NGramVector instance.
+type NGramVectorFactory func(tree rbtree.Tree) NGramVector
+
 // ErrNGramOrderIsOutOfRange informs that the given NGrams is out of range for the given
 var ErrNGramOrderIsOutOfRange = errors.New("nGrams order is out of range")
 
 // nGramVectorBuilder implements NGramVectorBuilder interface
 type nGramVectorBuilder struct {
 	parents []NGramVector
+	factory NGramVectorFactory
 	tree    rbtree.Tree
 }
 
 // NewNGramVectorBuilder creates new instance of NGramVectorBuilder
-func NewNGramVectorBuilder(parents []NGramVector) NGramVectorBuilder {
+func NewNGramVectorBuilder(parents []NGramVector, factory NGramVectorFactory) NGramVectorBuilder {
 	return &nGramVectorBuilder{
 		parents: parents,
+		factory: factory,
 		tree:    rbtree.New(),
 	}
 }
@@ -66,23 +71,7 @@ func (m *nGramVectorBuilder) Put(nGrams []WordID, count WordCount) error {
 
 // Build creates new instance of NGramVector
 func (m *nGramVectorBuilder) Build() NGramVector {
-	var node *nGramNode
-	keys := make([]uint64, 0, m.tree.Len())
-	values := make([]WordCount, 0, m.tree.Len())
-	total := WordCount(0)
-
-	for iter := m.tree.NewIterator(); iter.Next() != nil; {
-		node = iter.Get().(*nGramNode)
-		keys = append(keys, node.key)
-		values = append(values, node.value)
-		total += node.value
-	}
-
-	return &sortedArray{
-		keys:   keys,
-		values: values,
-		total:  total,
-	}
+	return m.factory(m.tree)
 }
 
 // nGramNode represents tree node for the given nGram
