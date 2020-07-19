@@ -182,6 +182,11 @@ func getWordID(key key) WordID {
 	return utils.UnpackRight(key)
 }
 
+// getContext returns the context for the given key
+func getContext(key key) WordID {
+	return utils.UnpackLeft(key)
+}
+
 func init() {
 	gob.Register(&sortedArray{})
 }
