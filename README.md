@@ -21,7 +21,7 @@ See the [documentation](https://suggest-go.github.io/) with examples demo and AP
 
 #### Fuzzy string search in a dictionary
 
-The [demo](https://suggest-go.github.io/docs/purpose.html) shows an approximate string search in a vehicle dictionary with more than 20k model names.
+The [demo](https://suggest-go.github.io/docs/demo/suggest-cars.html) shows an approximate string search in a vehicle dictionary with more than 2k model names.
 
 You can also run it locally
 
