@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
-	_ "github.com/suggest-go/suggest/internal/http"
+	"net/http"
+
 	httputil "github.com/suggest-go/suggest/internal/http"
 	"github.com/suggest-go/suggest/pkg/spellchecker"
-	"net/http"
 
 	"github.com/gorilla/mux"
 )
