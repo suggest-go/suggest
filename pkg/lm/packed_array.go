@@ -9,60 +9,60 @@ import (
 	"strconv"
 
 	"github.com/alldroll/go-datastructures/rbtree"
+	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 type packedArray struct {
-	keys       []ContextOffset
-	containers []arrayContainer
-	values     []WordCount
+	containers []rangeContainer
+	values     []packedValue // we can store it on disc
 	total      WordCount
 }
 
-type arrayContainer struct {
-	words   []WordID
-	offsets ContextOffset
+type packedValue = uint64
+
+type rangeContainer struct {
+	context  ContextOffset
+	from, to uint32
 }
 
 // CreatePackedArray creates a NGramVector form the given Tree
 func CreatePackedArray(tree rbtree.Tree) NGramVector {
 	var node *nGramNode
-	values := make([]WordCount, 0, tree.Len())
 	total := WordCount(0)
 
-	var container *arrayContainer
+	var container *rangeContainer
 	context := InvalidContextOffset
-	keys := []ContextOffset{}
-	containers := []arrayContainer{}
+	values := make([]packedValue, 0, tree.Len())
+	containers := []rangeContainer{}
 
 	for i, iter := 0, tree.NewIterator(); iter.Next() != nil; i++ {
 		node = iter.Get().(*nGramNode)
-		values = append(values, node.value)
 		total += node.value
 		currContext := getContext(node.key)
 
 		if container == nil || context != currContext {
 			if container != nil {
+				container.to = uint32(i)
 				containers = append(containers, *container)
 			}
 
-			container = &arrayContainer{
-				words:   []WordID{},
-				offsets: ContextOffset(i),
+			container = &rangeContainer{
+				context: currContext,
+				from:    uint32(i),
 			}
 
-			keys = append(keys, currContext)
 			context = currContext
 		}
 
-		container.words = append(container.words, getWordID(node.key))
+		values = append(values, utils.Pack(getWordID(node.key), node.value))
 	}
 
 	if container != nil {
+		container.to = uint32(len(values))
 		containers = append(containers, *container)
 	}
 
 	return &packedArray{
-		keys:       keys,
 		containers: containers,
 		values:     values,
 		total:      total,
@@ -71,18 +71,20 @@ func CreatePackedArray(tree rbtree.Tree) NGramVector {
 
 // GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
 func (s *packedArray) GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset) {
-	i := s.find(word, context)
+	value, i := s.find(word, context)
 
 	if InvalidContextOffset == i {
 		return 0, InvalidContextOffset
 	}
 
-	return s.values[int(i)], i
+	return utils.UnpackRight(value), i
 }
 
 // GetContextOffset returns the given node context offset
 func (s *packedArray) GetContextOffset(word WordID, context ContextOffset) ContextOffset {
-	return s.find(word, context)
+	_, i := s.find(word, context)
+
+	return i
 }
 
 // CorpusCount returns size of all counts in the collection
@@ -92,23 +94,19 @@ func (s *packedArray) CorpusCount() WordCount {
 
 // SubVector returns NGramVector for the given context
 func (s *packedArray) SubVector(context ContextOffset) NGramVector {
-	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= context })
-
-	if i < 0 || i >= len(s.keys) || s.keys[i] != context {
+	if len(s.containers) == 0 || s.containers[0].context > context || s.containers[len(s.containers)-1].context < context {
 		return nil
 	}
 
-	j := s.containers[i].offsets
+	i := sort.Search(len(s.containers), func(i int) bool { return s.containers[i].context >= context })
 
-	container := arrayContainer{
-		words:   s.containers[i].words,
-		offsets: 0,
+	if i < 0 || i >= len(s.containers) || s.containers[i].context != context {
+		return nil
 	}
 
 	return &packedArray{
-		keys:       []ContextOffset{context},
-		containers: []arrayContainer{container},
-		values:     s.values[j : j+ContextOffset(len(container.words))],
+		containers: []rangeContainer{s.containers[i]},
+		values:     s.values,
 		total:      s.total,
 	}
 }
@@ -122,9 +120,10 @@ func (s *packedArray) MarshalBinary() ([]byte, error) {
 	keyEndPos := 0
 
 	// performs delta encoding
-	for i, context := range s.keys {
-		for _, word := range s.containers[i].words {
-			el := makeKey(word, context)
+	for _, container := range s.containers {
+		for i := container.from; i < container.to; i++ {
+			row := s.values[i]
+			el := makeKey(utils.UnpackLeft(row), container.context)
 			keyEndPos += binary.PutUvarint(encodedKeys[keyEndPos:], el-prevKey)
 			prevKey = el
 		}
@@ -134,7 +133,7 @@ func (s *packedArray) MarshalBinary() ([]byte, error) {
 	encodedValues := make([]byte, valEndPos)
 
 	for i, el := range s.values {
-		binary.LittleEndian.PutUint32(encodedValues[i*4:(i+1)*4], el)
+		binary.LittleEndian.PutUint32(encodedValues[i*4:(i+1)*4], utils.UnpackRight(el))
 	}
 
 	// allocate buffer capacity
@@ -161,7 +160,7 @@ func (s *packedArray) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
-	var container *arrayContainer
+	var container *rangeContainer
 	keyEndPos := 0
 	encodedKeys := buf.Next(keySize)
 	prev := uint64(0)
@@ -176,57 +175,59 @@ func (s *packedArray) UnmarshalBinary(data []byte) error {
 
 		if container == nil || context != currContext {
 			if container != nil {
+				container.to = uint32(i)
 				s.containers = append(s.containers, *container)
 			}
 
-			container = &arrayContainer{
-				words:   []WordID{},
-				offsets: ContextOffset(i),
+			container = &rangeContainer{
+				context: currContext,
+				from:    uint32(i),
 			}
 
-			s.keys = append(s.keys, currContext)
 			context = currContext
 		}
 
-		container.words = append(container.words, getWordID(prev))
+		s.values = append(s.values, utils.Pack(getWordID(data), 0)) // fill it later
 		keyEndPos += n
 	}
 
 	if container != nil {
+		container.to = uint32(len(s.values))
 		s.containers = append(s.containers, *container)
 	}
 
 	encodedValues := buf.Next(valSize)
-	s.values = make([]WordCount, valSize/4)
 
 	for i := 0; i < len(s.values); i++ {
-		s.values[i] = binary.LittleEndian.Uint32(encodedValues[i*4 : (i+1)*4])
+		count := binary.LittleEndian.Uint32(encodedValues[i*4 : (i+1)*4])
+		s.values[i] = utils.Pack(utils.UnpackLeft(s.values[i]), count)
 	}
 
 	return nil
 }
 
 // find finds the given key in the collection. Returns ContextOffset if the key exists, otherwise returns InvalidContextOffset
-func (s *packedArray) find(wordID WordID, context ContextOffset) ContextOffset {
-	if len(s.keys) == 0 || s.keys[0] > context || s.keys[len(s.keys)-1] < context {
-		return InvalidContextOffset
+func (s *packedArray) find(wordID WordID, context ContextOffset) (packedValue, ContextOffset) {
+	if len(s.containers) == 0 || s.containers[0].context > context || s.containers[len(s.containers)-1].context < context {
+		return 0, InvalidContextOffset
 	}
 
-	i := sort.Search(len(s.keys), func(i int) bool { return s.keys[i] >= context })
+	i := sort.Search(len(s.containers), func(i int) bool { return s.containers[i].context >= context })
 
-	if i < 0 || i >= len(s.keys) || s.keys[i] != context {
-		return InvalidContextOffset
+	if i < 0 || i >= len(s.containers) || s.containers[i].context != context {
+		return 0, InvalidContextOffset
 	}
 
 	container := s.containers[i]
+	values := s.values[container.from:container.to]
+	target := utils.Pack(wordID, 0)
+	j := sort.Search(len(values), func(i int) bool { return values[i] >= target })
 
-	j := sort.Search(len(container.words), func(i int) bool { return container.words[i] >= wordID })
-
-	if j < 0 || j >= len(container.words) || container.words[j] != wordID {
-		return InvalidContextOffset
+	if j < 0 || j >= len(values) || utils.UnpackLeft(values[j]) != wordID {
+		return 0, InvalidContextOffset
 	}
 
-	return ContextOffset(j) + container.offsets
+	return values[j], ContextOffset(j)
 }
 
 func init() {
