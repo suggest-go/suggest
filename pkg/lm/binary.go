@@ -2,8 +2,8 @@ package lm
 
 import (
 	"bufio"
-	"encoding/gob"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -40,9 +40,7 @@ func StoreBinaryLMFromGoogleFormat(directory store.Directory, config *Config) er
 		return fmt.Errorf("failed to create a binary file: %w", err)
 	}
 
-	enc := gob.NewEncoder(out)
-
-	if err := enc.Encode(&model); err != nil {
+	if _, err := model.Store(out); err != nil {
 		return fmt.Errorf("failed to encode NGramModel in the binary format: %w", err)
 	}
 
@@ -72,12 +70,11 @@ func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageMo
 	}
 
 	var (
-		model NGramModel
+		model = &nGramModel{}
 		table = mph.New()
-		dec   = gob.NewDecoder(in)
 	)
 
-	if err := dec.Decode(&model); err != nil {
+	if _, err := model.Load(in); err != nil {
 		return nil, err
 	}
 
@@ -85,11 +82,18 @@ func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageMo
 		return nil, err
 	}
 
-	if err := in.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close a binary input: %w", err)
+	languageModel, err := NewLanguageModel(model, NewIndexer(dict, table), config)
+
+	// TODO make it clear
+	if err == nil {
+		runtime.SetFinalizer(languageModel, func(d interface{}) {
+			in.Close()
+		})
+	} else {
+		in.Close()
 	}
 
-	return NewLanguageModel(model, NewIndexer(dict, table), config)
+	return languageModel, err
 }
 
 // buildDictionary builds a dictionary for the given config

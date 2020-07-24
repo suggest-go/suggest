@@ -52,18 +52,22 @@ func (r *retriever) Retrieve() Sentence {
 // scanSentence is a split function for scanner.Split,
 // that returns each sentence of text
 func (r *retriever) scanSentence(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	start := 0
+	var (
+		char  rune
+		start int
+	)
+
 	for width := 0; start < len(data); start += width {
-		var char rune
 		char, width = utf8.DecodeRune(data[start:])
+
 		if !r.alphabet.Has(char) {
 			break
 		}
 	}
 
 	for width, i := 0, start; i < len(data); i += width {
-		var char rune
 		char, width = utf8.DecodeRune(data[i:])
+
 		if r.alphabet.Has(char) {
 			return i + width, data[start:i], nil
 		}

@@ -114,7 +114,7 @@ func (t *countTrie) mapToUint32(token Token) uint32 {
 // mapFromUint32 restores a token from the given index
 func (t *countTrie) mapFromUint32(index uint32) (Token, error) {
 	if uint32(len(t.holder)) <= index {
-		return UnknownWordSymbol, ErrInvalidIndex
+		return "", ErrInvalidIndex
 	}
 
 	return t.holder[int(index)], nil

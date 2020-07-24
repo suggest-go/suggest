@@ -1,14 +1,12 @@
 package lm
 
 import (
-	"bytes"
-	"encoding/binary"
-	"encoding/gob"
 	"fmt"
+	"io"
 	"sort"
-	"strconv"
 
 	"github.com/alldroll/go-datastructures/rbtree"
+	"github.com/suggest-go/suggest/pkg/store"
 	"github.com/suggest-go/suggest/pkg/utils"
 )
 
@@ -111,99 +109,71 @@ func (s *packedArray) SubVector(context ContextOffset) NGramVector {
 	}
 }
 
-// MarshalBinary encodes the receiver into a binary form and returns the result.
-func (s *packedArray) MarshalBinary() ([]byte, error) {
-	var result bytes.Buffer
-
-	encodedKeys := make([]byte, len(s.values)*binary.MaxVarintLen64)
-	prevKey := uint64(0)
-	keyEndPos := 0
-
-	// performs delta encoding
-	for _, container := range s.containers {
-		for i := container.from; i < container.to; i++ {
-			row := s.values[i]
-			el := makeKey(utils.UnpackLeft(row), container.context)
-			keyEndPos += binary.PutUvarint(encodedKeys[keyEndPos:], el-prevKey)
-			prevKey = el
-		}
-	}
-
-	valEndPos := len(s.values) * 4
-	encodedValues := make([]byte, valEndPos)
-
-	for i, el := range s.values {
-		binary.LittleEndian.PutUint32(encodedValues[i*4:(i+1)*4], utils.UnpackRight(el))
-	}
-
-	// allocate buffer capacity
-	result.Grow(keyEndPos + valEndPos + 4 + strconv.IntSize*2)
-
+func (s *packedArray) Store(out store.Output) (int, error) {
 	// write header
-	if _, err := fmt.Fprintln(&result, keyEndPos, valEndPos, s.total); err != nil {
-		return nil, err
+	containerSize := uint32(12 * len(s.containers))
+	valuesSize := uint32(8 * len(s.values))
+	n, err := fmt.Fprintln(out, containerSize, valuesSize, s.total)
+	p := n
+
+	if err != nil {
+		return p, err
 	}
 
-	// write data
-	result.Write(encodedKeys[:keyEndPos])
-	result.Write(encodedValues)
+	// write values
+	if n, err = out.Write(rangeContainerSliceAsByteSlice(s.containers)); err != nil {
+		return p + n, err
+	}
 
-	return result.Bytes(), nil
+	p += n
+
+	if n, err = out.Write(uint64SliceAsByteSlice(s.values)); err != nil {
+		return p + n, err
+	}
+
+	return p + n, nil
 }
 
-// UnmarshalBinary decodes the binary form
-func (s *packedArray) UnmarshalBinary(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	keySize, valSize := 0, 0
+func (s *packedArray) Load(in store.Input) (int, error) {
+	containersSize, valuesSize := uint32(0), uint32(0)
+	n, err := fmt.Fscanln(in, &containersSize, &valuesSize, &s.total)
 
-	if _, err := fmt.Fscanln(buf, &keySize, &valSize, &s.total); err != nil {
-		return err
+	if err != nil {
+		return 0, err
 	}
 
-	var container *rangeContainer
-	keyEndPos := 0
-	encodedKeys := buf.Next(keySize)
-	prev := uint64(0)
-	context := InvalidContextOffset
+	offset, err := in.Seek(0, io.SeekCurrent)
+	p := int(offset)
 
-	// 0, 1, 3, 6, 7 -> 0, 1, 4, 10, 17 (delta decoding)
-	for i := 0; i < valSize/4; i++ {
-		data, n := binary.Uvarint(encodedKeys[keyEndPos:])
-		data += prev
-		prev = data
-		currContext := getContext(prev)
+	if err != nil {
+		return p, err
+	}
 
-		if container == nil || context != currContext {
-			if container != nil {
-				container.to = uint32(i)
-				s.containers = append(s.containers, *container)
-			}
+	var data []byte
 
-			container = &rangeContainer{
-				context: currContext,
-				from:    uint32(i),
-			}
+	if accessable, ok := in.(store.SliceAccessible); ok {
+		n := int(containersSize + valuesSize)
+		data = accessable.Data()[p : p+n]
 
-			context = currContext
+		if _, err = in.Seek(offset+int64(n), io.SeekStart); err != nil {
+			return p, err
 		}
 
-		s.values = append(s.values, utils.Pack(getWordID(data), 0)) // fill it later
-		keyEndPos += n
+		p += n
+	} else {
+		data = make([]byte, containersSize+valuesSize)
+
+		if n, err = in.Read(data); err != nil {
+			return p + n, err
+		}
+
+		p += n
 	}
 
-	if container != nil {
-		container.to = uint32(len(s.values))
-		s.containers = append(s.containers, *container)
-	}
+	s.containers = byteSliceAsRangeContainerSlice(data[:containersSize])
+	s.values = byteSliceAsUint64Slice(data[containersSize:])
 
-	encodedValues := buf.Next(valSize)
-
-	for i := 0; i < len(s.values); i++ {
-		count := binary.LittleEndian.Uint32(encodedValues[i*4 : (i+1)*4])
-		s.values[i] = utils.Pack(utils.UnpackLeft(s.values[i]), count)
-	}
-
-	return nil
+	return p, nil
 }
 
 // find finds the given key in the collection. Returns ContextOffset if the key exists, otherwise returns InvalidContextOffset
@@ -227,9 +197,5 @@ func (s *packedArray) find(wordID WordID, context ContextOffset) (packedValue, C
 		return 0, InvalidContextOffset
 	}
 
-	return values[j], ContextOffset(j)
-}
-
-func init() {
-	gob.Register(&packedArray{})
+	return values[j], container.from + ContextOffset(j)
 }
