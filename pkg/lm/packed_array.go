@@ -23,48 +23,9 @@ type rangeContainer struct {
 	from, to uint32
 }
 
-// CreatePackedArray creates a NGramVector form the given Tree
-func CreatePackedArray(tree rbtree.Tree) NGramVector {
-	var node *nGramNode
-	total := WordCount(0)
-
-	var container *rangeContainer
-	context := InvalidContextOffset
-	values := make([]packedValue, 0, tree.Len())
-	containers := []rangeContainer{}
-
-	for i, iter := 0, tree.NewIterator(); iter.Next() != nil; i++ {
-		node = iter.Get().(*nGramNode)
-		total += node.value
-		currContext := getContext(node.key)
-
-		if container == nil || context != currContext {
-			if container != nil {
-				container.to = uint32(i)
-				containers = append(containers, *container)
-			}
-
-			container = &rangeContainer{
-				context: currContext,
-				from:    uint32(i),
-			}
-
-			context = currContext
-		}
-
-		values = append(values, utils.Pack(getWordID(node.key), node.value))
-	}
-
-	if container != nil {
-		container.to = uint32(len(values))
-		containers = append(containers, *container)
-	}
-
-	return &packedArray{
-		containers: containers,
-		values:     values,
-		total:      total,
-	}
+// NewNGramVector creates a new instance of NGramVector.
+func NewNGramVector() NGramVector {
+	return &packedArray{}
 }
 
 // GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
@@ -198,4 +159,48 @@ func (s *packedArray) find(wordID WordID, context ContextOffset) (packedValue, C
 	}
 
 	return values[j], container.from + ContextOffset(j)
+}
+
+// createPackedArray creates a NGramVector form the given Tree
+func createPackedArray(tree rbtree.Tree) NGramVector {
+	var node *nGramNode
+	total := WordCount(0)
+
+	var container *rangeContainer
+	context := InvalidContextOffset
+	values := make([]packedValue, 0, tree.Len())
+	containers := []rangeContainer{}
+
+	for i, iter := 0, tree.NewIterator(); iter.Next() != nil; i++ {
+		node = iter.Get().(*nGramNode)
+		total += node.value
+		currContext := getContext(node.key)
+
+		if container == nil || context != currContext {
+			if container != nil {
+				container.to = uint32(i)
+				containers = append(containers, *container)
+			}
+
+			container = &rangeContainer{
+				context: currContext,
+				from:    uint32(i),
+			}
+
+			context = currContext
+		}
+
+		values = append(values, utils.Pack(getWordID(node.key), node.value))
+	}
+
+	if container != nil {
+		container.to = uint32(len(values))
+		containers = append(containers, *container)
+	}
+
+	return &packedArray{
+		containers: containers,
+		values:     values,
+		total:      total,
+	}
 }

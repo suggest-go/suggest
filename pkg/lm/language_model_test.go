@@ -45,7 +45,6 @@ func TestScoreSentenceFromFile(t *testing.T) {
 }
 
 func TestScoreSentenceFromBinary(t *testing.T) {
-	t.SkipNow()
 	config, err := ReadConfig("testdata/config-example.json")
 
 	if err != nil {

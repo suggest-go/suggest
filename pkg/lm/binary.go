@@ -70,7 +70,7 @@ func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageMo
 	}
 
 	var (
-		model = &nGramModel{}
+		model = NewNGramModel()
 		table = mph.New()
 	)
 
@@ -84,14 +84,14 @@ func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageMo
 
 	languageModel, err := NewLanguageModel(model, NewIndexer(dict, table), config)
 
-	// TODO make it clear
-	if err == nil {
-		runtime.SetFinalizer(languageModel, func(d interface{}) {
-			in.Close()
-		})
-	} else {
-		in.Close()
+	if err != nil {
+		_ = in.Close()
+		return nil, err
 	}
+
+	runtime.SetFinalizer(languageModel, func(d interface{}) {
+		in.Close()
+	})
 
 	return languageModel, err
 }

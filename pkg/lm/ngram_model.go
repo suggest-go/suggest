@@ -1,8 +1,6 @@
 package lm
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"math"
@@ -16,15 +14,17 @@ type NGramModel interface {
 	Score(nGrams []WordID) float64
 	// Next returns a list of WordID which follow after the given sequence of nGrams
 	Next(nGrams []WordID) (ScorerNext, error)
-	Store(out store.Output) (int, error)
+	// Load reads the saved NGramModel from the provided in
 	Load(in store.Input) (int, error)
+	// Store saves the given NGramModel to the provided output
+	Store(out store.Output) (int, error)
 }
 
 const (
 	// UnknownWordScore is the score for unknown phrases
 	UnknownWordScore = -100.0
 	alpha            = 0.4
-	version          = "0.0.1"
+	modelVersion     = "0.0.2"
 )
 
 // nGramModel implements NGramModel Stupid backoff
@@ -33,8 +33,13 @@ type nGramModel struct {
 	nGramOrder uint8
 }
 
-// NewNGramModel creates a new instance of NGramModel instance
-func NewNGramModel(indices []NGramVector) NGramModel {
+// NewNGramModel creates a new empty instance of NGramModel instance.
+func NewNGramModel() NGramModel {
+	return &nGramModel{}
+}
+
+// CreateNGramModel creates a NGramModel from the given indices.
+func CreateNGramModel(indices []NGramVector) NGramModel {
 	return &nGramModel{
 		indices:    indices,
 		nGramOrder: uint8(len(indices)),
@@ -100,7 +105,7 @@ func (m *nGramModel) Next(nGrams []WordID) (ScorerNext, error) {
 }
 
 func (m *nGramModel) Store(out store.Output) (int, error) {
-	if n, err := out.Write([]byte(version)); err != nil {
+	if n, err := out.Write([]byte(modelVersion)); err != nil {
 		return n, err
 	}
 
@@ -132,6 +137,10 @@ func (m *nGramModel) Load(in store.Input) (int, error) {
 		return p, err
 	}
 
+	if string(version) != modelVersion {
+		return p, fmt.Errorf("Version mismatch, expected %s, got %s", modelVersion, version)
+	}
+
 	order, err := in.ReadByte()
 	p++
 
@@ -143,7 +152,7 @@ func (m *nGramModel) Load(in store.Input) (int, error) {
 	m.indices = make([]NGramVector, m.nGramOrder)
 
 	for i := uint8(0); i < m.nGramOrder; i++ {
-		vector := &packedArray{} // TODO use factory method
+		vector := NewNGramVector()
 		n, err := vector.Load(in)
 		p += n
 
@@ -170,61 +179,4 @@ func calcScore(counts []WordCount) float64 {
 	}
 
 	return UnknownWordScore
-}
-
-// MarshalBinary encodes the receiver into a binary form and returns the result.
-func (m *nGramModel) MarshalBinary() ([]byte, error) {
-	buf := bytes.Buffer{}
-	encoder := gob.NewEncoder(&buf)
-
-	if err := encoder.Encode(version); err != nil {
-		return nil, err
-	}
-
-	if err := encoder.Encode(m.nGramOrder); err != nil {
-		return nil, err
-	}
-
-	for _, vector := range m.indices {
-		err := encoder.Encode(&vector)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return buf.Bytes(), nil
-}
-
-// UnmarshalBinary decodes the binary form
-func (m *nGramModel) UnmarshalBinary(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	decoder := gob.NewDecoder(buf)
-	binaryVersion := "NONE"
-
-	if err := decoder.Decode(&binaryVersion); err != nil {
-		return err
-	}
-
-	if binaryVersion != version {
-		return fmt.Errorf("version mismatch, expected: %s, got %s", version, binaryVersion)
-	}
-
-	if err := decoder.Decode(&m.nGramOrder); err != nil {
-		return err
-	}
-
-	m.indices = make([]NGramVector, int(m.nGramOrder))
-
-	for i := 0; i < len(m.indices); i++ {
-		if err := decoder.Decode(&m.indices[i]); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func init() {
-	gob.Register(&nGramModel{})
 }

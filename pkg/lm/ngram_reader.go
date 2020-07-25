@@ -41,7 +41,7 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 	vectors := make([]NGramVector, 0, int(gr.nGramOrder))
 
 	for i := 0; i < int(gr.nGramOrder); i++ {
-		builder := NewNGramVectorBuilder(vectors, CreatePackedArray)
+		builder := NewNGramVectorBuilder(vectors, createPackedArray)
 
 		if err := gr.readNGramVector(builder, i+1); err != nil {
 			return nil, fmt.Errorf("failed to read %d ngram vector: %w", i+1, err)
@@ -50,7 +50,7 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 		vectors = append(vectors, builder.Build())
 	}
 
-	return NewNGramModel(vectors), nil
+	return CreateNGramModel(vectors), nil
 }
 
 // readNGramVector reads nGram vector for the given order

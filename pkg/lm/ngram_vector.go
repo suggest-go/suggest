@@ -2,7 +2,11 @@ package lm
 
 import (
 	"errors"
+	"log"
 	"math"
+
+	"github.com/suggest-go/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 type (
@@ -21,6 +25,10 @@ type NGramVector interface {
 	CorpusCount() WordCount
 	// SubVector returns NGramVector for the given context
 	SubVector(context ContextOffset) NGramVector
+	// Store saves the given NGramVector to the provided output.
+	Store(out store.Output) (int, error)
+	// Load loads the saved NGramVector from the given in.
+	Load(in store.Input) (int, error)
 }
 
 const (
@@ -34,3 +42,22 @@ var (
 	// ErrContextOverflow tells that it was an attempt
 	ErrContextOverflow = errors.New("out of maxContextOffset")
 )
+
+// makeKey creates uint64 key for the given pair (word, context)
+func makeKey(word WordID, context ContextOffset) key {
+	if context > maxContextOffset {
+		log.Fatal(ErrContextOverflow)
+	}
+
+	return utils.Pack(context, word)
+}
+
+// getWordID returns the word id for the given key
+func getWordID(key key) WordID {
+	return utils.UnpackRight(key)
+}
+
+// getContext returns the context for the given key
+func getContext(key key) WordID {
+	return utils.UnpackLeft(key)
+}
