@@ -17,6 +17,9 @@ type (
 
 // NGramVector represents one level of nGram trie
 type NGramVector interface {
+	store.Marshaler
+	store.Unmarshaler
+
 	// GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
 	GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset)
 	// GetContextOffset returns the given node context offset
@@ -25,10 +28,6 @@ type NGramVector interface {
 	CorpusCount() WordCount
 	// SubVector returns NGramVector for the given context
 	SubVector(context ContextOffset) NGramVector
-	// Store saves the given NGramVector to the provided output.
-	Store(out store.Output) (int, error)
-	// Load loads the saved NGramVector from the given in.
-	Load(in store.Input) (int, error)
 }
 
 const (

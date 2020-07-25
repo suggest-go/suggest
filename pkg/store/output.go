@@ -16,3 +16,10 @@ type Output interface {
 	// WriteByte writes the given byte
 	WriteByte(v byte) error
 }
+
+// Marshaler is the interface implemented by an object that can marshal itself into a binary form.
+type Marshaler interface {
+	// Store encodes the receiver into a binary form and saves the result into the provided Output.
+	// Returns the number of written bytes or an error otherwise.
+	Store(out Output) (int, error)
+}

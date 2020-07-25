@@ -10,14 +10,13 @@ import (
 
 // NGramModel is an entity that responses for scoring the given nGrams
 type NGramModel interface {
+	store.Marshaler
+	store.Unmarshaler
+
 	// Score returns a lm value of the given sequence of WordID
 	Score(nGrams []WordID) float64
 	// Next returns a list of WordID which follow after the given sequence of nGrams
 	Next(nGrams []WordID) (ScorerNext, error)
-	// Load reads the saved NGramModel from the provided in
-	Load(in store.Input) (int, error)
-	// Store saves the given NGramModel to the provided output
-	Store(out store.Output) (int, error)
 }
 
 const (
