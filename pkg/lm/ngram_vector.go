@@ -2,7 +2,11 @@ package lm
 
 import (
 	"errors"
+	"log"
 	"math"
+
+	"github.com/suggest-go/suggest/pkg/store"
+	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 type (
@@ -13,6 +17,9 @@ type (
 
 // NGramVector represents one level of nGram trie
 type NGramVector interface {
+	store.Marshaler
+	store.Unmarshaler
+
 	// GetCount returns WordCount and Node ContextOffset for the given pair (word, context)
 	GetCount(word WordID, context ContextOffset) (WordCount, ContextOffset)
 	// GetContextOffset returns the given node context offset
@@ -34,3 +41,22 @@ var (
 	// ErrContextOverflow tells that it was an attempt
 	ErrContextOverflow = errors.New("out of maxContextOffset")
 )
+
+// makeKey creates uint64 key for the given pair (word, context)
+func makeKey(word WordID, context ContextOffset) key {
+	if context > maxContextOffset {
+		log.Fatal(ErrContextOverflow)
+	}
+
+	return utils.Pack(context, word)
+}
+
+// getWordID returns the word id for the given key
+func getWordID(key key) WordID {
+	return utils.UnpackRight(key)
+}
+
+// getContext returns the context for the given key
+func getContext(key key) WordID {
+	return utils.UnpackLeft(key)
+}

@@ -1,12 +1,11 @@
 package lm
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
-	"github.com/suggest-go/suggest/pkg/store"
 	"math"
 	"testing"
+
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 const tolerance = 0.0001
@@ -41,28 +40,28 @@ func TestPredict(t *testing.T) {
 		expected float64
 	}{
 		{
-			nGrams: Sentence{"i", "am"},
-			word: "sam",
+			nGrams:   Sentence{"i", "am"},
+			word:     "sam",
 			expected: -0.6931,
 		},
 		{
-			nGrams: Sentence{"i", "am"},
-			word: "</S>",
+			nGrams:   Sentence{"i", "am"},
+			word:     "</S>",
 			expected: -0.6931,
 		},
 		{
-			nGrams: Sentence{"i"},
-			word: "am",
+			nGrams:   Sentence{"i"},
+			word:     "am",
 			expected: -0.4054,
 		},
 		{
-			nGrams: Sentence{"i"},
-			word: "do",
+			nGrams:   Sentence{"i"},
+			word:     "do",
 			expected: -1.0986,
 		},
 		{
-			nGrams: Sentence{"green"},
-			word: "eggs",
+			nGrams:   Sentence{"green"},
+			word:     "eggs",
 			expected: 0.0,
 		},
 	}
@@ -136,22 +135,23 @@ func TestBinaryMarshalling(t *testing.T) {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	var network bytes.Buffer
+	outDir := store.NewRAMDirectory()
+	output, _ := outDir.CreateOutput("lm")
 
 	// Create an encoder and send a value.
-	enc := gob.NewEncoder(&network)
-	err = enc.Encode(&expected)
+	if _, err := expected.Store(output); err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 
-	if err != nil {
+	if err := output.Close(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
 	// Create a decoder and receive a value.
-	dec := gob.NewDecoder(&network)
-	var actual NGramModel
-	err = dec.Decode(&actual)
+	input, _ := outDir.OpenInput("lm")
+	actual := NewNGramModel(nil)
 
-	if err != nil {
+	if _, err = actual.Load(input); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 

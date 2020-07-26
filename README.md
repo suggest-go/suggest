@@ -44,7 +44,7 @@ $ docker run -p 8080:8080 -v $(pwd)/pkg/suggest/testdata:/data/testdata suggest 
 Spellchecker recognizes a misspelled word based on the context of the surrounding words.
 In order to run a spellchecker [demo](https://suggest-go.github.io/docs/demo/spellchecker.html), please do the next
 
-* Download an English [language model](https://app.box.com/s/elogon8jdimqjdvfncr06b0qjngasljc) built on [Blog Authorship Corpus](http://u.cs.biu.ac.il/~koppel/BlogCorpus.htm)
+* Download an English [language model](https://app.box.com/s/ze53gtxetnqkj5pln7aogge1xo2ca3s0) built on [Blog Authorship Corpus](http://u.cs.biu.ac.il/~koppel/BlogCorpus.htm)
 * Extract downloaded language model and perform
 ```
 $ make build

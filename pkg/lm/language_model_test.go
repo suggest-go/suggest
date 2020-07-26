@@ -1,9 +1,10 @@
 package lm
 
 import (
-	"github.com/suggest-go/suggest/pkg/store"
 	"math"
 	"testing"
+
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 func TestScoreSentenceFromFile(t *testing.T) {

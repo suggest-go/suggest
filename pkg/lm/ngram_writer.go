@@ -2,8 +2,9 @@ package lm
 
 import (
 	"fmt"
-	"github.com/suggest-go/suggest/pkg/store"
 	"strings"
+
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 const (

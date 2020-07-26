@@ -1,15 +1,18 @@
 package lm
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"math"
+
+	"github.com/suggest-go/suggest/pkg/store"
 )
 
 // NGramModel is an entity that responses for scoring the given nGrams
 type NGramModel interface {
+	store.Marshaler
+	store.Unmarshaler
+
 	// Score returns a lm value of the given sequence of WordID
 	Score(nGrams []WordID) float64
 	// Next returns a list of WordID which follow after the given sequence of nGrams
@@ -20,7 +23,7 @@ const (
 	// UnknownWordScore is the score for unknown phrases
 	UnknownWordScore = -100.0
 	alpha            = 0.4
-	version          = "0.0.1"
+	modelVersion     = "0.0.2"
 )
 
 // nGramModel implements NGramModel Stupid backoff
@@ -29,7 +32,7 @@ type nGramModel struct {
 	nGramOrder uint8
 }
 
-// NewNGramModel creates a new instance of NGramModel instance
+// NewNGramModel creates a NGramModel from the given indices.
 func NewNGramModel(indices []NGramVector) NGramModel {
 	return &nGramModel{
 		indices:    indices,
@@ -90,64 +93,70 @@ func (m *nGramModel) Next(nGrams []WordID) (ScorerNext, error) {
 
 	return &scorerNext{
 		contextCounts: counts,
-		nGramVector: subVector,
-		context: parent,
+		nGramVector:   subVector,
+		context:       parent,
 	}, nil
 }
 
-// MarshalBinary encodes the receiver into a binary form and returns the result.
-func (m *nGramModel) MarshalBinary() ([]byte, error) {
-	buf := bytes.Buffer{}
-	encoder := gob.NewEncoder(&buf)
-
-	if err := encoder.Encode(version); err != nil {
-		return nil, err
+func (m *nGramModel) Store(out store.Output) (int, error) {
+	if n, err := out.Write([]byte(modelVersion)); err != nil {
+		return n, err
 	}
 
-	if err := encoder.Encode(m.nGramOrder); err != nil {
-		return nil, err
+	if err := out.WriteByte(byte(m.nGramOrder)); err != nil {
+		return 0, err
 	}
+
+	p := 6 // 5 + 1
 
 	for _, vector := range m.indices {
-		err := encoder.Encode(&vector)
+		n, err := vector.Store(out)
+		p += n
 
 		if err != nil {
-			return nil, err
+			return p, err
 		}
 	}
 
-	return buf.Bytes(), nil
+	return p, nil
 }
 
-// UnmarshalBinary decodes the binary form
-func (m *nGramModel) UnmarshalBinary(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	decoder := gob.NewDecoder(buf)
-	binaryVersion := "NONE"
+func (m *nGramModel) Load(in store.Input) (int, error) {
+	version := make([]byte, 5)
+	n, err := in.Read(version)
+	p := n
 
-	if err := decoder.Decode(&binaryVersion); err != nil {
-		return err
+	if err != nil {
+		return p, err
 	}
 
-	if binaryVersion != version {
-		return fmt.Errorf("version mismatch, expected: %s, got %s", version, binaryVersion)
+	if string(version) != modelVersion {
+		return p, fmt.Errorf("Version mismatch, expected %s, got %s", modelVersion, version)
 	}
 
-	if err := decoder.Decode(&m.nGramOrder); err != nil {
-		return err
+	order, err := in.ReadByte()
+	p++
+
+	if err != nil {
+		return p, err
 	}
 
-	m.indices = make([]NGramVector, int(m.nGramOrder))
+	m.nGramOrder = uint8(order)
+	m.indices = make([]NGramVector, m.nGramOrder)
 
-	for i := 0; i < len(m.indices); i++ {
-		err := decoder.Decode(&m.indices[i])
+	for i := uint8(0); i < m.nGramOrder; i++ {
+		vector := NewNGramVector()
+		n, err := vector.Load(in)
+		p += n
 
 		if err != nil {
-			return err
+			return p, err
 		}
+
+		m.indices[i] = vector
 	}
 
-	return nil
+	return p, nil
 }
 
 // calcScore returns score for the given counts
@@ -163,8 +172,4 @@ func calcScore(counts []WordCount) float64 {
 	}
 
 	return UnknownWordScore
-}
-
-func init() {
-	gob.Register(&nGramModel{})
 }

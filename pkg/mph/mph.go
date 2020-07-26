@@ -12,14 +12,13 @@ import (
 
 // MPH represents minimal perfect hash function
 type MPH interface {
+	store.Marshaler
+	store.Unmarshaler
+
 	// Build builds a MPH for the given dictionary
 	Build(dict dictionary.Dictionary) error
 	// Get returns a hash value for the given word
 	Get(word dictionary.Value) dictionary.Key
-	// Store stores the given MPH structure into output
-	Store(out store.Output) (int, error)
-	// Load loads from the input a MPH structure
-	Load(in store.Input) (int, error)
 }
 
 // New creates a new instance of MPH object

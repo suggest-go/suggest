@@ -53,6 +53,13 @@ func (b *byteOutput) WriteUInt16(v uint16) (int, error) {
 	return b.writer.Write(chunk)
 }
 
+// WriteByte writes the given byte
+func (b *byteOutput) WriteByte(v byte) error {
+	_, err := b.writer.Write([]byte{v})
+
+	return err
+}
+
 // Close closes the given output for io operations
 func (b *byteOutput) Close() error {
 	if buf, ok := b.writer.(*bufio.Writer); ok {
