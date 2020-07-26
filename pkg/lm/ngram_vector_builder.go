@@ -18,7 +18,7 @@ type NGramVectorBuilder interface {
 }
 
 // NGramVectorFactory represents a factory method for creating a NGramVector instance.
-type NGramVectorFactory func(tree rbtree.Tree) NGramVector
+type NGramVectorFactory func(ch <-chan NGramNode) NGramVector
 
 // ErrNGramOrderIsOutOfRange informs that the given NGrams is out of range for the given
 var ErrNGramOrderIsOutOfRange = errors.New("nGrams order is out of range")
@@ -30,24 +30,36 @@ type nGramVectorBuilder struct {
 	tree    rbtree.Tree
 }
 
-type key uint64
+// NGramNode represents tree node for the given nGram
+type NGramNode struct {
+	Key   Key
+	Count WordCount
+}
 
-// makeKey creates uint64 key for the given pair (word, context)
-func makeKey(word WordID, context ContextOffset) key {
+// Less tells is current elements is bigger than the other
+func (n *NGramNode) Less(other rbtree.Item) bool {
+	return n.Key < other.(*NGramNode).Key
+}
+
+// Key represents a NGramNode key as a composition of a NGram context and wordID
+type Key uint64
+
+// MakeKey creates uint64 key for the given pair (word, context)
+func MakeKey(word WordID, context ContextOffset) Key {
 	if context > maxContextOffset {
 		log.Fatal(ErrContextOverflow)
 	}
 
-	return key(utils.Pack(context, word))
+	return Key(utils.Pack(context, word))
 }
 
-// getKey returns the wordID for the given key
-func (k key) getWordID() WordID {
+// GetWordID returns the wordID for the given key
+func (k Key) GetWordID() WordID {
 	return utils.UnpackRight(uint64(k))
 }
 
-// getContext returns the context for the given key
-func (k key) getContext() ContextOffset {
+// GetContext returns the context for the given key
+func (k Key) GetContext() ContextOffset {
 	return utils.UnpackLeft(uint64(k))
 }
 
@@ -70,15 +82,15 @@ func (m *nGramVectorBuilder) Put(nGrams []WordID, count WordCount) error {
 
 	for i, nGram := range nGrams {
 		if i == len(nGrams)-1 {
-			node := &nGramNode{
-				key:   makeKey(nGram, parent),
-				value: count,
+			node := &NGramNode{
+				Key:   MakeKey(nGram, parent),
+				Count: count,
 			}
 
 			prev := m.tree.Find(node)
 
 			if prev != nil {
-				(prev.(*nGramNode)).value += count
+				(prev.(*NGramNode)).Count += count
 			} else {
 				if _, err := m.tree.Insert(node); err != nil {
 					return fmt.Errorf("failed to insert the node: %w", err)
@@ -94,16 +106,16 @@ func (m *nGramVectorBuilder) Put(nGrams []WordID, count WordCount) error {
 
 // Build creates new instance of NGramVector
 func (m *nGramVectorBuilder) Build() NGramVector {
-	return m.factory(m.tree)
-}
+	ch := make(chan NGramNode)
 
-// nGramNode represents tree node for the given nGram
-type nGramNode struct {
-	key   key
-	value WordCount
-}
+	go func() {
+		for iter := m.tree.NewIterator(); iter.Next() != nil; {
+			node := iter.Get().(*NGramNode)
+			ch <- *node
+		}
 
-// Less tells is current elements is bigger than the other
-func (n *nGramNode) Less(other rbtree.Item) bool {
-	return n.key < other.(*nGramNode).key
+		close(ch)
+	}()
+
+	return m.factory(ch)
 }
