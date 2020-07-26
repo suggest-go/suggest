@@ -174,7 +174,7 @@ func createPackedArray(tree rbtree.Tree) NGramVector {
 	for i, iter := 0, tree.NewIterator(); iter.Next() != nil; i++ {
 		node = iter.Get().(*nGramNode)
 		total += node.value
-		currContext := getContext(node.key)
+		currContext := node.key.getContext()
 
 		if container == nil || context != currContext {
 			if container != nil {
@@ -190,7 +190,7 @@ func createPackedArray(tree rbtree.Tree) NGramVector {
 			context = currContext
 		}
 
-		values = append(values, utils.Pack(getWordID(node.key), node.value))
+		values = append(values, utils.Pack(node.key.getWordID(), node.value))
 	}
 
 	if container != nil {
