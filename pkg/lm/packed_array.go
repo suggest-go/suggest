@@ -5,22 +5,42 @@ import (
 	"io"
 	"sort"
 
-	"github.com/alldroll/go-datastructures/rbtree"
 	"github.com/suggest-go/suggest/pkg/store"
 	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 type packedArray struct {
 	containers []rangeContainer
-	values     []packedValue // we can store it on disc
+	values     []packedValue
 	total      WordCount
 }
 
 type packedValue = uint64
 
-type rangeContainer struct {
-	context  ContextOffset
-	from, to uint32
+func newPackedValue(wordID WordID, wordCount WordCount) packedValue {
+	return utils.Pack(wordID, wordCount)
+}
+
+func getWordID(p packedValue) WordID {
+	return utils.UnpackLeft(p)
+}
+
+func getWordCount(p packedValue) WordCount {
+	return utils.UnpackRight(p)
+}
+
+type rangeContainer = uint64
+
+func newRangeContainer(context ContextOffset, from uint32) rangeContainer {
+	return utils.Pack(context, from)
+}
+
+func getContext(rc rangeContainer) ContextOffset {
+	return utils.UnpackLeft(rc)
+}
+
+func getFrom(rc rangeContainer) uint32 {
+	return utils.UnpackRight(rc)
 }
 
 // NewNGramVector creates a new instance of NGramVector.
@@ -36,7 +56,7 @@ func (s *packedArray) GetCount(word WordID, context ContextOffset) (WordCount, C
 		return 0, InvalidContextOffset
 	}
 
-	return utils.UnpackRight(value), i
+	return getWordCount(value), i
 }
 
 // GetContextOffset returns the given node context offset
@@ -53,18 +73,20 @@ func (s *packedArray) CorpusCount() WordCount {
 
 // SubVector returns NGramVector for the given context
 func (s *packedArray) SubVector(context ContextOffset) NGramVector {
-	if len(s.containers) == 0 || s.containers[0].context > context || s.containers[len(s.containers)-1].context < context {
+	i := s.findContainerPos(context)
+
+	if i == -1 {
 		return nil
 	}
 
-	i := sort.Search(len(s.containers), func(i int) bool { return s.containers[i].context >= context })
+	containers := []rangeContainer{s.containers[i]}
 
-	if i < 0 || i >= len(s.containers) || s.containers[i].context != context {
-		return nil
+	if i < len(s.containers)-1 {
+		containers = append(containers, s.containers[i+1])
 	}
 
 	return &packedArray{
-		containers: []rangeContainer{s.containers[i]},
+		containers: containers,
 		values:     s.values,
 		total:      s.total,
 	}
@@ -72,7 +94,7 @@ func (s *packedArray) SubVector(context ContextOffset) NGramVector {
 
 func (s *packedArray) Store(out store.Output) (int, error) {
 	// write header
-	containerSize := uint32(12 * len(s.containers))
+	containerSize := uint32(8 * len(s.containers))
 	valuesSize := uint32(8 * len(s.values))
 	n, err := fmt.Fprintln(out, containerSize, valuesSize, s.total)
 	p := n
@@ -82,7 +104,7 @@ func (s *packedArray) Store(out store.Output) (int, error) {
 	}
 
 	// write values
-	if n, err = out.Write(rangeContainerSliceAsByteSlice(s.containers)); err != nil {
+	if n, err = out.Write(uint64SliceAsByteSlice(s.containers)); err != nil {
 		return p + n, err
 	}
 
@@ -131,7 +153,7 @@ func (s *packedArray) Load(in store.Input) (int, error) {
 		p += n
 	}
 
-	s.containers = byteSliceAsRangeContainerSlice(data[:containersSize])
+	s.containers = byteSliceAsUint64Slice(data[:containersSize])
 	s.values = byteSliceAsUint64Slice(data[containersSize:])
 
 	return p, nil
@@ -139,68 +161,73 @@ func (s *packedArray) Load(in store.Input) (int, error) {
 
 // find finds the given key in the collection. Returns ContextOffset if the key exists, otherwise returns InvalidContextOffset
 func (s *packedArray) find(wordID WordID, context ContextOffset) (packedValue, ContextOffset) {
-	if len(s.containers) == 0 || s.containers[0].context > context || s.containers[len(s.containers)-1].context < context {
+	i := s.findContainerPos(context)
+
+	if i == -1 {
 		return 0, InvalidContextOffset
 	}
 
-	i := sort.Search(len(s.containers), func(i int) bool { return s.containers[i].context >= context })
-
-	if i < 0 || i >= len(s.containers) || s.containers[i].context != context {
-		return 0, InvalidContextOffset
-	}
-
+	values := []packedValue{}
 	container := s.containers[i]
-	values := s.values[container.from:container.to]
-	target := utils.Pack(wordID, 0)
+	from := getFrom(container)
+
+	if i == len(s.containers)-1 {
+		values = s.values[from:]
+	} else {
+		to := getFrom(s.containers[i+1])
+		values = s.values[from:to]
+	}
+
+	target := newPackedValue(wordID, 0)
 	j := sort.Search(len(values), func(i int) bool { return values[i] >= target })
 
-	if j < 0 || j >= len(values) || utils.UnpackLeft(values[j]) != wordID {
+	if j < 0 || j >= len(values) || getWordID(values[j]) != wordID {
 		return 0, InvalidContextOffset
 	}
 
-	return values[j], container.from + ContextOffset(j)
+	return values[j], from + ContextOffset(j)
 }
 
-// createPackedArray creates a NGramVector form the given Tree
-func createPackedArray(tree rbtree.Tree) NGramVector {
-	var node *nGramNode
-	total := WordCount(0)
+// findContainerPos searches for a position of a range container with the given context.
+// Returns -1 if container does not exist.
+func (s *packedArray) findContainerPos(context ContextOffset) int {
+	if len(s.containers) == 0 || getContext(s.containers[0]) > context || getContext(s.containers[len(s.containers)-1]) < context {
+		return -1
+	}
 
-	var container *rangeContainer
+	target := newRangeContainer(context, 0)
+	i := sort.Search(len(s.containers), func(i int) bool { return s.containers[i] >= target })
+
+	if i < 0 || i >= len(s.containers) || getContext(s.containers[i]) != context {
+		return -1
+	}
+
+	return i
+}
+
+// CreatePackedArray creates a NGramVector form the channel of NGramNodes.
+func CreatePackedArray(ch <-chan NGramNode) NGramVector {
+	pa := &packedArray{
+		containers: []rangeContainer{},
+		values:     []packedValue{},
+		total:      0,
+	}
+
 	context := InvalidContextOffset
-	values := make([]packedValue, 0, tree.Len())
-	containers := []rangeContainer{}
+	from := uint32(0)
 
-	for i, iter := 0, tree.NewIterator(); iter.Next() != nil; i++ {
-		node = iter.Get().(*nGramNode)
-		total += node.value
-		currContext := getContext(node.key)
+	for node := range ch {
+		pa.total += node.Count
+		currContext := node.Key.GetContext()
 
-		if container == nil || context != currContext {
-			if container != nil {
-				container.to = uint32(i)
-				containers = append(containers, *container)
-			}
-
-			container = &rangeContainer{
-				context: currContext,
-				from:    uint32(i),
-			}
-
+		if context != currContext || len(pa.containers) == 0 {
+			pa.containers = append(pa.containers, newRangeContainer(currContext, from))
 			context = currContext
 		}
 
-		values = append(values, utils.Pack(getWordID(node.key), node.value))
+		pa.values = append(pa.values, newPackedValue(node.Key.GetWordID(), node.Count))
+		from++
 	}
 
-	if container != nil {
-		container.to = uint32(len(values))
-		containers = append(containers, *container)
-	}
-
-	return &packedArray{
-		containers: containers,
-		values:     values,
-		total:      total,
-	}
+	return pa
 }

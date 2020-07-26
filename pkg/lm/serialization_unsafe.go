@@ -38,32 +38,3 @@ func byteSliceAsUint64Slice(slice []byte) (result []uint64) {
 
 	return
 }
-
-func rangeContainerSliceAsByteSlice(slice []rangeContainer) []byte {
-	header := *(*reflect.SliceHeader)(unsafe.Pointer(&slice))
-
-	header.Len *= 12
-	header.Cap *= 12
-
-	result := *(*[]byte)(unsafe.Pointer(&header))
-	runtime.KeepAlive(&slice)
-
-	return result
-}
-
-func byteSliceAsRangeContainerSlice(slice []byte) (result []rangeContainer) {
-	if len(slice)%12 != 0 {
-		panic("Slice size should be divisible by 8")
-	}
-
-	bHeader := (*reflect.SliceHeader)(unsafe.Pointer(&slice))
-	rHeader := (*reflect.SliceHeader)(unsafe.Pointer(&result))
-
-	rHeader.Data = bHeader.Data
-	rHeader.Len = bHeader.Len / 12
-	rHeader.Cap = bHeader.Cap / 12
-
-	runtime.KeepAlive(&slice)
-
-	return
-}

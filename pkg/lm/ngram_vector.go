@@ -2,17 +2,14 @@ package lm
 
 import (
 	"errors"
-	"log"
 	"math"
 
 	"github.com/suggest-go/suggest/pkg/store"
-	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 type (
 	// ContextOffset represents the id of parent nGram path
 	ContextOffset = uint32
-	key           = uint64
 )
 
 // NGramVector represents one level of nGram trie
@@ -41,22 +38,3 @@ var (
 	// ErrContextOverflow tells that it was an attempt
 	ErrContextOverflow = errors.New("out of maxContextOffset")
 )
-
-// makeKey creates uint64 key for the given pair (word, context)
-func makeKey(word WordID, context ContextOffset) key {
-	if context > maxContextOffset {
-		log.Fatal(ErrContextOverflow)
-	}
-
-	return utils.Pack(context, word)
-}
-
-// getWordID returns the word id for the given key
-func getWordID(key key) WordID {
-	return utils.UnpackRight(key)
-}
-
-// getContext returns the context for the given key
-func getContext(key key) WordID {
-	return utils.UnpackLeft(key)
-}
