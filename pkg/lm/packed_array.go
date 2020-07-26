@@ -178,6 +178,10 @@ func (s *packedArray) find(wordID WordID, context ContextOffset) (packedValue, C
 		values = s.values[from:to]
 	}
 
+	if getWordID(values[0]) > wordID || getWordID(values[len(values)-1]) < wordID {
+		return 0, InvalidContextOffset
+	}
+
 	target := newPackedValue(wordID, 0)
 	j := sort.Search(len(values), func(i int) bool { return values[i] >= target })
 
