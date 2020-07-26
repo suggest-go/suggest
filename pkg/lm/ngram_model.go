@@ -32,13 +32,8 @@ type nGramModel struct {
 	nGramOrder uint8
 }
 
-// NewNGramModel creates a new empty instance of NGramModel instance.
-func NewNGramModel() NGramModel {
-	return &nGramModel{}
-}
-
-// CreateNGramModel creates a NGramModel from the given indices.
-func CreateNGramModel(indices []NGramVector) NGramModel {
+// NewNGramModel creates a NGramModel from the given indices.
+func NewNGramModel(indices []NGramVector) NGramModel {
 	return &nGramModel{
 		indices:    indices,
 		nGramOrder: uint8(len(indices)),
@@ -115,8 +110,7 @@ func (m *nGramModel) Store(out store.Output) (int, error) {
 	p := 6 // 5 + 1
 
 	for _, vector := range m.indices {
-		v := vector.(*packedArray) // TODO fix me
-		n, err := v.Store(out)
+		n, err := vector.Store(out)
 		p += n
 
 		if err != nil {

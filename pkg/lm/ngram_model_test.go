@@ -149,7 +149,7 @@ func TestBinaryMarshalling(t *testing.T) {
 
 	// Create a decoder and receive a value.
 	input, _ := outDir.OpenInput("lm")
-	actual := NewNGramModel()
+	actual := NewNGramModel(nil)
 
 	if _, err = actual.Load(input); err != nil {
 		t.Errorf("Unexpected error: %v", err)

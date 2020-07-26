@@ -50,7 +50,7 @@ func (gr *googleNGramFormatReader) Read() (NGramModel, error) {
 		vectors = append(vectors, builder.Build())
 	}
 
-	return CreateNGramModel(vectors), nil
+	return NewNGramModel(vectors), nil
 }
 
 // readNGramVector reads nGram vector for the given order

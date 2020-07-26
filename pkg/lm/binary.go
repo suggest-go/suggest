@@ -70,7 +70,7 @@ func RetrieveLMFromBinary(directory store.Directory, config *Config) (LanguageMo
 	}
 
 	var (
-		model = NewNGramModel()
+		model = NewNGramModel(nil)
 		table = mph.New()
 	)
 
