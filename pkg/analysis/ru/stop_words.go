@@ -1,5 +1,7 @@
 package ru
 
+// Originally was take from https://snowballstem.org/algorithms/russian/stop.txt
+
 // StopWords is a russian stop word list that is used by RussianStemmerFilter.
 var StopWords = []string{
 	"и",

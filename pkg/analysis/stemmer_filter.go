@@ -2,6 +2,7 @@ package analysis
 
 import (
 	snowball "github.com/snowballstem/snowball/go"
+	"github.com/suggest-go/suggest/pkg/analysis/en"
 	"github.com/suggest-go/suggest/pkg/analysis/ru"
 )
 
@@ -18,6 +19,14 @@ func NewRussianStemmerFilter() TokenFilter {
 	return &stemmerFilter{
 		stemmer:   ru.Stem,
 		stopWords: stopWordsToSet(ru.StopWords),
+	}
+}
+
+// NewEnglishStemmerFilter creates a new stemmer for English language.
+func NewEnglishStemmerFilter() TokenFilter {
+	return &stemmerFilter{
+		stemmer:   en.Stem,
+		stopWords: stopWordsToSet(en.StopWords),
 	}
 }
 
