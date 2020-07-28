@@ -12,6 +12,14 @@ type lmCollector struct {
 	scorer    suggest.Scorer
 }
 
+// newCollectorManager creates a new instance of lm CollectorManger.
+func newCollectorManager(scorer suggest.Scorer, topK int) suggest.CollectorManager {
+	return &lmCollectorManager{
+		topK:   topK,
+		scorer: scorer,
+	}
+}
+
 // lmCollectorManager implements CollectorManager interface
 type lmCollectorManager struct {
 	topK   int

@@ -1,7 +1,11 @@
 // Package spellchecker provides spellcheck functionality
 package spellchecker
 
+// TODO add tests!!
+
 import (
+	"sort"
+
 	"github.com/suggest-go/suggest/pkg/analysis"
 	"github.com/suggest-go/suggest/pkg/dictionary"
 	"github.com/suggest-go/suggest/pkg/lm"
@@ -41,12 +45,13 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 	}
 
 	word, seq := tokens[len(tokens)-1], tokens[:len(tokens)-1]
-	collectorManager, err := s.createCollectorManager(seq, topK)
+	scorerNext, err := scorerNext(s.model, seq)
 
 	if err != nil {
 		return nil, err
 	}
 
+	collectorManager := newCollectorManager(newScorer(scorerNext), topK)
 	candidates, err := s.index.Autocomplete(word, collectorManager)
 
 	if err != nil {
@@ -56,7 +61,7 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 	if len(candidates) < topK {
 		config, err := suggest.NewSearchConfig(
 			word,
-			topK-len(candidates),
+			topK,
 			metric.CosineMetric(),
 			similarity,
 		)
@@ -74,16 +79,38 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 		candidates = merge(candidates, fuzzyCandidates)
 	}
 
-	scorer, ok := collectorManager.scorer.(*lmScorer)
-
-	if len(seq) > 0 && ok {
-		sortCandidates(scorer, candidates)
+	if scorerNext != nil {
+		sortCandidates(scorerNext, candidates)
 	}
 
+	if topK < len(candidates) {
+		candidates = candidates[:topK+1]
+	}
+
+	return retrieveValues(s.dict, candidates)
+}
+
+// scorerNext creates lm.ScorerNext for the provided sentence
+func scorerNext(model lm.LanguageModel, seq lm.Sentence) (next lm.ScorerNext, err error) {
+	seqIds, err := lm.MapIntoListOfWordIDs(model, seq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(seqIds) > 0 {
+		next, err = model.Next(seqIds)
+	}
+
+	return
+}
+
+// retrieveValues fetches the corresponding values from the dictionary for the provided candidates.
+func retrieveValues(dict dictionary.Dictionary, candidates []suggest.Candidate) ([]string, error) {
 	result := make([]string, 0, len(candidates))
 
 	for _, c := range candidates {
-		val, err := s.dict.Get(c.Key)
+		val, err := dict.Get(c.Key)
 
 		if err != nil {
 			return nil, err
@@ -95,34 +122,11 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 	return result, nil
 }
 
-// createScorer creates scorer for the given sentence
-func (s *SpellChecker) createCollectorManager(seq []string, topK int) (*lmCollectorManager, error) {
-	seqIds, err := lm.MapIntoListOfWordIDs(s.model, seq)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var scorer suggest.Scorer
-
-	if len(seqIds) > 0 {
-		next, err := s.model.Next(seqIds)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if next != nil {
-			scorer = &lmScorer{
-				scorer: next,
-			}
-		}
-	}
-
-	return &lmCollectorManager{
-		topK:   topK,
-		scorer: scorer,
-	}, nil
+// sortCandidates performs sort of the given candidates using lm
+func sortCandidates(scorer lm.ScorerNext, candidates []suggest.Candidate) {
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return scorer.ScoreNext(candidates[i].Key) > scorer.ScoreNext(candidates[j].Key)
+	})
 }
 
 // merge merges the 2 candidates sets into one without duplication
