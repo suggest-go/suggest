@@ -2,9 +2,10 @@ package analysis
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRussianStemmerFilter(t *testing.T) {
@@ -25,14 +26,11 @@ func TestRussianStemmerFilter(t *testing.T) {
 	for i, testCase := range testCases {
 		t.Run(fmt.Sprintf("test #%d", i+1), func(t *testing.T) {
 			filter := NewRussianStemmerFilter()
-
 			actual := filter.Filter(
 				strings.Split(testCase.sentence, " "),
 			)
 
-			if !reflect.DeepEqual(actual, testCase.expected) {
-				t.Errorf("Expected %v, got %v", testCase.expected, actual)
-			}
+			assert.Equal(t, testCase.expected, actual)
 		})
 	}
 }
@@ -55,14 +53,11 @@ func TestEnglishStemmerFilter(t *testing.T) {
 	for i, testCase := range testCases {
 		t.Run(fmt.Sprintf("test #%d", i+1), func(t *testing.T) {
 			filter := NewEnglishStemmerFilter()
-
 			actual := filter.Filter(
 				strings.Split(testCase.sentence, " "),
 			)
 
-			if !reflect.DeepEqual(actual, testCase.expected) {
-				t.Errorf("Expected %v, got %v", testCase.expected, actual)
-			}
+			assert.Equal(t, testCase.expected, actual)
 		})
 	}
 }
