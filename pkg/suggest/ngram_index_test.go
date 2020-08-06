@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"log"
 	"os"
-	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/dictionary"
 	"github.com/suggest-go/suggest/pkg/index"
 	"github.com/suggest-go/suggest/pkg/metric"
@@ -25,17 +25,12 @@ func TestSuggestAuto(t *testing.T) {
 	}
 
 	nGramIndex := buildNGramIndex(collection)
-	conf, err := NewSearchConfig("Nissan ma", 2, metric.JaccardMetric(), 0.5)
 
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	conf, err := NewSearchConfig("Nissan ma", 2, metric.JaccardMetric(), 0.5)
+	assert.NoError(t, err)
 
 	candidates, err := nGramIndex.Suggest(conf)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	actual := make([]index.Position, 0, len(candidates))
 
@@ -43,18 +38,8 @@ func TestSuggestAuto(t *testing.T) {
 		actual = append(actual, candidate.Key)
 	}
 
-	expected := []index.Position{
-		2,
-		0,
-	}
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf(
-			"Test Fail, expected %v, got %v",
-			expected,
-			actual,
-		)
-	}
+	expected := []index.Position{2, 0}
+	assert.Equal(t, expected, actual)
 }
 
 func TestAutoComplete(t *testing.T) {
@@ -70,11 +55,9 @@ func TestAutoComplete(t *testing.T) {
 	}
 
 	nGramIndex := buildNGramIndex(collection)
-	candidates, err := nGramIndex.Autocomplete("Niss", NewFirstKCollectorManager(5))
 
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	candidates, err := nGramIndex.Autocomplete("Niss", NewFirstKCollectorManager(5))
+	assert.NoError(t, err)
 
 	actual := make([]index.Position, 0, len(candidates))
 
@@ -82,17 +65,8 @@ func TestAutoComplete(t *testing.T) {
 		actual = append(actual, candidate.Key)
 	}
 
-	expected := []index.Position{
-		0, 1, 2, 3, 4,
-	}
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf(
-			"Test Fail, expected %v, got %v",
-			expected,
-			actual,
-		)
-	}
+	expected := []index.Position{0, 1, 2, 3, 4}
+	assert.Equal(t, expected, actual)
 }
 
 func BenchmarkSuggest(b *testing.B) {

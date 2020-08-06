@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/dictionary"
 )
 
@@ -31,13 +32,8 @@ func TestFlow(t *testing.T) {
 		key := mph.Get(expected)
 		actual, err := dict.Get(key)
 
-		if err != nil {
-			t.Errorf("Unexpected error occurs: %v", err)
-		}
-
-		if actual != expected {
-			t.Errorf("Expected %v, got %v", expected, actual)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
 	}
 }
 

@@ -2,7 +2,6 @@ package merger
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -163,18 +162,13 @@ func TestMerge(t *testing.T) {
 
 				collector := &SimpleCollector{}
 				err := data.merger.Merge(rid, testCase.t, collector)
-
-				if err != nil {
-					t.Errorf("Unexpected error occurs: %v", err)
-				}
+				assert.NoError(t, err)
 
 				for _, candidate := range collector.Candidates {
 					actual[candidate.Overlap()] = append(actual[candidate.Overlap()], candidate.Position())
 				}
 
-				if !reflect.DeepEqual(actual, testCase.expected) {
-					t.Errorf("Test fail [%s], expected %v, got %v", data.name, testCase.expected, actual)
-				}
+				assert.Equal(t, testCase.expected, actual)
 			})
 		}
 	}
