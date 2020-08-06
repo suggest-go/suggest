@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/compression"
 	"github.com/suggest-go/suggest/pkg/store"
 )
@@ -36,7 +36,7 @@ func TestSkipping(t *testing.T) {
 		},
 	}
 
-	cases := []struct {
+	testCases := []struct {
 		name          string
 		list          []uint32
 		to            uint32
@@ -90,44 +90,31 @@ func TestSkipping(t *testing.T) {
 	}
 
 	for _, p := range postings {
-		t.Run(fmt.Sprintf("Test %s posting", p.name), func(t *testing.T) {
-			posting := p.posting
-			encoder := p.encoder
+		posting := p.posting
+		encoder := p.encoder
 
-			for _, c := range cases {
+		for _, testCase := range testCases {
+			t.Run(fmt.Sprintf("Test %s posting %s", testCase.name, p.name), func(t *testing.T) {
 				buf := &bytes.Buffer{}
 				out := store.NewBytesOutput(buf)
 
-				if _, err := encoder.Encode(c.list, out); err != nil {
-					t.Errorf("Unexpected error occurs: %v", err)
-				}
+				_, err := encoder.Encode(testCase.list, out)
+				assert.NoError(t, err)
 
-				err := posting.Init(PostingListContext{
-					ListSize: len(c.list),
+				err = posting.Init(PostingListContext{
+					ListSize: len(testCase.list),
 					Reader:   store.NewBytesInput(buf.Bytes()),
 				})
-
-				if err != nil {
-					t.Errorf("Unexpected error occurs: %v", err)
-				}
+				assert.NoError(t, err)
 
 				actual := []uint32{}
-				v, err := posting.LowerBound(c.to)
+				v, err := posting.LowerBound(testCase.to)
+				assert.Equal(t, testCase.expectedError, err != nil)
+				assert.Equal(t, testCase.lowerBound, v)
 
-				if v != c.lowerBound {
-					t.Errorf("Test %s fail, expected %v, got %v", c.name, c.lowerBound, v)
-				}
-
-				if err != nil && !c.expectedError {
-					t.Errorf("Unexpected error: %v", err)
-				}
-
-				for !c.expectedError {
+				for !testCase.expectedError {
 					v, err := posting.Get()
-
-					if err != nil {
-						t.Errorf("Unexpected error: %v", err)
-					}
+					assert.NoError(t, err)
 
 					actual = append(actual, v)
 
@@ -135,16 +122,13 @@ func TestSkipping(t *testing.T) {
 						break
 					}
 
-					if _, err = posting.Next(); err != nil {
-						t.Errorf("Unexpected error: %v", err)
-					}
+					_, err = posting.Next()
+					assert.NoError(t, err)
 				}
 
-				if !reflect.DeepEqual(c.tail, actual) {
-					t.Errorf("Test %s fail, expected posting list: %v, got: %v", c.name, c.tail, actual)
-				}
-			}
-		})
+				assert.Equal(t, testCase.tail, actual)
+			})
+		}
 	}
 }
 
