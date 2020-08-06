@@ -21,9 +21,7 @@ func TestFlow(t *testing.T) {
 	dict := dictionary.NewInMemoryDictionary(collection)
 	mph := New()
 
-	if err := mph.Build(dict); err != nil {
-		t.Errorf("Unexpected error occurs: %v", err)
-	}
+	assert.NoError(t, mph.Build(dict))
 
 	list := rand.Perm(len(collection))
 
