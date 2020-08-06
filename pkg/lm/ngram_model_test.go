@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/store"
 )
 
@@ -12,29 +13,20 @@ const tolerance = 0.0001
 
 func TestScoreFromFile(t *testing.T) {
 	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	directory, err := store.NewFSDirectory("testdata/fixtures")
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	reader := NewGoogleNGramReader(3, indexer, directory)
-
 	model, err := reader.Read()
-	if err != nil {
-		t.Errorf("Unexpected error %v", err)
-	}
+	assert.NoError(t, err)
 
 	testModel(t, model, indexer)
 }
 
 func TestPredict(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		nGrams   Sentence
 		word     string
 		expected float64
@@ -66,94 +58,62 @@ func TestPredict(t *testing.T) {
 		},
 	}
 
-	for i, c := range cases {
+	for i, testCase := range testCases {
 		t.Run(fmt.Sprintf("predict #%d", i), func(t *testing.T) {
 			indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
-
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			directory, err := store.NewFSDirectory("testdata/fixtures")
-
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
+			assert.NoError(t, err)
 
 			reader := NewGoogleNGramReader(3, indexer, directory)
 			ids := make([]WordID, 0, 3)
 
 			model, err := reader.Read()
+			assert.NoError(t, err)
 
-			if err != nil {
-				t.Errorf("Unexpected error %v", err)
-			}
-
-			for _, nGram := range c.nGrams {
+			for _, nGram := range testCase.nGrams {
 				id, _ := indexer.Get(nGram)
 				ids = append(ids, id)
 			}
 
 			scorerNext, err := model.Next(ids)
+			assert.NoError(t, err)
 
-			if err != nil {
-				t.Errorf("Unexpected error %v", err)
-			}
-
-			id, _ := indexer.Get(c.word)
+			id, _ := indexer.Get(testCase.word)
 			actual := scorerNext.ScoreNext(id)
-
-			if diff := math.Abs(c.expected - actual); diff >= tolerance {
-				t.Errorf(
-					"Test fail, for %v expected score %v, got %v",
-					c.nGrams,
-					c.expected,
-					actual,
-				)
-			}
+			assert.Less(t, math.Abs(testCase.expected-actual), tolerance)
 		})
 	}
 }
 
 func TestBinaryMarshalling(t *testing.T) {
 	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	directory, err := store.NewFSDirectory("testdata/fixtures")
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	reader := NewGoogleNGramReader(3, indexer, directory)
-
 	expected, err := reader.Read()
-	if err != nil {
-		t.Errorf("Unexpected error %v", err)
-	}
+	assert.NoError(t, err)
 
 	outDir := store.NewRAMDirectory()
 	output, _ := outDir.CreateOutput("lm")
 
 	// Create an encoder and send a value.
-	if _, err := expected.Store(output); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	_, err = expected.Store(output)
+	assert.NoError(t, err)
 
-	if err := output.Close(); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	err = output.Close()
+	assert.NoError(t, err)
 
 	// Create a decoder and receive a value.
 	input, _ := outDir.OpenInput("lm")
 	actual := NewNGramModel(nil)
 
-	if _, err = actual.Load(input); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	_, err = actual.Load(input)
+	assert.NoError(t, err)
 
 	testModel(t, expected, indexer)
 	testModel(t, actual, indexer)
@@ -162,7 +122,7 @@ func TestBinaryMarshalling(t *testing.T) {
 func testModel(t *testing.T, model NGramModel, indexer Indexer) {
 	ids := make([]WordID, 0, 3)
 
-	cases := []struct {
+	testCases := []struct {
 		nGrams        Sentence
 		expectedScore float64
 	}{
@@ -174,22 +134,16 @@ func testModel(t *testing.T, model NGramModel, indexer Indexer) {
 		{Sentence{"no", "one", "word"}, -100},
 	}
 
-	for _, c := range cases {
-		for _, nGram := range c.nGrams {
-			id, _ := indexer.Get(nGram)
-			ids = append(ids, id)
-		}
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("Test #%d", i+1), func(t *testing.T) {
+			for _, nGram := range testCase.nGrams {
+				id, _ := indexer.Get(nGram)
+				ids = append(ids, id)
+			}
 
-		actual := model.Score(ids)
-		ids = ids[:0]
-
-		if diff := math.Abs(actual - c.expectedScore); diff >= tolerance {
-			t.Errorf(
-				"Test fail, for %v expected score %v, got %v",
-				c.nGrams,
-				c.expectedScore,
-				actual,
-			)
-		}
+			actual := model.Score(ids)
+			ids = ids[:0]
+			assert.Less(t, math.Abs(testCase.expectedScore-actual), tolerance)
+		})
 	}
 }
