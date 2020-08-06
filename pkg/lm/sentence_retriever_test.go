@@ -1,15 +1,16 @@
 package lm
 
 import (
-	"reflect"
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/alphabet"
 )
 
 func TestSentenceRetrieve(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		text     string
 		expected []Sentence
 	}{
@@ -26,31 +27,31 @@ func TestSentenceRetrieve(t *testing.T) {
 		},
 	}
 
-	tokenizer := NewTokenizer(alphabet.NewCompositeAlphabet(
-		[]alphabet.Alphabet{
-			alphabet.NewEnglishAlphabet(),
-			alphabet.NewRussianAlphabet(),
-			alphabet.NewNumberAlphabet(),
-		},
-	))
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("Test #%d", i+1), func(t *testing.T) {
+			tokenizer := NewTokenizer(alphabet.NewCompositeAlphabet(
+				[]alphabet.Alphabet{
+					alphabet.NewEnglishAlphabet(),
+					alphabet.NewRussianAlphabet(),
+					alphabet.NewNumberAlphabet(),
+				},
+			))
 
-	stopAlphabet := alphabet.NewSimpleAlphabet([]rune{'.', '?', '!'})
+			stopAlphabet := alphabet.NewSimpleAlphabet([]rune{'.', '?', '!'})
 
-	for _, c := range cases {
-		retriever := NewSentenceRetriever(
-			tokenizer,
-			strings.NewReader(c.text),
-			stopAlphabet,
-		)
+			retriever := NewSentenceRetriever(
+				tokenizer,
+				strings.NewReader(testCase.text),
+				stopAlphabet,
+			)
 
-		actual := []Sentence{}
+			actual := []Sentence{}
 
-		for s := retriever.Retrieve(); s != nil; s = retriever.Retrieve() {
-			actual = append(actual, s)
-		}
+			for s := retriever.Retrieve(); s != nil; s = retriever.Retrieve() {
+				actual = append(actual, s)
+			}
 
-		if !reflect.DeepEqual(actual, c.expected) {
-			t.Errorf("Test fail, expected %v, got %v", c.expected, actual)
-		}
+			assert.Equal(t, testCase.expected, actual)
+		})
 	}
 }

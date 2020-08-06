@@ -1,9 +1,11 @@
 package lm
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/store"
 )
 
@@ -17,57 +19,36 @@ func TestScoreSentenceFromFile(t *testing.T) {
 	}
 
 	indexer, err := buildIndexerWithInMemoryDictionary("testdata/fixtures/1-gm")
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	directory, err := store.NewFSDirectory(config.GetOutputPath())
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	reader := NewGoogleNGramReader(config.NGramOrder, indexer, directory)
 	model, err := reader.Read()
-
-	if err != nil {
-		t.Errorf("Unexpected error %v", err)
-	}
+	assert.NoError(t, err)
 
 	lm, err := NewLanguageModel(model, indexer, &config)
-
-	if err != nil {
-		t.Errorf("Unexpected error %v", err)
-	}
+	assert.NoError(t, err)
 
 	testLM(lm, t)
 }
 
 func TestScoreSentenceFromBinary(t *testing.T) {
 	config, err := ReadConfig("testdata/config-example.json")
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	directory, err := store.NewFSDirectory(config.GetOutputPath())
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	lm, err := RetrieveLMFromBinary(directory, config)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 
 	testLM(lm, t)
 }
 
 func testLM(lm LanguageModel, t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		sentence      Sentence
 		expectedScore float64
 	}{
@@ -79,16 +60,11 @@ func testLM(lm LanguageModel, t *testing.T) {
 		{Sentence{"no", "one", "word"}, -203.7297},
 	}
 
-	for _, c := range cases {
-		actual, _ := lm.ScoreSentence(c.sentence)
-
-		if diff := math.Abs(actual - c.expectedScore); diff >= tolerance {
-			t.Errorf(
-				"Test fail, for %v expected score %v, got %v",
-				c.sentence,
-				c.expectedScore,
-				actual,
-			)
-		}
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("Test #%d", i+1), func(t *testing.T) {
+			actual, _ := lm.ScoreSentence(testCase.sentence)
+			diff := math.Abs(actual - testCase.expectedScore)
+			assert.Less(t, diff, tolerance)
+		})
 	}
 }

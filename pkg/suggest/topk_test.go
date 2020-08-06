@@ -1,8 +1,9 @@
 package suggest
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTopKQueue(t *testing.T) {
@@ -33,15 +34,7 @@ func TestTopKQueue(t *testing.T) {
 
 	actual := selector.GetCandidates()
 
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("Test fail, expected %v, got %v", expected, actual)
-	}
-
-	if selector.GetLowestScore() != 0.6565 {
-		t.Errorf("Test fail, the lowest score should be %v, got %v", 0.6565, selector.GetLowestScore())
-	}
-
-	if !selector.CanTakeWithScore(0.6566) {
-		t.Errorf("Test fail, CanTakeWithScore should return true")
-	}
+	assert.Equal(t, expected, actual)
+	assert.Equal(t, 0.6565, selector.GetLowestScore())
+	assert.True(t, selector.CanTakeWithScore(0.6566))
 }

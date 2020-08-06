@@ -1,21 +1,19 @@
 package merger
 
 import (
-	"github.com/suggest-go/suggest/pkg/utils"
-	"reflect"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/suggest-go/suggest/pkg/utils"
 )
 
 func TestMergeOverlapOverflow(t *testing.T) {
 	m := NewMergeCandidate(1, MaxOverlap)
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Test Fail, the code did not panic")
-		}
-	}()
-
-	m.increment()
+	assert.Panics(t, func() {
+		m.increment()
+	})
 }
 
 func BenchmarkMergeCandidate(b *testing.B) {
@@ -42,51 +40,11 @@ func BenchmarkMergeCandidate(b *testing.B) {
 }
 
 func TestMerge(t *testing.T) {
-	mergers := []struct {
-		name   string
-		merger ListMerger
+	var testCases = []struct {
+		rid      [][]uint32
+		t        int
+		expected map[int][]uint32
 	}{
-		{"scan_count", ScanCount()},
-		{"cp_merge", CPMerge()},
-		{"merge_skip", MergeSkip()},
-		{"divide_skip", DivideSkip(0.01)},
-	}
-
-	for _, data := range mergers {
-		for _, c := range dataProvider() {
-			actual := make(map[int][]uint32, len(c.rid))
-			rid := make(Rid, 0, len(c.rid))
-
-			for _, slice := range c.rid {
-				rid = append(rid, NewSliceIterator(slice))
-			}
-
-			collector := &SimpleCollector{}
-			err := data.merger.Merge(rid, c.t, collector)
-
-			if err != nil {
-				t.Errorf("Unexpected error occurs: %v", err)
-			}
-
-			for _, candidate := range collector.Candidates {
-				actual[candidate.Overlap()] = append(actual[candidate.Overlap()], candidate.Position())
-			}
-
-			if !reflect.DeepEqual(actual, c.expected) {
-				t.Errorf("Test fail [%s], expected %v, got %v", data.name, c.expected, actual)
-			}
-		}
-	}
-}
-
-type oneCase struct {
-	rid      [][]uint32
-	t        int
-	expected map[int][]uint32
-}
-
-func dataProvider() []oneCase {
-	return []oneCase{
 		{
 			[][]uint32{
 				{1, 2, 3},
@@ -180,5 +138,38 @@ func dataProvider() []oneCase {
 				4: {50},
 			},
 		},
+	}
+
+	mergers := []struct {
+		name   string
+		merger ListMerger
+	}{
+		{"scan_count", ScanCount()},
+		{"cp_merge", CPMerge()},
+		{"merge_skip", MergeSkip()},
+		{"divide_skip", DivideSkip(0.01)},
+	}
+
+	for _, data := range mergers {
+		for i, testCase := range testCases {
+			t.Run(fmt.Sprintf("Test #%d, merger: %s", i+1, data.name), func(t *testing.T) {
+				actual := make(map[int][]uint32, len(testCase.rid))
+				rid := make(Rid, 0, len(testCase.rid))
+
+				for _, slice := range testCase.rid {
+					rid = append(rid, NewSliceIterator(slice))
+				}
+
+				collector := &SimpleCollector{}
+				err := data.merger.Merge(rid, testCase.t, collector)
+				assert.NoError(t, err)
+
+				for _, candidate := range collector.Candidates {
+					actual[candidate.Overlap()] = append(actual[candidate.Overlap()], candidate.Position())
+				}
+
+				assert.Equal(t, testCase.expected, actual)
+			})
+		}
 	}
 }

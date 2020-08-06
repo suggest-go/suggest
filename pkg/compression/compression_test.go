@@ -2,11 +2,12 @@ package compression
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
-	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/store"
 )
 
@@ -24,7 +25,7 @@ func TestEncodeDecode(t *testing.T) {
 		{"skipping", skipEnc, skipDec},
 	}
 
-	cases := []struct {
+	testCases := []struct {
 		p []uint32
 	}{
 		{[]uint32{824, 829, 215406}},
@@ -36,24 +37,21 @@ func TestEncodeDecode(t *testing.T) {
 		encoder := ins.encoder
 		decoder := ins.decoder
 
-		for _, c := range cases {
-			buf := &bytes.Buffer{}
-			output := store.NewBytesOutput(buf)
-			list := make([]uint32, len(c.p))
+		for i, testCase := range testCases {
+			t.Run(fmt.Sprintf("%s_%d", ins.name, i+1), func(t *testing.T) {
+				buf := &bytes.Buffer{}
+				output := store.NewBytesOutput(buf)
+				list := make([]uint32, len(testCase.p))
 
-			if _, err := encoder.Encode(c.p, output); err != nil {
-				t.Errorf("[%s] Unexpected error occurs: %v", ins.name, err)
-			}
+				_, err := encoder.Encode(testCase.p, output)
+				assert.NoError(t, err)
 
-			in := store.NewBytesInput(buf.Bytes())
+				in := store.NewBytesInput(buf.Bytes())
+				_, err = decoder.Decode(in, list)
 
-			if _, err := decoder.Decode(in, list); err != nil {
-				t.Errorf("[%s] Unexpected error occurs: %v", ins.name, err)
-			}
-
-			if !reflect.DeepEqual(list, c.p) {
-				t.Errorf("Fail [%s], expected posting list: %v, got: %v", ins.name, c.p, list)
-			}
+				assert.NoError(t, err)
+				assert.Equal(t, list, testCase.p)
+			})
 		}
 	}
 }

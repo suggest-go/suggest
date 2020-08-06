@@ -1,12 +1,14 @@
 package analysis
 
 import (
-	"reflect"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTokenizeNGrams(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		word   string
 		k      int
 		ngrams []Token
@@ -43,17 +45,12 @@ func TestTokenizeNGrams(t *testing.T) {
 		},
 	}
 
-	for _, c := range cases {
-		tokenizer := NewNGramTokenizer(c.k)
-		actual := tokenizer.Tokenize(c.word)
-
-		if !reflect.DeepEqual(actual, c.ngrams) {
-			t.Errorf(
-				"Test Fail, expected %v, got %v",
-				c.ngrams,
-				actual,
-			)
-		}
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("Test #%d", i+1), func(t *testing.T) {
+			tokenizer := NewNGramTokenizer(testCase.k)
+			actual := tokenizer.Tokenize(testCase.word)
+			assert.Equal(t, testCase.ngrams, actual)
+		})
 	}
 }
 

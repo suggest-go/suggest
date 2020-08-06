@@ -1,14 +1,15 @@
 package analysis
 
 import (
-	"reflect"
+	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/alphabet"
 )
 
 func TestTokenize(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		text     string
 		expected []Token
 	}{
@@ -27,12 +28,10 @@ func TestTokenize(t *testing.T) {
 		},
 	))
 
-	for _, c := range cases {
-		actual := tokenizer.Tokenize(c.text)
-
-		if !reflect.DeepEqual(actual, c.expected) {
-			t.Errorf("Test fail, expected %v, got %v", c.expected, actual)
-		}
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("Test #%d", i+1), func(t *testing.T) {
+			assert.Equal(t, testCase.expected, tokenizer.Tokenize(testCase.text))
+		})
 	}
 }
 

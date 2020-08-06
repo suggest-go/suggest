@@ -1,50 +1,16 @@
 package merger
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIntersect(t *testing.T) {
-	intersectors := []ListIntersector{
-		Intersector(),
-	}
-
-	for _, intersector := range intersectors {
-		for _, c := range intersectDataProvider() {
-			rid := make(Rid, 0, len(c.rid))
-
-			for _, slice := range c.rid {
-				rid = append(rid, NewSliceIterator(slice))
-			}
-
-			collector := &SimpleCollector{}
-			err := intersector.Intersect(rid, collector)
-
-			if err != nil {
-				t.Errorf("Unexpected error occurs: %v", err)
-			}
-
-			actual := []uint32{}
-
-			for _, c := range collector.Candidates {
-				actual = append(actual, c.Position())
-			}
-
-			if !reflect.DeepEqual(actual, c.expected) {
-				t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
-			}
-		}
-	}
-}
-
-type intersectCase struct {
-	rid      [][]uint32
-	expected []uint32
-}
-
-func intersectDataProvider() []intersectCase {
-	return []intersectCase{
+	testCases := []struct {
+		rid      [][]uint32
+		expected []uint32
+	}{
 		{
 			[][]uint32{
 				{1, 2, 3},
@@ -78,5 +44,25 @@ func intersectDataProvider() []intersectCase {
 				50,
 			},
 		},
+	}
+
+	for _, testCase := range testCases {
+		intersector := Intersector()
+		rid := make(Rid, 0, len(testCase.rid))
+
+		for _, slice := range testCase.rid {
+			rid = append(rid, NewSliceIterator(slice))
+		}
+
+		collector := &SimpleCollector{}
+		assert.NoError(t, intersector.Intersect(rid, collector))
+
+		actual := []uint32{}
+
+		for _, c := range collector.Candidates {
+			actual = append(actual, c.Position())
+		}
+
+		assert.Equal(t, testCase.expected, actual)
 	}
 }

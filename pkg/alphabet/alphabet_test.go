@@ -1,13 +1,14 @@
 package alphabet
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSequentialAlphabet(t *testing.T) {
-	alphabet := NewRussianAlphabet()
-
-	cases := []struct {
+	testCases := []struct {
 		char     rune
 		expected bool
 	}{
@@ -19,25 +20,16 @@ func TestSequentialAlphabet(t *testing.T) {
 		{'7', false},
 	}
 
-	for _, c := range cases {
-		actual := alphabet.Has(c.char)
-
-		if c.expected != actual {
-			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
-		}
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("test #%d", i), func(t *testing.T) {
+			alphabet := NewRussianAlphabet()
+			assert.Equal(t, testCase.expected, alphabet.Has(testCase.char))
+		})
 	}
 }
 
 func TestCompositeAlphabet(t *testing.T) {
-	alphabet := NewCompositeAlphabet(
-		[]Alphabet{
-			NewRussianAlphabet(),
-			NewEnglishAlphabet(),
-			NewNumberAlphabet(),
-		},
-	)
-
-	cases := []struct {
+	testCases := []struct {
 		char     rune
 		expected bool
 	}{
@@ -53,11 +45,18 @@ func TestCompositeAlphabet(t *testing.T) {
 		{'-', false},
 	}
 
-	for _, c := range cases {
-		actual := alphabet.Has(c.char)
-		if c.expected != actual {
-			t.Errorf("Test Fail, expected %v, got %v", c.expected, actual)
-		}
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("test #%d", i), func(t *testing.T) {
+			alphabet := NewCompositeAlphabet(
+				[]Alphabet{
+					NewRussianAlphabet(),
+					NewEnglishAlphabet(),
+					NewNumberAlphabet(),
+				},
+			)
+
+			assert.Equal(t, testCase.expected, alphabet.Has(testCase.char))
+		})
 	}
 }
 

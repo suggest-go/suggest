@@ -3,10 +3,11 @@ package lm
 import (
 	"fmt"
 	"math/rand"
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFlow(t *testing.T) {
@@ -56,17 +57,13 @@ func TestFlow(t *testing.T) {
 		return nil
 	})
 
-	if err != nil {
-		t.Errorf("Unexpected error occurs: %v", err)
-	}
+	assert.NoError(t, err)
 
 	sort.Slice(actual, func(i, j int) bool {
 		return actual[i].path < actual[j].path
 	})
 
-	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("Expected %v, got %v", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func BenchmarkWalk(b *testing.B) {

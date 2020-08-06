@@ -1,10 +1,10 @@
 package suggest
 
 import (
-	"reflect"
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suggest-go/suggest/pkg/metric"
 )
 
@@ -18,10 +18,7 @@ func TestConcurrencyRAM(t *testing.T) {
 
 func testConcurrency(t *testing.T, driver Driver) {
 	descriptions, err := ReadConfigs("testdata/config.json")
-
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	description := descriptions[0]
 	description.Driver = driver
@@ -33,9 +30,7 @@ func testConcurrency(t *testing.T, driver Driver) {
 		err = service.AddRunTimeIndex(description)
 	}
 
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	wordsList := []string{"Nissan March", "Honda Fitt", "Wolfsvagen", "Tayota Corolla", "Micra Nissan"}
 	var wg sync.WaitGroup
@@ -49,10 +44,9 @@ func testConcurrency(t *testing.T, driver Driver) {
 				err = service.AddRunTimeIndex(description)
 			}
 
-			if err != nil {
-				t.Error(err)
-			}
+			assert.NoError(t, err)
 		}
+
 		wg.Done()
 	}()
 
@@ -67,20 +61,18 @@ func testConcurrency(t *testing.T, driver Driver) {
 	go func() {
 		for i := 0; i < len(expectedValues); i++ {
 			searchConf, _ := NewSearchConfig(wordsList[i], 5, metric.CosineMetric(), 0.7)
+
 			result, err := service.Suggest(description.Name, searchConf)
-			if err != nil {
-				t.Errorf("Fail suggest %v", err)
-			}
+			assert.NoError(t, err)
 
 			actual := make([]string, 0, len(result))
 			for _, item := range result {
 				actual = append(actual, item.Value)
 			}
 
-			if !reflect.DeepEqual(actual, expectedValues[i]) {
-				t.Errorf("Test Fail, expected %v, got %v", expectedValues[i], actual)
-			}
+			assert.Equal(t, expectedValues[i], actual)
 		}
+
 		wg.Done()
 	}()
 
