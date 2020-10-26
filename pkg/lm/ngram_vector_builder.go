@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/alldroll/go-datastructures/rbtree"
+	"github.com/alldroll/rbtree"
 	"github.com/suggest-go/suggest/pkg/utils"
 )
 

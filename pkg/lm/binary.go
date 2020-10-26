@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alldroll/go-datastructures/rbtree"
+	"github.com/alldroll/rbtree"
 	"github.com/suggest-go/suggest/pkg/dictionary"
 	"github.com/suggest-go/suggest/pkg/mph"
 	"github.com/suggest-go/suggest/pkg/store"
