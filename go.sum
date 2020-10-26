@@ -2,8 +2,8 @@ github.com/RoaringBitmap/roaring v0.5.0 h1:0psZZWU0J2AUl29BAylpHAsuBEEhCEfTKl2v5
 github.com/RoaringBitmap/roaring v0.5.0/go.mod h1:D0gp8kJQgE1A4LQ5wFLggQEyvDi06Mq5mKs52e1TwOo=
 github.com/alldroll/cdb v1.0.2 h1:pSB3BphsF0m2DqOZm+IFyNm38nz1R8kCg3DPCusPLQE=
 github.com/alldroll/cdb v1.0.2/go.mod h1:PK3VAN9pconusJqa4kzOupYg9QxOnmgU8AcBWhuZZdo=
-github.com/alldroll/go-datastructures v0.0.0-20190322060030-1d3a19ff3b29 h1:gKZgtn2ud0FxyG0lFqrp8hRnvABoqkDTNgebDlbmtgM=
-github.com/alldroll/go-datastructures v0.0.0-20190322060030-1d3a19ff3b29/go.mod h1:3IP5cUVnXIyZIsUbKXztqoz1brdOXngjFyYtmwqz9MY=
+github.com/alldroll/rbtree v0.0.0-20201026153457-c76906afcaa0 h1:IRs8Y64CCc/GWRo0a4+NiWyFjF6TfRO5iZKTXyCM5B0=
+github.com/alldroll/rbtree v0.0.0-20201026153457-c76906afcaa0/go.mod h1:iBiS1ITTL31hmJ3cDRrtawPChwBaFPQDTQOpGhSF418=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/edsrzf/mmap-go v0.0.0-20190108065903-904c4ced31cd h1:v8VTjPes659sdlQ3O2AbICsk2XjORhYc76QLCFSTEgA=
