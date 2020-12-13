@@ -3,6 +3,7 @@ package suggest
 import (
 	"container/heap"
 	"math"
+	"sync"
 
 	"github.com/suggest-go/suggest/pkg/index"
 )
@@ -66,6 +67,7 @@ func (h topKHeap) updateTop(candidate Candidate) {
 type topKQueue struct {
 	topK int
 	h    topKHeap
+	lock sync.RWMutex
 }
 
 // NewTopKQueue returns instance of TopKQueue
@@ -73,6 +75,7 @@ func NewTopKQueue(topK int) TopKQueue {
 	return &topKQueue{
 		topK: topK,
 		h:    make(topKHeap, 0, topK),
+		lock: sync.RWMutex{},
 	}
 }
 
@@ -89,19 +92,30 @@ func (c *topKQueue) Add(position index.Position, score float64) {
 		Score: score,
 	}
 
-	if c.h.Len() < c.topK {
+	if !c.IsFull() {
+		c.lock.Lock()
 		heap.Push(&c.h, candidate)
+		c.lock.Unlock()
 
 		return
 	}
 
-	if c.h.top().Less(candidate) {
+	c.lock.RLock()
+	isLess := c.h.top().Less(candidate)
+	c.lock.RUnlock()
+
+	if isLess {
+		c.lock.Lock()
 		c.h.updateTop(candidate)
+		c.lock.Unlock()
 	}
 }
 
 // GetLowestScore returns the lowest score of the collected candidates
 func (c *topKQueue) GetLowestScore() float64 {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
 	if c.h.Len() > 0 {
 		return c.h.top().Score
 	}
@@ -115,16 +129,27 @@ func (c *topKQueue) CanTakeWithScore(score float64) bool {
 		return true
 	}
 
-	return c.h.top().Score <= score
+	c.lock.RLock()
+	canTake := c.h.top().Score <= score
+	c.lock.RUnlock()
+
+	return canTake
 }
 
 // IsFull tells if selector has collected topK elements
 func (c *topKQueue) IsFull() bool {
-	return c.h.Len() == c.topK
+	c.lock.RLock()
+	isFull := c.h.Len() == c.topK
+	c.lock.RUnlock()
+
+	return isFull
 }
 
 // GetCandidates returns `top k items`
 func (c *topKQueue) GetCandidates() []Candidate {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.h.Len() == 0 {
 		return []Candidate{}
 	}
@@ -151,9 +176,13 @@ func (c *topKQueue) Merge(other TopKQueue) {
 	topK, ok := other.(*topKQueue)
 
 	if ok {
+		c.lock.Lock()
+
 		for _, item := range topK.h {
 			c.Add(item.Key, item.Score)
 		}
+
+		c.lock.Unlock()
 
 		return
 	}
