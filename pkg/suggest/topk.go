@@ -12,7 +12,8 @@ import (
 type TopKQueue interface {
 	// Add adds item with given position and distance to collection if item belongs to `top k items`
 	Add(candidate index.Position, score float64)
-	// GetLowestScore returns the lowest score of the collected candidates. If collection is empty, 0 will be returned
+	// GetLowestScore returns the top-k score of the collected candidates.
+	// If the collection is less than top-k (not full), -inf will be returned.
 	GetLowestScore() float64
 	// CanTakeWithScore returns true if a candidate with the given score can be accepted
 	CanTakeWithScore(score float64) bool
@@ -83,7 +84,9 @@ func NewTopKQueue(topK int) TopKQueue {
 // use heap search for finding top k items in a list efficiently
 // see http://stevehanov.ca/blog/index.php?id=122
 func (c *topKQueue) Add(position index.Position, score float64) {
-	if !c.CanTakeWithScore(score) {
+	lowestScore := c.GetLowestScore()
+
+	if lowestScore >= score {
 		return
 	}
 
@@ -92,48 +95,38 @@ func (c *topKQueue) Add(position index.Position, score float64) {
 		Score: score,
 	}
 
-	if !c.IsFull() {
-		c.lock.Lock()
+	c.lock.Lock()
+
+	// less than top-k elements
+	if math.IsInf(lowestScore, -1) {
 		heap.Push(&c.h, candidate)
-		c.lock.Unlock()
-
-		return
-	}
-
-	c.lock.RLock()
-	isLess := c.h.top().Less(candidate)
-	c.lock.RUnlock()
-
-	if isLess {
-		c.lock.Lock()
+	} else {
 		c.h.updateTop(candidate)
-		c.lock.Unlock()
-	}
-}
-
-// GetLowestScore returns the lowest score of the collected candidates
-func (c *topKQueue) GetLowestScore() float64 {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	if c.h.Len() > 0 {
-		return c.h.top().Score
 	}
 
-	return math.Inf(-1)
+	c.lock.Unlock()
 }
 
 // CanTakeWithScore returns true if a candidate with the given score can be accepted
 func (c *topKQueue) CanTakeWithScore(score float64) bool {
-	if !c.IsFull() {
-		return true
-	}
+	return c.GetLowestScore() < score
+}
+
+// GetLowestScore returns the lowest top-k score of the collected candidates.
+func (c *topKQueue) GetLowestScore() float64 {
+	// GetLowestScore returns the top-k score of the collected candidates.
+	// If the collection is less than top-k (not full), -inf will be returned.
+	score := math.Inf(-1)
 
 	c.lock.RLock()
-	canTake := c.h.top().Score <= score
+
+	if c.h.Len() == c.topK {
+		score = c.h.top().Score
+	}
+
 	c.lock.RUnlock()
 
-	return canTake
+	return score
 }
 
 // IsFull tells if selector has collected topK elements
