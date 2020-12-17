@@ -3,7 +3,6 @@ package suggest
 import (
 	"container/heap"
 	"math"
-	"sync"
 
 	"github.com/suggest-go/suggest/pkg/index"
 )
@@ -12,8 +11,7 @@ import (
 type TopKQueue interface {
 	// Add adds item with given position and distance to collection if item belongs to `top k items`
 	Add(candidate index.Position, score float64)
-	// GetLowestScore returns the top-k score of the collected candidates.
-	// If the collection is less than top-k (not full), -inf will be returned.
+	// GetLowestScore returns the lowest score of the collected candidates. If collection is empty, 0 will be returned
 	GetLowestScore() float64
 	// CanTakeWithScore returns true if a candidate with the given score can be accepted
 	CanTakeWithScore(score float64) bool
@@ -68,7 +66,6 @@ func (h topKHeap) updateTop(candidate Candidate) {
 type topKQueue struct {
 	topK int
 	h    topKHeap
-	lock sync.RWMutex
 }
 
 // NewTopKQueue returns instance of TopKQueue
@@ -76,7 +73,6 @@ func NewTopKQueue(topK int) TopKQueue {
 	return &topKQueue{
 		topK: topK,
 		h:    make(topKHeap, 0, topK),
-		lock: sync.RWMutex{},
 	}
 }
 
@@ -84,9 +80,7 @@ func NewTopKQueue(topK int) TopKQueue {
 // use heap search for finding top k items in a list efficiently
 // see http://stevehanov.ca/blog/index.php?id=122
 func (c *topKQueue) Add(position index.Position, score float64) {
-	lowestScore := c.GetLowestScore()
-
-	if lowestScore >= score {
+	if !c.CanTakeWithScore(score) {
 		return
 	}
 
@@ -95,54 +89,42 @@ func (c *topKQueue) Add(position index.Position, score float64) {
 		Score: score,
 	}
 
-	c.lock.Lock()
-
-	// less than top-k elements
-	if math.IsInf(lowestScore, -1) {
+	if c.h.Len() < c.topK {
 		heap.Push(&c.h, candidate)
-	} else {
-		c.h.updateTop(candidate)
+
+		return
 	}
 
-	c.lock.Unlock()
+	if c.h.top().Less(candidate) {
+		c.h.updateTop(candidate)
+	}
+}
+
+// GetLowestScore returns the lowest score of the collected candidates
+func (c *topKQueue) GetLowestScore() float64 {
+	if c.h.Len() > 0 {
+		return c.h.top().Score
+	}
+
+	return math.Inf(-1)
 }
 
 // CanTakeWithScore returns true if a candidate with the given score can be accepted
 func (c *topKQueue) CanTakeWithScore(score float64) bool {
-	return c.GetLowestScore() < score
-}
-
-// GetLowestScore returns the lowest top-k score of the collected candidates.
-func (c *topKQueue) GetLowestScore() float64 {
-	// GetLowestScore returns the top-k score of the collected candidates.
-	// If the collection is less than top-k (not full), -inf will be returned.
-	score := math.Inf(-1)
-
-	c.lock.RLock()
-
-	if c.h.Len() == c.topK {
-		score = c.h.top().Score
+	if !c.IsFull() {
+		return true
 	}
 
-	c.lock.RUnlock()
-
-	return score
+	return c.h.top().Score <= score
 }
 
 // IsFull tells if selector has collected topK elements
 func (c *topKQueue) IsFull() bool {
-	c.lock.RLock()
-	isFull := c.h.Len() == c.topK
-	c.lock.RUnlock()
-
-	return isFull
+	return c.h.Len() == c.topK
 }
 
 // GetCandidates returns `top k items`
 func (c *topKQueue) GetCandidates() []Candidate {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if c.h.Len() == 0 {
 		return []Candidate{}
 	}
@@ -169,13 +151,9 @@ func (c *topKQueue) Merge(other TopKQueue) {
 	topK, ok := other.(*topKQueue)
 
 	if ok {
-		c.lock.Lock()
-
 		for _, item := range topK.h {
 			c.Add(item.Key, item.Score)
 		}
-
-		c.lock.Unlock()
 
 		return
 	}
