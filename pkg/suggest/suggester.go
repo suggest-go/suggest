@@ -57,6 +57,11 @@ func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 		bMax = lenIndices - 1
 	}
 
+	// store similarity as atomic value
+	// we are going to update its value after search sub-work complete
+	similarityHolder := utils.AtomicFloat64{}
+	similarityHolder.Store(config.similarity)
+
 	topKQueue := topKQueuePool.Get().(TopKQueue)
 	topKQueue.Reset(config.topK)
 	defer topKQueuePool.Put(topKQueue)
@@ -64,11 +69,12 @@ func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 	// channel that receives fuzzyCollector and performs a search on length segment
 	sizeCh := make(chan int, bMax-bMin+1)
 	workerPool := errgroup.Group{}
+	lock := sync.Mutex{}
 
 	for i := 0; i < utils.Min(maxSearchQueriesAtOnce, bMax-bMin+1); i++ {
 		workerPool.Go(func() error {
 			for sizeB := range sizeCh {
-				similarity := utils.MaxFloat64(config.similarity, topKQueue.GetLowestScore())
+				similarity := similarityHolder.Load()
 				threshold := config.metric.Threshold(similarity, sizeA, sizeB)
 
 				// it means that the similarity has been changed and we will skip this value processing
@@ -82,14 +88,29 @@ func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 					continue
 				}
 
+				queue := topKQueuePool.Get().(TopKQueue)
+				queue.Reset(config.topK)
+
 				collector := &fuzzyCollector{
-					topKQueue: topKQueue,
+					topKQueue: queue,
 					scorer:    NewMetricScorer(config.metric, sizeA, sizeB),
 				}
 
 				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
 					return fmt.Errorf("failed to search posting lists: %w", err)
 				}
+
+				lock.Lock()
+
+				topKQueue.Merge(queue)
+
+				if topKQueue.IsFull() && similarityHolder.Load() < topKQueue.GetLowestScore() {
+					similarityHolder.Store(topKQueue.GetLowestScore())
+				}
+
+				lock.Unlock()
+
+				topKQueuePool.Put(queue)
 			}
 
 			return nil

@@ -24,15 +24,6 @@ func Min(a, b int) int {
 	return a
 }
 
-// MaxFloat64 returns the maximum value
-func MaxFloat64(a, b float64) float64 {
-	if a > b {
-		return a
-	}
-
-	return b
-}
-
 // Pack packs 2 uint32 into uint64
 func Pack(a, b uint32) uint64 {
 	return (uint64(a) << 32) | uint64(b&math.MaxUint32)
