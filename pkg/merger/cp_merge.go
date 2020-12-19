@@ -1,6 +1,7 @@
 package merger
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 )
@@ -25,6 +26,9 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 	tmp := bufPool.Get().([]MergeCandidate)
 	candidates := bufPool.Get().([]MergeCandidate)
 
+	defer bufPool.Put(tmp[:0])
+	defer bufPool.Put(candidates[:0])
+
 	for _, list := range rid[:minQueries] {
 		isValid := true
 		current, err := list.Get()
@@ -33,7 +37,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 			if err == ErrIteratorIsNotDereferencable {
 				isValid = false
 			} else {
-				return err
+				return fmt.Errorf("failed to call list.Get: %w", err)
 			}
 		}
 
@@ -48,7 +52,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 					current, err = list.Next()
 
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to call list.Next: %w", err)
 					}
 				} else {
 					isValid = false
@@ -65,7 +69,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 					current, err = list.Next()
 
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to call list.Next: %w", err)
 					}
 				} else {
 					isValid = false
@@ -76,7 +80,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 		candidates, tmp = tmp, candidates
 	}
 
-	for i := minQueries; i < lenRid; i++ {
+	for i := minQueries; i < lenRid && len(candidates) > 0; i++ {
 		tmp = tmp[:0]
 
 		for _, c := range candidates {
@@ -87,7 +91,7 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 			}
 
 			if err != nil && err != ErrIteratorIsNotDereferencable {
-				return err
+				return fmt.Errorf("failed to call list.LowerBound: %w", err)
 			}
 
 			if c.Overlap()+(lenRid-i-1) >= threshold {
@@ -96,10 +100,6 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 		}
 
 		candidates, tmp = tmp, candidates
-
-		if len(candidates) == 0 {
-			break
-		}
 	}
 
 	for _, c := range candidates {
@@ -111,13 +111,10 @@ func (cp *cpMerge) Merge(rid Rid, threshold int, collector Collector) error {
 			}
 
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to call collector.Collect: %w", err)
 			}
 		}
 	}
-
-	bufPool.Put(tmp[:0])
-	bufPool.Put(candidates[:0])
 
 	return nil
 }
