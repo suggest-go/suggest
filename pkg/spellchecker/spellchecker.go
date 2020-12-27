@@ -51,26 +51,27 @@ func (s *SpellChecker) Predict(query string, topK int, similarity float64) ([]st
 		return nil, err
 	}
 
-	collectorManager := newCollectorManager(newScorer(scorerNext), topK)
-	candidates, err := s.index.Autocomplete(word, collectorManager)
+	queueFactory := func() suggest.TopKQueue {
+		return suggest.NewTopKQueue(topK)
+	}
+
+	candidates, err := s.index.Autocomplete(word, func() suggest.CollectorManager {
+		return newCollectorManager(newScorer(scorerNext), queueFactory)
+	})
 
 	if err != nil {
 		return nil, err
 	}
 
 	if len(candidates) < topK {
-		config, err := suggest.NewSearchConfig(
+		fuzzyCandidates, err := s.index.Suggest(
 			word,
-			topK,
-			metric.CosineMetric(),
 			similarity,
+			metric.CosineMetric(),
+			func() suggest.CollectorManager {
+				return suggest.NewFuzzyCollectorManager(queueFactory)
+			},
 		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		fuzzyCandidates, err := s.index.Suggest(config)
 
 		if err != nil {
 			return nil, err

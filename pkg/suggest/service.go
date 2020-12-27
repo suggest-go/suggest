@@ -112,7 +112,12 @@ func (s *Service) Suggest(dictName string, config SearchConfig) ([]ResultItem, e
 		return nil, fmt.Errorf("given dictionary %s is not exists", dictName)
 	}
 
-	candidates, err := index.Suggest(config)
+	candidates, err := index.Suggest(
+		config.query,
+		config.similarity,
+		config.metric,
+		newFuzzyCollectorManager(config.topK),
+	)
 
 	if err != nil {
 		return nil, err
@@ -144,7 +149,10 @@ func (s *Service) Autocomplete(dictName string, query string, limit int) ([]Resu
 		return nil, fmt.Errorf("given dictionary %s is not exists", dictName)
 	}
 
-	candidates, err := index.Autocomplete(query, NewFirstKCollectorManager(limit))
+	candidates, err := index.Autocomplete(
+		query,
+		newFirstKCollectorManager(limit),
+	)
 
 	if err != nil {
 		return nil, err

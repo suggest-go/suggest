@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/suggest-go/suggest/pkg/analysis"
+	"github.com/suggest-go/suggest/pkg/metric"
 	"github.com/suggest-go/suggest/pkg/utils"
 
 	"github.com/suggest-go/suggest/pkg/index"
@@ -15,7 +16,7 @@ import (
 // approximate string search
 type Suggester interface {
 	// Suggest returns top-k similar candidates
-	Suggest(config SearchConfig) ([]Candidate, error)
+	Suggest(query string, similarity float64, metric metric.Metric, factory CollectorManagerFactory) ([]Candidate, error)
 }
 
 // maxSearchQueriesAtOnce tells how many goroutines can be used at once for a search query
@@ -42,40 +43,34 @@ func NewSuggester(
 }
 
 // Suggest returns top-k similar candidates
-func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
-	set := n.tokenizer.Tokenize(config.query)
+func (n *nGramSuggester) Suggest(query string, similarity float64, metric metric.Metric, factory CollectorManagerFactory) ([]Candidate, error) {
+	tokens := n.tokenizer.Tokenize(query)
 
-	if len(set) == 0 {
+	if len(tokens) == 0 {
 		return []Candidate{}, nil
 	}
 
-	sizeA := len(set)
-	bMin, bMax := config.metric.MinY(config.similarity, sizeA), config.metric.MaxY(config.similarity, sizeA)
+	sizeA := len(tokens)
+	bMin, bMax := metric.MinY(similarity, sizeA), metric.MaxY(similarity, sizeA)
 	lenIndices := n.indices.Size()
 
 	if bMax >= lenIndices {
 		bMax = lenIndices - 1
 	}
 
-	// store similarity as atomic value
-	// we are going to update its value after search sub-work complete
-	similarityHolder := utils.AtomicFloat64{}
-	similarityHolder.Store(config.similarity)
-
-	topKQueue := topKQueuePool.Get().(TopKQueue)
-	topKQueue.Reset(config.topK)
-	defer topKQueuePool.Put(topKQueue)
-
 	// channel that receives fuzzyCollector and performs a search on length segment
 	sizeCh := make(chan int, bMax-bMin+1)
 	workerPool := errgroup.Group{}
-	lock := sync.Mutex{}
+	collectorManager := factory()
+
+	locker := sync.Mutex{}
+	similarityHolder := utils.AtomicFloat64{}
+	similarityHolder.Store(similarity)
 
 	for i := 0; i < utils.Min(maxSearchQueriesAtOnce, bMax-bMin+1); i++ {
 		workerPool.Go(func() error {
 			for sizeB := range sizeCh {
-				similarity := similarityHolder.Load()
-				threshold := config.metric.Threshold(similarity, sizeA, sizeB)
+				threshold := metric.Threshold(similarityHolder.Load(), sizeA, sizeB)
 
 				// it means that the similarity has been changed and we will skip this value processing
 				if threshold == 0 || threshold > sizeB || threshold > sizeA {
@@ -88,29 +83,26 @@ func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 					continue
 				}
 
-				queue := topKQueuePool.Get().(TopKQueue)
-				queue.Reset(config.topK)
+				collector := collectorManager.Create()
+				collector.SetScorer(NewMetricScorer(metric, sizeA, sizeB))
 
-				collector := &fuzzyCollector{
-					topKQueue: queue,
-					scorer:    NewMetricScorer(config.metric, sizeA, sizeB),
-				}
-
-				if err := n.searcher.Search(invertedIndex, set, threshold, collector); err != nil {
+				if err := n.searcher.Search(invertedIndex, tokens, threshold, collector); err != nil {
 					return fmt.Errorf("failed to search posting lists: %w", err)
 				}
 
-				lock.Lock()
+				locker.Lock()
 
-				topKQueue.Merge(queue)
+				if err := collectorManager.Collect(collector); err != nil {
+					locker.Unlock()
 
-				if topKQueue.IsFull() && similarityHolder.Load() < topKQueue.GetLowestScore() {
-					similarityHolder.Store(topKQueue.GetLowestScore())
+					return err
 				}
 
-				lock.Unlock()
+				if fuzzy, ok := collectorManager.(*FuzzyCollectorManager); ok && fuzzy.GetLowestScore() > similarityHolder.Load() {
+					similarityHolder.Store(fuzzy.GetLowestScore())
+				}
 
-				topKQueuePool.Put(queue)
+				locker.Unlock()
 			}
 
 			return nil
@@ -135,11 +127,5 @@ func (n *nGramSuggester) Suggest(config SearchConfig) ([]Candidate, error) {
 		return nil, err
 	}
 
-	return topKQueue.GetCandidates(), nil
-}
-
-var topKQueuePool = sync.Pool{
-	New: func() interface{} {
-		return NewTopKQueue(50)
-	},
+	return collectorManager.GetCandidates(), nil
 }

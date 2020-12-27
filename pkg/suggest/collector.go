@@ -1,6 +1,9 @@
 package suggest
 
 import (
+	"errors"
+	"math"
+
 	"github.com/suggest-go/suggest/pkg/index"
 	"github.com/suggest-go/suggest/pkg/merger"
 )
@@ -27,17 +30,20 @@ type Collector interface {
 	merger.Collector
 	// SetScorer sets a scorer before collection starts
 	SetScorer(scorer Scorer)
-	// GetCandidates returns the list of collected candidates
-	GetCandidates() []Candidate
 }
 
 // CollectorManager is responsible for creating collectors and reducing them into the result set
 type CollectorManager interface {
 	// Create creates a new collector that will be used for a search segment
-	Create() (Collector, error)
-	// Reduce reduces the result from the given list of collectors
-	Reduce(collectors []Collector) []Candidate
+	Create() Collector
+	// Collect returns back the given collectors.
+	Collect(collectors ...Collector) error
+	// GetCandidates returns currently collected candidates.
+	GetCandidates() []Candidate
 }
+
+// CollectorManagerFactory is a factory method for creating a new instance of CollectorManager.
+type CollectorManagerFactory func() CollectorManager
 
 type firstKCollector struct {
 	limit int
@@ -51,7 +57,6 @@ func (c *firstKCollector) Collect(item merger.MergeCandidate) error {
 	}
 
 	c.items = append(c.items, item)
-
 	return nil
 }
 
@@ -60,50 +65,53 @@ func (c *firstKCollector) SetScorer(scorer Scorer) {
 	return
 }
 
-// GetCandidates returns the list of collected candidates
-func (c *firstKCollector) GetCandidates() []Candidate {
-	result := make([]Candidate, 0, len(c.items))
-
-	for _, item := range c.items {
-		result = append(result, Candidate{
-			Key: item.Position(),
-		})
-	}
-
-	return result
-}
-
 // NewFirstKCollectorManager creates a new instance of CollectorManager with firstK collectors
-func NewFirstKCollectorManager(limit int) CollectorManager {
-	return &firstKCollectorManager{
+func NewFirstKCollectorManager(limit int, queue TopKQueue) *FirstKCollectorManager {
+	return &FirstKCollectorManager{
 		limit: limit,
+		queue: queue,
 	}
 }
 
-type firstKCollectorManager struct {
+func newFirstKCollectorManager(limit int) CollectorManagerFactory {
+	return func() CollectorManager {
+		return NewFirstKCollectorManager(limit, NewTopKQueue(limit))
+	}
+}
+
+// FirstKCollectorManager represents first k collector manager.
+type FirstKCollectorManager struct {
 	limit int
+	queue TopKQueue
 }
 
 // Create creates a new collector that will be used for a search segment
-func (m *firstKCollectorManager) Create() (Collector, error) {
+func (m *FirstKCollectorManager) Create() Collector {
 	return &firstKCollector{
 		limit: m.limit,
-	}, nil
+	}
 }
 
-// Reduce reduces the result from the given list of collectors
-func (m *firstKCollectorManager) Reduce(collectors []Collector) []Candidate {
-	topKQueue := NewTopKQueue(m.limit)
+// Collect returns back the given collectors.
+func (m *FirstKCollectorManager) Collect(collectors ...Collector) error {
+	for _, item := range collectors {
+		collector, ok := item.(*firstKCollector)
 
-	for _, c := range collectors {
-		if collector, ok := c.(*firstKCollector); ok {
-			for _, item := range collector.items {
-				topKQueue.Add(item.Position(), -float64(item.Position()))
-			}
+		if !ok {
+			return errors.New("expected Collector created by FirstKCollectorManager")
+		}
+
+		for _, candidate := range collector.items {
+			m.queue.Add(candidate.Position(), -float64(candidate.Position()))
 		}
 	}
 
-	return topKQueue.GetCandidates()
+	return nil
+}
+
+// GetCandidates returns currently collected candidates.
+func (m *FirstKCollectorManager) GetCandidates() []Candidate {
+	return m.queue.GetCandidates()
 }
 
 type fuzzyCollector struct {
@@ -119,11 +127,65 @@ func (c *fuzzyCollector) Collect(item merger.MergeCandidate) error {
 	return nil
 }
 
-// GetCandidates returns `top k items`
-func (c *fuzzyCollector) GetCandidates() []Candidate {
-	return c.topKQueue.GetCandidates()
-}
-
 // Score returns the score of the given position
 func (c *fuzzyCollector) SetScorer(scorer Scorer) {
+	c.scorer = scorer
+}
+
+// NewFuzzyCollectorManager creates a new instance of FuzzyCollectorManager.
+func NewFuzzyCollectorManager(queueFactory func() TopKQueue) *FuzzyCollectorManager {
+	return &FuzzyCollectorManager{
+		queueFactory: queueFactory,
+		globalQueue:  queueFactory(),
+	}
+}
+
+func newFuzzyCollectorManager(topK int) CollectorManagerFactory {
+	return func() CollectorManager {
+		return NewFuzzyCollectorManager(func() TopKQueue {
+			return NewTopKQueue(topK)
+		})
+	}
+}
+
+// FuzzyCollectorManager represents fuzzy collector manager.
+type FuzzyCollectorManager struct {
+	queueFactory func() TopKQueue
+	globalQueue  TopKQueue
+}
+
+// Create creates a new collector that will be used for a search segment
+func (m *FuzzyCollectorManager) Create() Collector {
+	return &fuzzyCollector{
+		topKQueue: m.queueFactory(),
+	}
+}
+
+// Collect returns back the given collectors.
+func (m *FuzzyCollectorManager) Collect(collectors ...Collector) error {
+	for _, item := range collectors {
+		collector, ok := item.(*fuzzyCollector)
+
+		if !ok {
+			return errors.New("expected Collector created by FirstKCollectorManager")
+		}
+
+		m.globalQueue.Merge(collector.topKQueue)
+	}
+
+	return nil
+}
+
+// GetCandidates returns currently collected candidates.
+func (m *FuzzyCollectorManager) GetCandidates() []Candidate {
+	return m.globalQueue.GetCandidates()
+}
+
+// GetLowestScore returns the lowest collected score.
+func (m *FuzzyCollectorManager) GetLowestScore() float64 {
+	if !m.globalQueue.IsFull() {
+		return math.Inf(-1)
+	}
+
+	return m.globalQueue.GetLowestScore()
 }

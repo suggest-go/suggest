@@ -1,5 +1,7 @@
 package suggest
 
+import "github.com/suggest-go/suggest/pkg/metric"
+
 // NGramIndex is the interface that provides the access to
 // approximate string search and autocomplete
 type NGramIndex interface {
@@ -21,11 +23,11 @@ type nGramIndex struct {
 }
 
 // Suggest returns top-k similar candidates
-func (n *nGramIndex) Suggest(config SearchConfig) ([]Candidate, error) {
-	return n.suggester.Suggest(config)
+func (n *nGramIndex) Suggest(query string, similarity float64, metric metric.Metric, factory CollectorManagerFactory) ([]Candidate, error) {
+	return n.suggester.Suggest(query, similarity, metric, factory)
 }
 
 // Autocomplete returns candidates where the query string is a substring of each candidate
-func (n *nGramIndex) Autocomplete(query string, collectorManager CollectorManager) ([]Candidate, error) {
-	return n.autocomplete.Autocomplete(query, collectorManager)
+func (n *nGramIndex) Autocomplete(query string, factory CollectorManagerFactory) ([]Candidate, error) {
+	return n.autocomplete.Autocomplete(query, factory)
 }

@@ -2,6 +2,7 @@ package suggest
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/suggest-go/suggest/pkg/analysis"
 	"github.com/suggest-go/suggest/pkg/index"
@@ -12,7 +13,7 @@ import (
 // for candidates search
 type Autocomplete interface {
 	// Autocomplete returns candidates where the query string is a substring of each candidate
-	Autocomplete(query string, collectorManager CollectorManager) ([]Candidate, error)
+	Autocomplete(query string, factory CollectorManagerFactory) ([]Candidate, error)
 }
 
 // NewAutocomplete creates a new instance of Autocomplete
@@ -36,11 +37,12 @@ type nGramAutocomplete struct {
 }
 
 // Autocomplete returns candidates where the query string is a prefix of each candidate
-func (n *nGramAutocomplete) Autocomplete(query string, collectorManager CollectorManager) ([]Candidate, error) {
+func (n *nGramAutocomplete) Autocomplete(query string, factory CollectorManagerFactory) ([]Candidate, error) {
 	set := n.tokenizer.Tokenize(query)
 	lenSet := len(set)
-	collectors := []Collector{}
 	workerPool := errgroup.Group{}
+	collectorManager := factory()
+	locker := sync.Mutex{}
 
 	for size := lenSet; size < n.indices.Size(); size++ {
 		invertedIndex := n.indices.Get(size)
@@ -49,26 +51,27 @@ func (n *nGramAutocomplete) Autocomplete(query string, collectorManager Collecto
 			continue
 		}
 
-		collector, err := collectorManager.Create()
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to create a collector: %w", err)
-		}
+		collector := collectorManager.Create()
 
 		workerPool.Go(func() error {
-			if err = n.searcher.Search(invertedIndex, set, lenSet, collector); err != nil {
+			if err := n.searcher.Search(invertedIndex, set, lenSet, collector); err != nil {
 				return fmt.Errorf("failed to search posting lists: %w", err)
+			}
+
+			locker.Lock()
+			defer locker.Unlock()
+
+			if err := collectorManager.Collect(collector); err != nil {
+				return err
 			}
 
 			return nil
 		})
-
-		collectors = append(collectors, collector)
 	}
 
 	if err := workerPool.Wait(); err != nil {
 		return nil, err
 	}
 
-	return collectorManager.Reduce(collectors), nil
+	return collectorManager.GetCandidates(), nil
 }
