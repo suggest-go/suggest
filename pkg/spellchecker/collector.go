@@ -1,6 +1,8 @@
 package spellchecker
 
 import (
+	"errors"
+
 	"github.com/suggest-go/suggest/pkg/lm"
 	"github.com/suggest-go/suggest/pkg/merger"
 	"github.com/suggest-go/suggest/pkg/suggest"
@@ -13,38 +15,46 @@ type lmCollector struct {
 }
 
 // newCollectorManager creates a new instance of lm CollectorManger.
-func newCollectorManager(scorer suggest.Scorer, topK int) suggest.CollectorManager {
+func newCollectorManager(scorer suggest.Scorer, queueFactory func() suggest.TopKQueue) suggest.CollectorManager {
 	return &lmCollectorManager{
-		topK:   topK,
-		scorer: scorer,
+		scorer:       scorer,
+		queueFactory: queueFactory,
+		globalQueue:  queueFactory(),
 	}
 }
 
 // lmCollectorManager implements CollectorManager interface
 type lmCollectorManager struct {
-	topK   int
-	scorer suggest.Scorer
+	scorer       suggest.Scorer
+	queueFactory func() suggest.TopKQueue
+	globalQueue  suggest.TopKQueue
 }
 
 // Create creates a new collector that will be used for a search segment
-func (l *lmCollectorManager) Create() (suggest.Collector, error) {
+func (l *lmCollectorManager) Create() suggest.Collector {
 	return &lmCollector{
-		topKQueue: suggest.NewTopKQueue(l.topK),
+		topKQueue: l.queueFactory(),
 		scorer:    l.scorer,
-	}, nil
+	}
 }
 
 // Reduce reduces the result from the given list of collectors
-func (l *lmCollectorManager) Reduce(collectors []suggest.Collector) []suggest.Candidate {
-	topKQueue := suggest.NewTopKQueue(l.topK)
-
+func (l *lmCollectorManager) Collect(collectors ...suggest.Collector) error {
 	for _, c := range collectors {
-		if collector, ok := c.(*lmCollector); ok {
-			topKQueue.Merge(collector.topKQueue)
+		collector, ok := c.(*lmCollector)
+
+		if !ok {
+			return errors.New("expected collector created by lmCollectorManager")
 		}
+
+		l.globalQueue.Merge(collector.topKQueue)
 	}
 
-	return topKQueue.GetCandidates()
+	return nil
+}
+
+func (l *lmCollectorManager) GetCandidates() []suggest.Candidate {
+	return l.globalQueue.GetCandidates()
 }
 
 // Collect collects the given candidate

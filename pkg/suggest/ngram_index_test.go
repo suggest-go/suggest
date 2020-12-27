@@ -26,10 +26,7 @@ func TestSuggestAuto(t *testing.T) {
 
 	nGramIndex := buildNGramIndex(collection)
 
-	conf, err := NewSearchConfig("Nissan ma", 2, metric.JaccardMetric(), 0.5)
-	assert.NoError(t, err)
-
-	candidates, err := nGramIndex.Suggest(conf)
+	candidates, err := nGramIndex.Suggest("Nissan ma", 0.5, metric.JaccardMetric(), newFuzzyCollectorManager(2))
 	assert.NoError(t, err)
 
 	actual := make([]index.Position, 0, len(candidates))
@@ -56,7 +53,7 @@ func TestAutoComplete(t *testing.T) {
 
 	nGramIndex := buildNGramIndex(collection)
 
-	candidates, err := nGramIndex.Autocomplete("Niss", NewFirstKCollectorManager(5))
+	candidates, err := nGramIndex.Autocomplete("Niss", newFirstKCollectorManager(5))
 	assert.NoError(t, err)
 
 	actual := make([]index.Position, 0, len(candidates))
@@ -84,14 +81,9 @@ func BenchmarkSuggest(b *testing.B) {
 	nGramIndex := buildNGramIndex(collection)
 
 	b.ResetTimer()
-	conf, err := NewSearchConfig("Nissan mar", 2, metric.JaccardMetric(), 0.5)
-
-	if err != nil {
-		b.Errorf("Unexpected error: %v", err)
-	}
 
 	for i := 0; i < b.N; i++ {
-		nGramIndex.Suggest(conf)
+		nGramIndex.Suggest("Nissan mar", 0.5, metric.CosineMetric(), newFuzzyCollectorManager(5))
 	}
 }
 
@@ -113,7 +105,7 @@ func BenchmarkAutoComplete(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		nGramIndex.Autocomplete(collection[i%qLen], NewFirstKCollectorManager(5))
+		nGramIndex.Autocomplete(collection[i%qLen], newFirstKCollectorManager(5))
 	}
 }
 
@@ -166,15 +158,9 @@ func BenchmarkSuggestWordsOnDisc(b *testing.B) {
 	}
 
 	qLen := len(queries)
-	conf, err := NewSearchConfig("axuialary", 5, metric.CosineMetric(), 0.5)
-
-	if err != nil {
-		b.Errorf("Unexpected error: %v", err)
-	}
 
 	for i := 0; i < b.N; i++ {
-		conf.query = queries[i%qLen]
-		index.Suggest(conf)
+		index.Suggest(queries[i%qLen], 0.5, metric.CosineMetric(), newFuzzyCollectorManager(5))
 	}
 }
 
@@ -200,7 +186,7 @@ func BenchmarkAutocompleteWordsOnDisc(b *testing.B) {
 	qLen := len(queries)
 
 	for i := 0; i < b.N; i++ {
-		index.Autocomplete(queries[i%qLen], NewFirstKCollectorManager(5))
+		index.Autocomplete(queries[i%qLen], newFirstKCollectorManager(5))
 	}
 }
 
@@ -220,15 +206,9 @@ func benchmarkRealExample(b *testing.B, index NGramIndex) {
 	}
 
 	qLen := len(queries)
-	conf, err := NewSearchConfig("Nissan mar", 5, metric.CosineMetric(), 0.3)
-
-	if err != nil {
-		b.Errorf("Unexpected error: %v", err)
-	}
 
 	for i := 0; i < b.N; i++ {
-		conf.query = queries[i%qLen]
-		index.Suggest(conf)
+		index.Suggest(queries[i%qLen], 0.5, metric.CosineMetric(), newFuzzyCollectorManager(5))
 	}
 }
 
