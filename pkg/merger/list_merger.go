@@ -73,7 +73,7 @@ func newMerger(merger ListMerger) ListMerger {
 func (m *mergerOptimizer) Merge(rid Rid, threshold int, collector Collector) error {
 	n := len(rid)
 
-	if n < threshold || n == 0 {
+	if n < threshold || n == 0 || threshold < 0 {
 		return nil
 	}
 

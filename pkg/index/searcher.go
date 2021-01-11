@@ -3,8 +3,6 @@ package index
 import (
 	"fmt"
 
-	"github.com/suggest-go/suggest/pkg/analysis"
-
 	"github.com/suggest-go/suggest/pkg/merger"
 )
 
@@ -28,20 +26,8 @@ func NewSearcher(merger merger.ListMerger) Searcher {
 
 // Search performs search for the given index with the terms and threshold
 func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold int, collector merger.Collector) error {
+	terms = filterTermsByExistence(invertedIndex, terms, threshold)
 	n := len(terms)
-	set := make([]analysis.Token, len(terms))
-	copy(set, terms)
-
-	for i := 0; i < n && n >= threshold; {
-		term := set[i]
-
-		if !invertedIndex.Has(term) {
-			set[i], set[n-1] = set[n-1], set[i]
-			n--
-		} else {
-			i++
-		}
-	}
 
 	if n < threshold {
 		return nil
@@ -49,7 +35,7 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 
 	rid := make([]merger.ListIterator, 0, n)
 
-	for _, term := range set[:n] {
+	for _, term := range terms {
 		postingListContext, err := invertedIndex.Get(term)
 
 		if err != nil {
@@ -76,4 +62,17 @@ func (s *searcher) Search(invertedIndex InvertedIndex, terms []Term, threshold i
 	}
 
 	return nil
+}
+
+func filterTermsByExistence(index InvertedIndex, terms []Term, threshold int) []Term {
+	n := len(terms)
+	filtered := make([]Term, 0, n)
+
+	for i := 0; i < n && (len(filtered)+n-i) >= threshold; i++ {
+		if index.Has(terms[i]) {
+			filtered = append(filtered, terms[i])
+		}
+	}
+
+	return filtered
 }

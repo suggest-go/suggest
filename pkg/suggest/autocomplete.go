@@ -38,13 +38,13 @@ type nGramAutocomplete struct {
 
 // Autocomplete returns candidates where the query string is a prefix of each candidate
 func (n *nGramAutocomplete) Autocomplete(query string, factory CollectorManagerFactory) ([]Candidate, error) {
-	set := n.tokenizer.Tokenize(query)
-	lenSet := len(set)
+	terms := n.tokenizer.Tokenize(query)
+	termsLen := len(terms)
 	workerPool := errgroup.Group{}
 	collectorManager := factory()
 	locker := sync.Mutex{}
 
-	for size := lenSet; size < n.indices.Size(); size++ {
+	for size := termsLen; size < n.indices.Size(); size++ {
 		invertedIndex := n.indices.Get(size)
 
 		if invertedIndex == nil {
@@ -54,7 +54,7 @@ func (n *nGramAutocomplete) Autocomplete(query string, factory CollectorManagerF
 		collector := collectorManager.Create()
 
 		workerPool.Go(func() error {
-			if err := n.searcher.Search(invertedIndex, set, lenSet, collector); err != nil {
+			if err := n.searcher.Search(invertedIndex, terms, termsLen, collector); err != nil {
 				return fmt.Errorf("failed to search posting lists: %w", err)
 			}
 
