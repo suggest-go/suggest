@@ -3,7 +3,7 @@ package merger
 import "container/heap"
 
 type record struct {
-	ridID    uint32
+	iterator ListIterator
 	position uint32
 }
 
@@ -66,7 +66,7 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 			return err
 		}
 
-		h.slice[i].ridID, h.slice[i].position = uint32(i), r
+		h.slice[i].iterator, h.slice[i].position = rid[i], r
 	}
 
 	heap.Init(&h)
@@ -93,19 +93,15 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 
 			start := h.size
 
-			for i := 0; i < poppedItems; i++ {
-				index := start + i
-				item := h.slice[index]
-				cur := rid[item.ridID]
-
-				if cur.HasNext() {
-					r, err := cur.Next()
+			for _, item := range h.slice[start : start+poppedItems] {
+				if item.iterator.HasNext() {
+					r, err := item.iterator.Next()
 
 					if err != nil {
 						return err
 					}
 
-					h.slice[h.size].ridID = item.ridID
+					h.slice[h.size].iterator = item.iterator
 					h.slice[h.size].position = r
 					heap.Push(&h, nil)
 				}
@@ -123,23 +119,19 @@ func (ms *mergeSkip) Merge(rid Rid, threshold int, collector Collector) error {
 			topPos := h.top().position
 			start := h.size
 
-			for i := 0; i < poppedItems; i++ {
-				index := start + i
-				item := h.slice[index]
-				cur := rid[item.ridID]
-
-				if cur.Len() == 0 {
+			for _, item := range h.slice[start : start+poppedItems] {
+				if item.iterator.Len() == 0 {
 					continue
 				}
 
-				r, err := cur.LowerBound(topPos)
+				r, err := item.iterator.LowerBound(topPos)
 
 				if err != nil && err != ErrIteratorIsNotDereferencable {
 					return err
 				}
 
 				if err == nil {
-					h.slice[h.size].ridID = item.ridID
+					h.slice[h.size].iterator = item.iterator
 					h.slice[h.size].position = r
 					heap.Push(&h, nil)
 				}
